@@ -18,6 +18,6 @@ I did not use any sort of cmake or some other build program. I made a powershell
 
 ### But why???
 
-No idea. This started as an experiment about strings and string functions and ended up becoming a text editor.
+No idea. This started as an experiment about strings and string functions and ended up becoming a text editor. Its essentially just a glorified string and file I/O practice
 
 ### I am not responsible for any mental or emotional damage caused by looking at this code or by using the program itself. You have been warned!

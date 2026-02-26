@@ -259,10 +259,13 @@ void FixCursorPossitionEx(){
         }
     }
     else{
-        if((uint32_t)(Inf.CursorX) > maxCursor){
+        /*if((uint32_t)(Inf.CursorX) > maxCursor){
             Inf.CursorX = TotalColumns;
             Inf.ColumnOffset = 0;
-        }
+        }*/
+        if((uint32_t)(Inf.CursorX) > maxCursor)
+            Inf.CursorX = maxCursor;
+            if(Inf.ColumnOffset) Inf.CursorX++; // maxCursor is sometimes for 1 smaller than it should be
     }
     uint32_t maxOffset = (TotalColumns > (uint32_t)Inf.ConsoleColumns) ? TotalColumns - Inf.ConsoleColumns : 0;
     if (Inf.ColumnOffset > maxOffset) Inf.ColumnOffset = maxOffset;
@@ -665,17 +668,17 @@ char ProcessKeypress(){
                 n = CountForwardToWord(target->Memory, LinePossition);
             else
                 n = CountForwardToBlank(target->Memory, LinePossition);
-            Inf.CursorX += n;
+            Inf.CursorX = n + LINE_NUMBER_WIDTH;
             ArrowKeys = 0;
         } return 0;
         case CTRL_LEFT:{
+            if(LinePossition == 0) return 0;
             uint32_t n;
-            if(*(target->Memory + LinePossition) == ' ')
+            if(*(target->Memory + LinePossition - 1) == ' ')
                 n = CountBackToWord(target->Memory, LinePossition);
             else
                 n = CountBackToBlank(target->Memory, LinePossition);
-
-            Inf.CursorX -= n;
+            Inf.CursorX = n + LINE_NUMBER_WIDTH;
             ArrowKeys = 0;
         } return 0;
         case CTRL_UP:{
@@ -833,7 +836,7 @@ char ProcessKeypress(){
                 StringConcat(NewLine->Memory, temp.Memory);
                 DeleteBuffer(&temp);
                 
-                Inf.CursorX = StrLength + 3;
+                Inf.CursorX = StrLength + 4;
 
                 return 0;
             }
