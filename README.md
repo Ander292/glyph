@@ -8,7 +8,7 @@ It is ran from the command line and requires a path to a file as argument. If th
 
 ### How to build:
 
-I did not use any sort of cmake or some other build program. I made a powershell script for it. Passing the "build" argument will build the file.
+I did not use any sort of cmake or some other build program. I made a powershell script for it. Passing the "build" argument will build the file. The settings.json file is there for the [vscode actions buttons](https://marketplace.visualstudio.com/items?itemName=seunlanlege.action-buttons) plugin
 
 ### Whats broken:
 
