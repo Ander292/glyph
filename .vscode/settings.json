@@ -1,0 +1,30 @@
+{
+    "terminal.integrated.cwd": "${workspaceFolder}",
+
+    "actionButtons": {
+
+        "defaultColor": "white",
+        "reloadButton": "↻",
+        "loadNpmCommands": false,
+        "commands": [
+            {
+                "name": "$(debug-restart) Reload-Assets",
+                "color": "orange",
+                "singleInstance": true,
+                "command": "./compile.ps1 -mode reloadAssets", // This is executed in the terminal.
+            },
+            {
+                "name": "$(tools) Build",
+                "color": "lime",
+                "singleInstance": true,
+                "command": "./compile.ps1 -mode build", // This is executed in the terminal.
+            },
+            {
+                "name": "$(triangle-right) Run",
+                "color": "purple",
+                "singleInstance": true,
+                "command": "./compile.ps1 -mode run", // This is executed in the terminal.
+            }
+        ]
+    }
+}
