@@ -8,10 +8,10 @@
         "loadNpmCommands": false,
         "commands": [
             {
-                "name": "$(debug-restart) Reload-Assets",
+                "name": "$(debug-restart) Update",
                 "color": "orange",
                 "singleInstance": true,
-                "command": "./compile.ps1 -mode reloadAssets", // This is executed in the terminal.
+                "command": "./compile.ps1 -mode update", // This is executed in the terminal.
             },
             {
                 "name": "$(tools) Build",
