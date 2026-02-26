@@ -14,6 +14,7 @@ I did not use any sort of cmake or some other build program. I made a powershell
 
 1) Ctrl + arrowKeys don't work properly.
 2) Sometimes it glitches on the end of the line for some reason.
+3) The header thing is broken as well. The exit message is not displayed properly sometimes (for too small width)
 
 ### But why???
 
