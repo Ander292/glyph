@@ -1,6 +1,6 @@
 # A command line text editor
 
-A simple command line text editor made for windows. I decided to refrain from using most standard c libraries for file I/O. I used only windows, conio and stdint libraries. This program was written to be used for the new win11 windows terminal host and will not work (at least not properly) on the older conhost.exe that is the default for win10 and earlier.
+A simple command line text editor made for windows. I decided to refrain from using most standard c libraries for file I/O. I used only windows, conio and stdint libraries. This program was written to be used for the new win11 windows terminal host and will not work (at least not properly) on the older conhost.exe that is the default for win10 and earlier. The new windows terminal host can be downloaded from microsoft store for win10.
 
 ### How to use:
 
@@ -15,6 +15,8 @@ I did not use any sort of cmake or some other build program. I made a powershell
 1) ~~Ctrl + arrowKeys don't work properly.~~ (Fixed)
 2) ~~Sometimes it glitches on the end of the line for some reason.~~ (Fixed)
 3) The header thing is broken as well. The exit message is not displayed properly sometimes (for too small width)
+
+Probably many other things too, because whenever I "fix" something it bugs out something else.
 
 ### But why???
 
