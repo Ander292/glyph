@@ -45,7 +45,6 @@
 
         char ArrowKeys = 0;
         char FileName[128];
-        //char DebugMessage[128] = {0};
 
         EditorMessage DebugMessage;
 

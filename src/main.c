@@ -113,6 +113,8 @@ void TranslateStringArray(){
             OriginBuffer
         );
     }
+
+    DeleteBufferArray(&(Inf.RowArrayOrigin));
 }
 
 
@@ -132,92 +134,6 @@ void HideConsoleCursor(){
     GetConsoleCursorInfo(hStdout, &CursorInfo);
     CursorInfo.bVisible = FALSE;
     SetConsoleCursorInfo(hStdout, &CursorInfo);
-}
-
-void FixCursorPossition(){
-    // TODO: Fix this shit
-    // Down overflow //
-
-    int CompValue = SmallerInteger(Inf.ConsoleRows, (int)(Inf.RowArrayDisplay.NumberOfElements));
-    if(Inf.CursorY > CompValue){
-        int Offset = Inf.CursorY - CompValue;
-        Inf.CursorY -= Offset;
-
-        Inf.RowOffset += (uint32_t)Offset;
-        if(Inf.RowOffset + CompValue > (uint32_t)Inf.RowArrayDisplay.NumberOfElements){
-            Inf.RowOffset = Inf.RowArrayDisplay.NumberOfElements - (uint32_t)(Inf.ConsoleRows);
-            if((int)(Inf.RowOffset) < 0) Inf.RowOffset = 0;
-        }
-    }
-
-    // Up overflow //
-    else if(Inf.CursorY < 1){
-        //int Offset = -1 * Inf.CursorY + 1;
-        int Offset = 1 - Inf.CursorY;
-        Inf.CursorY = 1;
-        //Inf.CursorY += Offset;
-
-        if (Inf.RowOffset >= (uint32_t)Offset)
-            Inf.RowOffset -= Offset;
-        else
-            Inf.RowOffset = 0;
-    }
-
-    // Right Overflow //
-    StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), Inf.CursorY - 1 + Inf.RowOffset);
-    uint32_t CurrentLength = StringLength(temp->Memory) + 3;
-    uint32_t CompValueU = SmallerUnsigned((uint32_t)(Inf.ConsoleColumns), CurrentLength);
-    uint32_t CompValueReverse = LargerUnsigned((uint32_t)(Inf.ConsoleColumns), CurrentLength);
-
-    if((uint32_t)(Inf.CursorX) > CompValueU){
-
-        uint32_t Offset = AbsoluteUnsigned((uint32_t)(Inf.CursorX) - CompValueU);
-        Inf.CursorX = CompValueU;
-        
-        if(CompValueU == (uint32_t)(Inf.ConsoleColumns)){
-            Inf.ColumnOffset += Offset;
-
-            if(Inf.ColumnOffset > CurrentLength - (uint32_t)(Inf.ConsoleColumns))
-                Inf.ColumnOffset = (CurrentLength - (uint32_t)(Inf.ConsoleColumns));
-        }
-        
-        else{
-            if(Inf.ColumnOffset > CurrentLength - 4){
-                Inf.ColumnOffset = CurrentLength - 4;
-            }
-        }
-    }
-
-    // Left Overflow //
-    if(Inf.CursorX < 4) {
-        uint32_t Offset = 4 - (uint32_t)(Inf.CursorX);
-        Inf.CursorX = 4;
-
-        Inf.ColumnOffset -= Offset;
-        if((int)(Inf.ColumnOffset) < 0) Inf.ColumnOffset = 0;
-    }
-
-    // End and Home fix //
-    if(ArrowKeys == END_KEY) {
-        if((int)CurrentLength > Inf.ConsoleColumns){
-            Inf.ColumnOffset = CurrentLength - Inf.ConsoleColumns;
-            Inf.CursorX = Inf.ConsoleColumns;
-        }
-        else{
-            Inf.CursorX = CurrentLength;
-            Inf.ColumnOffset = 0;
-        }
-    }
-    else if(ArrowKeys == HOME_KEY) {
-        Inf.CursorX = 4;
-        Inf.ColumnOffset = 0;
-    }
-
-    // RowOffset fix //
-
-    if(Inf.RowOffset + Inf.CursorY > Inf.RowArrayDisplay.NumberOfElements) 
-        Inf.RowOffset = Inf.RowArrayDisplay.NumberOfElements - Inf.CursorY;
-    
 }
 
 void FixCursorPossitionEx(){
@@ -291,9 +207,7 @@ void EditorOpen(char* fName){
     );
 
     if (hFile == INVALID_HANDLE_VALUE) {
-        //DisableRawMode();
         Print("Cannot open file, creating...\r\n");
-        //exit(1);
 
         hFile = CreateFileA(
             fName,
@@ -456,7 +370,6 @@ uint8_t SyncEditorMessage(){
 }
 
 void FormatHeader(){
-    //int X = ScreenBufferInfo.dwSize.X;
     int X = Inf.ConsoleColumns;
 
     char StrMain[256] = {0};
@@ -514,9 +427,7 @@ void FormatHeader(){
 
 void FormatHeaderEx(){
     int X = Inf.ConsoleColumns;
-    // FIRST_LINE_EMPTY_FIELDS + '|' --> 7
-
-
+    
     char StrMain[256] = {0};
     char StrInfo[256] = {0};
 
@@ -557,7 +468,6 @@ void DrawRows(){
         uint32_t RowNumber = i + Inf.RowOffset;
         uint32_t DisplayNumber;
 
-        // UintToString((RowNumber + 1) % 1000 + (RowNumber + 1) / 1000, Str, 3);
         UintToString((RowNumber + 1) % 1000, Str, 3);
 
         PrintToBuffer(&Buffer, Str);
@@ -586,8 +496,6 @@ void RefreshScreen(){
     SyncEditorMessage();
     FormatHeaderEx();
     DrawRows();
-    //pusi ga klintone <3
-    //DrawFooter();
 
     Print(Buffer.Memory);
 
@@ -930,11 +838,7 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
-    //char Str[64];
-    //char Str1[64];
     char C;
-
-    //DWORD CharsRead;
 
     PushEditorMessage("Ctrl+q to quit");
 
@@ -955,9 +859,6 @@ int main(int argc, char* argv[]){
     }
 
     ScrollScreen();
-    //CloseHandle(hFile);
-
-    //Print("Stopping program...");
     DisableRawMode();
 
     return 0;
