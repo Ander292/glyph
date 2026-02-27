@@ -249,7 +249,8 @@ void FixCursorPossitionEx(){
     
     while((uint32_t)(Inf.CursorX) < minCursor){
         Inf.CursorX++;
-        Inf.ColumnOffset--;
+        if(Inf.ColumnOffset != 0)
+            Inf.ColumnOffset--;
     }
 
     if((uint32_t)(Inf.ConsoleColumns) < TotalColumns - Inf.ColumnOffset){
@@ -263,9 +264,10 @@ void FixCursorPossitionEx(){
             Inf.CursorX = TotalColumns;
             Inf.ColumnOffset = 0;
         }*/
-        if((uint32_t)(Inf.CursorX) > maxCursor)
+        if((uint32_t)(Inf.CursorX) > maxCursor) {
             Inf.CursorX = maxCursor;
             if(Inf.ColumnOffset) Inf.CursorX++; // maxCursor is sometimes for 1 smaller than it should be
+        }
     }
     uint32_t maxOffset = (TotalColumns > (uint32_t)Inf.ConsoleColumns) ? TotalColumns - Inf.ConsoleColumns : 0;
     if (Inf.ColumnOffset > maxOffset) Inf.ColumnOffset = maxOffset;
@@ -437,8 +439,9 @@ uint32_t FormatInfoString(char *StrOut){
 void PushEditorMessage(char *Str){
     //uint64_t CurrentTime = GetTickCount64();
     //uint32_t InputStringSize = StringLength(Str);
-    
+    //StringCopy(Str, "|:");
     StringCopy(DebugMessage.Message, Str);
+    //StringConcat(Str, ":|");
     DebugMessage.TimeOfCreation = Inf.CurrentTime;
 }
 
@@ -508,6 +511,42 @@ void FormatHeader(){
     PrintToBuffer(&Buffer, StrMain);
 }
 
+void FormatHeaderEx(){
+    int X = Inf.ConsoleColumns;
+    // FIRST_LINE_EMPTY_FIELDS + '|' --> 7
+
+
+    char StrMain[256] = {0};
+    char StrInfo[256] = {0};
+
+    uint32_t EditorMessageLength = StringLength(DebugMessage.Message);
+    uint32_t ReturnStringLength = FormatInfoString(StrInfo);
+    int MessageSpace = X - 2 * FIRST_LINE_EMPTY_FIELDS - 8 - ReturnStringLength;
+
+    AddCharacters(StrMain, ' ', FIRST_LINE_EMPTY_FIELDS);
+    StringConcat(StrMain, INVERTED_TEXT_COLOR);
+    // CharConcat(StrMain, '|');
+
+    // AddCharacters(StrMain, ' ', 2);
+    StringConcat(StrMain, StrInfo);
+    AddCharacters(StrMain, ' ', 4);
+
+    
+    StringConcat(StrMain, DebugMessage.Message);
+
+    if((uint32_t)MessageSpace > EditorMessageLength){
+        MessageSpace -= EditorMessageLength;
+        AddCharacters(StrMain, ' ', (uint32_t)MessageSpace);
+    }
+
+    CharConcat(StrMain, '|');
+    StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
+    AddCharacters(StrMain, ' ', FIRST_LINE_EMPTY_FIELDS);
+
+    
+    StringConcat(StrMain, "\n");
+    PrintToBuffer(&Buffer, StrMain);
+}
 
 //---Main---//
 
@@ -544,7 +583,7 @@ void RefreshScreen(){
     Buffer = CreateBuffer(64);
 
     SyncEditorMessage();
-    FormatHeader();
+    FormatHeaderEx();
     DrawRows();
     //pusi ga klintone <3
     //DrawFooter();
