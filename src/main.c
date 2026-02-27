@@ -449,6 +449,7 @@ uint8_t SyncEditorMessage(){
     if(Inf.CurrentTime - DebugMessage.TimeOfCreation > EDITOR_MESSAGE_TIME * 1000){
         DebugMessage.TimeOfCreation = 0;
         DebugMessage.Message[0] = '\0';
+        StringConcat(DebugMessage.Message, "---");
         return 1U;
     }
     return 0U;
@@ -531,11 +532,11 @@ void FormatHeaderEx(){
     StringConcat(StrMain, StrInfo);
     AddCharacters(StrMain, ' ', 4);
 
-    
+    StringConcat(StrMain, "|: ");
     StringConcat(StrMain, DebugMessage.Message);
-
+    StringConcat(StrMain, " :|");
     if((uint32_t)MessageSpace > EditorMessageLength){
-        MessageSpace -= EditorMessageLength;
+        MessageSpace = MessageSpace - EditorMessageLength - 6;
         AddCharacters(StrMain, ' ', (uint32_t)MessageSpace);
     }
 
