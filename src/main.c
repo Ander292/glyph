@@ -795,7 +795,8 @@ char ProcessKeypress(){
             }
             else {
                 StringShiftLeft(target->Memory, LinePossition-1, 0);
-                Inf.CursorX--;
+                if(Inf.ColumnOffset == 0) 
+                    Inf.CursorX--;
             }
         } return 0;
     case '\r':{
