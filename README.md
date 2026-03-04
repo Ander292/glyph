@@ -14,7 +14,8 @@ I did not use any sort of cmake or some other build program. I made a powershell
 
 1) ~~Ctrl + arrowKeys don't work properly.~~ (Fixed)
 2) ~~Sometimes it glitches on the end of the line for some reason.~~ (Fixed)
-3) The header thing is broken as well. The exit message is not displayed properly sometimes (for too small width)
+3) ~~The header thing is broken as well. The exit message is not displayed properly sometimes~~ (for too small width)
+4) Ctrl + Delete and Ctrl + Backspace cursor possition is glitched. A rework of the FixCursorPossition is needed...
 
 Probably many other things too, because whenever I "fix" something it bugs out something else.
 

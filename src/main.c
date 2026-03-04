@@ -163,7 +163,7 @@ void FixCursorPossitionEx(){
     uint32_t minCursor = LINE_NUMBER_WIDTH;
     uint32_t maxCursor = SmallerUnsigned((uint32_t)Inf.ConsoleColumns, TotalColumns - Inf.ColumnOffset);
     
-    while((uint32_t)(Inf.CursorX) < minCursor){
+    while((Inf.CursorX) < (int)minCursor){
         Inf.CursorX++;
         if(Inf.ColumnOffset != 0)
             Inf.ColumnOffset--;
@@ -186,8 +186,13 @@ void FixCursorPossitionEx(){
         }
     }
     uint32_t maxOffset = (TotalColumns > (uint32_t)Inf.ConsoleColumns) ? TotalColumns - Inf.ConsoleColumns : 0;
-    if (Inf.ColumnOffset > maxOffset) Inf.ColumnOffset = maxOffset;
-    if ((int)Inf.ColumnOffset < 0) Inf.ColumnOffset = 0;
+    
+    if(Inf.ColumnOffset > maxOffset){
+        uint32_t Offset = maxOffset - Inf.ColumnOffset;
+        Inf.ColumnOffset = maxOffset;
+    }
+
+    if((int)Inf.ColumnOffset < 0) Inf.ColumnOffset = 0;
 }
 
 //---File I/O---//
@@ -477,7 +482,7 @@ void DrawRows(){
         uint32_t StringSize = StringLength(temp->Memory);
 
         if(StringSize < Inf.ColumnOffset)
-            AppendBufferEx(&Buffer, " ", 2, 0);
+            AppendBufferEx(&Buffer, "<-", 2, 0);
         else
             AppendBufferEx(&Buffer, temp->Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
 
@@ -613,20 +618,22 @@ char ProcessKeypress(){
         case CTRL_RIGHT:{
             uint32_t n;
             if(*(target->Memory + LinePossition) == ' ')
-                n = CountForwardToWord(target->Memory, LinePossition);
+                n = CountForwardToWordEx(target->Memory, LinePossition);
             else
-                n = CountForwardToBlank(target->Memory, LinePossition);
-            Inf.CursorX = n + LINE_NUMBER_WIDTH;
+                n = CountForwardToBlankEx(target->Memory, LinePossition);
+            //Inf.CursorX = n + LINE_NUMBER_WIDTH + 1;
+            Inf.CursorX = Inf.CursorX + n;
             ArrowKeys = 0;
         } return 0;
         case CTRL_LEFT:{
             if(LinePossition == 0) return 0;
             uint32_t n;
             if(*(target->Memory + LinePossition - 1) == ' ')
-                n = CountBackToWord(target->Memory, LinePossition);
+                n = CountBackToWordEx(target->Memory, LinePossition);
             else
-                n = CountBackToBlank(target->Memory, LinePossition);
-            Inf.CursorX = n + LINE_NUMBER_WIDTH;
+                n = CountBackToBlankEx(target->Memory, LinePossition);
+            //Inf.CursorX = n + LINE_NUMBER_WIDTH + 1;
+            Inf.CursorX = Inf.CursorX - n;
             ArrowKeys = 0;
         } return 0;
         case CTRL_UP:{

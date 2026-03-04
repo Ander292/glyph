@@ -75,11 +75,11 @@
         { \
                 uint32_t n; \
                 if(*(target->Memory + LinePossition) == ' ') \
-                    n = CountForwardToWord(target->Memory, LinePossition); \
+                    n = CountForwardToWordEx(target->Memory, LinePossition); \
                 else \
-                    n = CountForwardToBlank(target->Memory, LinePossition); \
-    \
-                int counter = n - LinePossition; \
+                    n = CountForwardToBlankEx(target->Memory, LinePossition); \
+        \
+                int counter = n; \
                 while(1) { \
                     if(counter == 0) break; \
                     counter--; \

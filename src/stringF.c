@@ -114,6 +114,75 @@ void StringShiftRight(char *Str, uint32_t StartOffset, uint32_t EndOffset){
     }
 }
 
+uint32_t CountForwardToWordEx(char *Str, uint32_t CurrentPossition){
+    uint32_t StrLength = StringLength(Str);
+    uint32_t StartPossition = CurrentPossition;
+    while(Str[CurrentPossition] == ' ' && CurrentPossition < StrLength) CurrentPossition++;
+
+    return CurrentPossition - StartPossition;
+}
+
+uint32_t CountBackToWordEx(char* Str, uint32_t CurrentPossition){
+    uint32_t StartPossition = CurrentPossition;
+    CurrentPossition--;
+    //uint32_t StrLength = StringLength(Str);
+    while(Str[CurrentPossition] == ' ' && CurrentPossition > 0) CurrentPossition--;
+
+    if(Str[CurrentPossition] == ' ' && CurrentPossition < 1) return StartPossition - CurrentPossition;
+
+    return StartPossition - CurrentPossition - 1;
+}
+
+uint32_t CountForwardToBlankEx(char *Str, uint32_t CurrentPossition){
+    uint32_t StrLength = StringLength(Str);
+    uint32_t StartPossition = CurrentPossition;
+
+    if((Str[CurrentPossition] < 48) ||
+        (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
+        (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
+        (Str[CurrentPossition] > 122))
+        return CurrentPossition + 1 - StartPossition;
+
+    while(CurrentPossition < StrLength){
+        if((Str[CurrentPossition] < 48) ||
+        (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
+        (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
+        (Str[CurrentPossition] > 122)) break;
+
+        CurrentPossition++;
+    }
+    return CurrentPossition - StartPossition;
+}
+
+uint32_t CountBackToBlankEx(char *Str, uint32_t CurrentPossition){
+    uint32_t StartPossition = CurrentPossition;
+    CurrentPossition--;
+    //uint32_t StrLength = StringLength(Str);
+
+    if((Str[CurrentPossition] < 48) ||
+        (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
+        (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
+        (Str[CurrentPossition] > 122))
+        return StartPossition - CurrentPossition - 1;
+
+    while(CurrentPossition != 0){
+        if((Str[CurrentPossition] < 48) ||
+        (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
+        (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
+        (Str[CurrentPossition] > 122)) break;
+
+        CurrentPossition--;
+    }
+
+    if(CurrentPossition < 1 && !((Str[CurrentPossition] < 48) ||
+        (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
+        (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
+        (Str[CurrentPossition] > 122)))
+        return StartPossition - CurrentPossition;
+
+    return StartPossition - CurrentPossition - 1;
+}
+
 uint32_t CountForwardToWord(char *Str, uint32_t CurrentPossition){
     uint32_t StrLength = StringLength(Str);
     while(Str[CurrentPossition] == ' ' && CurrentPossition < StrLength) CurrentPossition++;
@@ -123,7 +192,7 @@ uint32_t CountForwardToWord(char *Str, uint32_t CurrentPossition){
 
 uint32_t CountBackToWord(char* Str, uint32_t CurrentPossition){
     CurrentPossition--;
-    uint32_t StrLength = StringLength(Str);
+    //uint32_t StrLength = StringLength(Str);
     while(Str[CurrentPossition] == ' ' && CurrentPossition > 0) CurrentPossition--;
 
     if(Str[CurrentPossition] == ' ' && CurrentPossition < 1) return CurrentPossition;
