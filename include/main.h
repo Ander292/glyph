@@ -73,19 +73,20 @@
 
         #define CTRL_DELETE_COMMANDS \
         { \
-                uint32_t n; \
-                if(*(target->Memory + LinePossition) == ' ') \
-                    n = CountForwardToWordEx(target->Memory, LinePossition); \
-                else \
-                    n = CountForwardToBlankEx(target->Memory, LinePossition); \
+            Inf.EditorDirty = 1; \
+            uint32_t n; \
+            if(*(target->Memory + Inf.CursorX) == ' ') \
+                n = CountForwardToWordEx(target->Memory, Inf.CursorX); \
+            else \
+                n = CountForwardToBlankEx(target->Memory, Inf.CursorX); \
         \
-                int counter = n; \
-                while(1) { \
-                    if(counter == 0) break; \
-                    counter--; \
-                    StringShiftLeft(target->Memory, LinePossition, 0); \
-                } \
-        }\
+            int counter = n; \
+            while(1) { \
+                if(counter == 0) break; \
+                counter--; \
+                StringShiftLeft(target->Memory, Inf.CursorX, 0); \
+            } \
+        } \
 
     //-----Constants-----//
 
