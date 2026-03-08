@@ -137,65 +137,6 @@ void HideConsoleCursor(){
     SetConsoleCursorInfo(hStdout, &CursorInfo);
 }
 
-void FixCursorPossitionOld(){
-
-    // Vertical Overflow //
-    uint32_t TotalLines = Inf.RowArrayDisplay.NumberOfElements;
-    int DisplayedRows = SmallerInteger(Inf.ConsoleRows, (int)TotalLines);
-
-    while(Inf.CursorY < 1){
-        Inf.CursorY++;
-        if(Inf.RowOffset != 0)
-            Inf.RowOffset--;
-    }
-    while(Inf.CursorY > DisplayedRows) {
-        Inf.CursorY--;
-        if(Inf.RowOffset + Inf.CursorY < TotalLines)
-            Inf.RowOffset++;
-    } 
-
-    // Horizontal Overflow //
-    uint32_t CurrentLine = Inf.CursorY + Inf.RowOffset - 1;
-    StringBuffer *line = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), CurrentLine);
-    uint32_t CurrentLineLength = StringLength(line->Memory);
-    
-    uint32_t TotalColumns = CurrentLineLength + 3; // +3 not +4 because the StringLength counts the termination char too
-
-    uint32_t minCursor = LINE_NUMBER_WIDTH;
-    uint32_t maxCursor = SmallerUnsigned((uint32_t)Inf.ConsoleColumns, TotalColumns - Inf.ColumnOffset);
-    
-    while((Inf.CursorX) < (int)minCursor){
-        Inf.CursorX++;
-        if(Inf.ColumnOffset != 0)
-            Inf.ColumnOffset--;
-    }
-
-    if((uint32_t)(Inf.ConsoleColumns) < TotalColumns - Inf.ColumnOffset){
-        while((uint32_t)(Inf.CursorX) > maxCursor) {
-            Inf.CursorX--;
-            Inf.ColumnOffset++;
-        }
-    }
-    else{
-        /*if((uint32_t)(Inf.CursorX) > maxCursor){
-            Inf.CursorX = TotalColumns;
-            Inf.ColumnOffset = 0;
-        }*/
-        if((uint32_t)(Inf.CursorX) > maxCursor) {
-            Inf.CursorX = maxCursor;
-            if(Inf.ColumnOffset) Inf.CursorX++; // maxCursor is sometimes for 1 smaller than it should be
-        }
-    }
-    uint32_t maxOffset = (TotalColumns > (uint32_t)Inf.ConsoleColumns) ? TotalColumns - Inf.ConsoleColumns : 0;
-    
-    if(Inf.ColumnOffset > maxOffset){
-        uint32_t Offset = maxOffset - Inf.ColumnOffset;
-        Inf.ColumnOffset = maxOffset;
-    }
-
-    if((int)Inf.ColumnOffset < 0) Inf.ColumnOffset = 0;
-}
-
 void FixCursorPossitionEx(){
     if(Inf.CursorY < 0) Inf.CursorY = 0;
     if((uint32_t)Inf.CursorY > Inf.RowArrayDisplay.NumberOfElements - 1) Inf.CursorY = Inf.RowArrayDisplay.NumberOfElements - 1;
@@ -492,14 +433,14 @@ void DrawRows(){
             Inf.RowOffset = Inf.CursorY - Inf.ConsoleRows + 1;
     */
 
-    if(Inf.CursorX > Inf.ConsoleColumns - 4 + Inf.ColumnOffset)
+    if(Inf.CursorX > (int)(Inf.ConsoleColumns - 4 + Inf.ColumnOffset))
         Inf.ColumnOffset = Inf.CursorX - Inf.ConsoleColumns + 4;
-    if(Inf.CursorY > Inf.ConsoleRows + Inf.RowOffset)
+    if(Inf.CursorY > (int)(Inf.ConsoleRows + Inf.RowOffset))
         Inf.RowOffset = Inf.CursorY - Inf.ConsoleRows + 1;
     
-    if(Inf.CursorX < Inf.ColumnOffset)
+    if(Inf.CursorX < (int)(Inf.ColumnOffset))
         Inf.ColumnOffset = Inf.CursorX;
-    if(Inf.CursorY < Inf.RowOffset)
+    if(Inf.CursorY < (int)(Inf.RowOffset))
         Inf.RowOffset = Inf.CursorY;
 
     for(uint32_t i = 0; (i + Inf.RowOffset) < Inf.RowArrayDisplay.NumberOfElements && i < (uint32_t)(Inf.ConsoleRows); i++) {
@@ -542,7 +483,6 @@ void RefreshScreen(){
     DisplayConsoleCursor();
 }
 
-// Replaces the next character in line with char C (behaves like Insert mode)
 void InsertCharacter(char C){
     if(C == 0) return;
     Inf.EditorDirty = 1;
@@ -798,10 +738,21 @@ char ProcessKeypress(){
 
         uint32_t n;
         if(*(target->Memory + Inf.CursorX - 1) == ' ')
-            n = CountBackToWord(target->Memory, Inf.CursorX);
+            n = CountBackToWordEx(target->Memory, Inf.CursorX);
         else
-            n = CountBackToBlank(target->Memory, Inf.CursorX);
+            n = CountBackToBlankEx(target->Memory, Inf.CursorX);
         
+        uint32_t counter = n;
+        int OldCursor = Inf.CursorX;
+
+        while(1){
+            if(counter == 0) break;
+            counter--;
+            StringShiftLeft(target->Memory, Inf.CursorX - 1, 0);
+            Inf.CursorX--;
+        }
+
+        /*
         uint32_t cnt = 0, limit = Inf.CursorX - n;
 
         if(limit == 0) return 0;
@@ -815,7 +766,7 @@ char ProcessKeypress(){
             if(cnt == limit) {
                 break;
             }
-        }
+        }*/
     } return 0;
 
     case 8: // Backspace

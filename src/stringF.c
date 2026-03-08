@@ -163,7 +163,7 @@ uint32_t CountBackToBlankEx(char *Str, uint32_t CurrentPossition){
         (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
         (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
         (Str[CurrentPossition] > 122))
-        return StartPossition - CurrentPossition - 1;
+        return StartPossition - CurrentPossition;
 
     while(CurrentPossition != 0){
         if((Str[CurrentPossition] < 48) ||
@@ -228,7 +228,7 @@ uint32_t CountBackToBlank(char *Str, uint32_t CurrentPossition){
         (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
         (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
         (Str[CurrentPossition] > 122))
-        return CurrentPossition - 1;
+        return CurrentPossition + 1;
 
     while(CurrentPossition != 0){
         if((Str[CurrentPossition] < 48) ||

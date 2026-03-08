@@ -16,7 +16,9 @@ I did not use any sort of cmake or some other build program. I made a powershell
 2) ~~Sometimes it glitches on the end of the line for some reason.~~ (Fixed)
 3) ~~The header thing is broken as well. The exit message is not displayed properly sometimes~~ (for too small width)
 4) ~~Ctrl + Delete and Ctrl + Backspace cursor possition is glitched. A rework of the FixCursorPossition is needed...~~ Did a full rework of how offset functions and it now actually works
-5) Ctrl + Delete and Ctrl + Backspace sometimes delete a character before/after the special characters such as {. , - :} and Ctrl + Delete doesnt work properly when done on position 1 (it deletes the character on pos 0)
+5) ~~Ctrl + Delete and Ctrl + Backspace sometimes delete a character before/after the special characters such as {. , - :} and Ctrl + Delete doesnt work properly when done on position 1 (it deletes the character on pos 0)~~
+
+Currently nothing I'm aware of.
 
 Probably many other things too, because whenever I "fix" something it bugs out something else.
 

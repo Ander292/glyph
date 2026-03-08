@@ -77,6 +77,8 @@
             uint32_t n; \
             if(*(target->Memory + Inf.CursorX) == ' ') \
                 n = CountForwardToWordEx(target->Memory, Inf.CursorX); \
+            else if(*(target->Memory + Inf.CursorX) == '\0') \
+                n = 0; \
             else \
                 n = CountForwardToBlankEx(target->Memory, Inf.CursorX); \
         \
