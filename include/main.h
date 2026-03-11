@@ -13,11 +13,10 @@
             int ConsoleRows;
             int ConsoleColumns;
 
-            //int RowCount;
             uint32_t RowOffset;
             uint32_t ColumnOffset;
             StringBufferArray RowArrayOrigin;
-            StringBufferArray RowArrayDisplay;
+            StringBufferArray RowArray;
 
             uint64_t CurrentTime;
             uint8_t InsertMode;

@@ -31,7 +31,7 @@ void PrepareConsole(){
     Inf.InsertMode = 0;
     
     Inf.RowArrayOrigin = CreateBufferArray(32);
-    Inf.RowArrayDisplay = CreateBufferArray(32);
+    Inf.RowArray = CreateBufferArray(32);
     
     for(int i = 0; i < ScreenBufferInfo.dwSize.Y; i++) PrintChar("\n");
 }
@@ -98,13 +98,13 @@ void TranslateStringBuffer(StringBuffer *Destination, StringBuffer *Source){
 }
 
 void TranslateStringArray(){
-    while(Inf.RowArrayDisplay.MaxNumberOfElements < Inf.RowArrayOrigin.MaxNumberOfElements){
-        DoubleArrayCapacity(&(Inf.RowArrayDisplay));
+    while(Inf.RowArray.MaxNumberOfElements < Inf.RowArrayOrigin.MaxNumberOfElements){
+        DoubleArrayCapacity(&(Inf.RowArray));
     }
     for(uint32_t i = 0; i <= Inf.RowArrayOrigin.NumberOfElements; i++){
-        Inf.RowArrayDisplay.NumberOfElements = i;
+        Inf.RowArray.NumberOfElements = i;
 
-        StringBuffer *DisplayBuffer = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), i);
+        StringBuffer *DisplayBuffer = StringBufferGetElemenetAt(&(Inf.RowArray), i);
         StringBuffer *OriginBuffer = StringBufferGetElemenetAt(&(Inf.RowArrayOrigin), i);
         if(DisplayBuffer==NULL || OriginBuffer == NULL)
             continue;
@@ -139,9 +139,9 @@ void HideConsoleCursor(){
 
 void FixCursorPossitionEx(){
     if(Inf.CursorY < 0) Inf.CursorY = 0;
-    if((uint32_t)Inf.CursorY > Inf.RowArrayDisplay.NumberOfElements - 1) Inf.CursorY = Inf.RowArrayDisplay.NumberOfElements - 1;
+    if((uint32_t)Inf.CursorY > Inf.RowArray.NumberOfElements - 1) Inf.CursorY = Inf.RowArray.NumberOfElements - 1;
 
-    StringBuffer *target = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), Inf.CursorY);
+    StringBuffer *target = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY);
     uint32_t LineLength = StringLength(target->Memory) - 1;
     
     if(Inf.CursorX < 0) Inf.CursorX = 0;
@@ -207,9 +207,9 @@ uint8_t EditorSave(char *fName){
         );
 
     StringBuffer TempBuffer = CreateBuffer(64);
-    uint32_t LoopLimit = Inf.RowArrayDisplay.NumberOfElements;
+    uint32_t LoopLimit = Inf.RowArray.NumberOfElements;
     for (uint32_t i = 0; i < LoopLimit; i++) {
-        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), i);
+        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), i);
         uint32_t StringSize = StringLength(temp->Memory);
 
         AppendBuffer(&TempBuffer, temp->Memory);
@@ -285,7 +285,7 @@ uint32_t FormatInfoString(char *StrOut){
 
     StringConcat(StrMain, "LC: ");
 
-    uint32_t LineCount = Inf.RowArrayDisplay.NumberOfElements;
+    uint32_t LineCount = Inf.RowArray.NumberOfElements;
     UintToString(LineCount, StrAux, 3);
     StringConcat(StrMain, StrAux);
 
@@ -297,7 +297,7 @@ uint32_t FormatInfoString(char *StrOut){
     StringConcat(StrMain, " | C:");
 
     UintToString(Inf.CursorX + 1, StrAux, 3);
-    //uint32_t RowMaxSize = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), Inf.CursorY + Inf.RowOffset - 1)->Length;
+    //uint32_t RowMaxSize = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY + Inf.RowOffset - 1)->Length;
 
     //UintToString(RowMaxSize, StrAux, 3);
     StringConcat(StrMain, StrAux);
@@ -435,7 +435,7 @@ void DrawRows(){
 
     if(Inf.CursorX > (int)(Inf.ConsoleColumns - 4 + Inf.ColumnOffset))
         Inf.ColumnOffset = Inf.CursorX - Inf.ConsoleColumns + 4;
-    if(Inf.CursorY > (int)(Inf.ConsoleRows + Inf.RowOffset))
+    if(Inf.CursorY > (int)(Inf.ConsoleRows + Inf.RowOffset - 1))
         Inf.RowOffset = Inf.CursorY - Inf.ConsoleRows + 1;
     
     if(Inf.CursorX < (int)(Inf.ColumnOffset))
@@ -443,7 +443,7 @@ void DrawRows(){
     if(Inf.CursorY < (int)(Inf.RowOffset))
         Inf.RowOffset = Inf.CursorY;
 
-    for(uint32_t i = 0; (i + Inf.RowOffset) < Inf.RowArrayDisplay.NumberOfElements && i < (uint32_t)(Inf.ConsoleRows); i++) {
+    for(uint32_t i = 0; (i + Inf.RowOffset) < Inf.RowArray.NumberOfElements && i < (uint32_t)(Inf.ConsoleRows); i++) {
         uint32_t RowNumber = i + Inf.RowOffset;
 
         UintToString((RowNumber + 1) % 1000, Str, 3);
@@ -451,7 +451,7 @@ void DrawRows(){
         PrintToBuffer(&Buffer, Str);
         PrintToBuffer(&Buffer, "|");
 
-        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), RowNumber);
+        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
         uint32_t StringSize = StringLength(temp->Memory) - 1;
 
         
@@ -489,14 +489,14 @@ void InsertCharacter(char C){
     uint32_t CurrentColumn = (uint32_t)(Inf.CursorX);
     uint32_t CurrentLine = (uint32_t)(Inf.CursorY);
 
-    StringBuffer *target = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), CurrentLine);
+    StringBuffer *target = StringBufferGetElemenetAt(&(Inf.RowArray), CurrentLine);
     uint32_t CurrentLineLength = StringLength(target->Memory);
 
     uint32_t CurrentBufferSize = target->Length;
 
     if(CurrentLineLength + 1 > CurrentBufferSize) {
         DoubleSize(target);
-        target = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), CurrentLine);
+        target = StringBufferGetElemenetAt(&(Inf.RowArray), CurrentLine);
 
         ZeroBufferEx(target, CurrentBufferSize);
 
@@ -553,11 +553,7 @@ char ReadCharacterEx(){
 char ReadCharacter(){
     char C;
     DWORD read;
-    static int i = 0;
-    char Str[64];
     do{
-        i++;
-        UintToString(i, Str, 0);
         ReadFile(hStdin, &C, 1, &read, NULL);
     } while(read != 1);
     return C;
@@ -566,31 +562,25 @@ char ReadCharacter(){
 char ProcessKeypress(){
     char c = ReadCharacterEx();
 
-    //uint32_t LinePossition = Inf.CursorX;
     StringBuffer *target = StringBufferGetElemenetAt(
-        &(Inf.RowArrayDisplay),
-        //Inf.CursorY + Inf.RowOffset - 1
+        &(Inf.RowArray),
         Inf.CursorY
     );
 
     switch(ArrowKeys){
         case UP_ARROW:{
-            //if(Inf.CursorY > 0) 
                 Inf.CursorY--;
             ArrowKeys = 0;
         } return 0;
         case DOWN_ARROW:{
-            //if(Inf.CursorY < Inf.RowArrayDisplay.NumberOfElements)
                 Inf.CursorY++;
             ArrowKeys = 0;
         } return 0;
         case RIGHT_ARROW:{
-            //if(Inf.CursorX < StringLength(target->Memory))
                 Inf.CursorX++;
             ArrowKeys = 0;
         } return 0;
         case LEFT_ARROW:{
-            //if(Inf.CursorX > 0)
                 Inf.CursorX--;
             ArrowKeys = 0;
         } return 0;
@@ -600,7 +590,6 @@ char ProcessKeypress(){
                 n = CountForwardToWordEx(target->Memory, Inf.CursorX);
             else
                 n = CountForwardToBlankEx(target->Memory, Inf.CursorX);
-            //Inf.CursorX = n + LINE_NUMBER_WIDTH + 1;
             Inf.CursorX = Inf.CursorX + n;
             ArrowKeys = 0;
         } return 0;
@@ -611,19 +600,20 @@ char ProcessKeypress(){
                 n = CountBackToWordEx(target->Memory, Inf.CursorX);
             else
                 n = CountBackToBlankEx(target->Memory, Inf.CursorX);
-            //Inf.CursorX = n + LINE_NUMBER_WIDTH + 1;
             Inf.CursorX = Inf.CursorX - n;
             ArrowKeys = 0;
         } return 0;
         case CTRL_UP:{
-            // if(Inf.RowOffset > 0)
-            //     Inf.RowOffset--;
-            Inf.CursorY++;
+            if(Inf.RowOffset > 0){
+                Inf.RowOffset--;
+                Inf.CursorY--;
+            } 
         } return 0;
         case CTRL_DOWN:{
-            // if(Inf.RowOffset < Inf.RowArrayDisplay.NumberOfElements)
-            //     Inf.RowOffset++;
-            Inf.CursorY++;
+            if(Inf.RowOffset < Inf.RowArray.NumberOfElements - Inf.CursorY - Inf.ConsoleColumns){
+                Inf.RowOffset++;
+                Inf.CursorY++;
+            }
         } return 0;
         case PAGE_DOWN:{
             Inf.CursorY += Inf.ConsoleRows;
@@ -634,25 +624,13 @@ char ProcessKeypress(){
             ArrowKeys = 0;
         } return 0;
         case HOME_KEY:{
-            //Inf.CursorX = LINE_NUMBER_WIDTH;
             Inf.CursorX = 0;
-            //Inf.ColumnOffset = 0;
             ArrowKeys = 0;
         } return 0;
         case END_KEY:{
             uint32_t LineNumber = Inf.CursorY;
             uint32_t LineSize = StringLength(target->Memory) - 1;
             
-            //uint32_t TotalColumns = LineSize + 3;
-
-            // if(TotalColumns <= (uint32_t)Inf.ConsoleColumns){
-            //     Inf.ColumnOffset = 0;
-            //     Inf.CursorX = TotalColumns;
-            // }
-            // else{
-            //     Inf.ColumnOffset = TotalColumns - Inf.ConsoleColumns;
-            //     Inf.CursorX = Inf.ConsoleColumns;
-            // }
             Inf.CursorX = LineSize;
             ArrowKeys = 0;
         } return 0;
@@ -660,15 +638,15 @@ char ProcessKeypress(){
             Inf.EditorDirty = 1;
             if(
                 ((uint32_t)Inf.CursorX == StringLength(target->Memory) - 1)
-                && (uint32_t)Inf.CursorY < Inf.RowArrayDisplay.NumberOfElements - 1
+                && (uint32_t)Inf.CursorY < Inf.RowArray.NumberOfElements - 1
             ){
-                StringBuffer *NextLine = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), Inf.CursorY);
+                StringBuffer *NextLine = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY);
                 if(NextLine == NULL) return 0;
 
                 StringBuffer temp = CreateBuffer(64);
                 while(NextLine->Length > temp.Length) DoubleSize(&temp);
-                RemoveLineEx(&(Inf.RowArrayDisplay), Inf.CursorY + 1, temp.Memory);
-                Inf.RowArrayDisplay.NumberOfElements--;
+                RemoveLineEx(&(Inf.RowArray), Inf.CursorY + 1, temp.Memory);
+                Inf.RowArray.NumberOfElements--;
 
                 uint32_t FullStrLength = StringLength(target->Memory) + StringLength(temp.Memory) - 1;
 
@@ -752,21 +730,6 @@ char ProcessKeypress(){
             Inf.CursorX--;
         }
 
-        /*
-        uint32_t cnt = 0, limit = Inf.CursorX - n;
-
-        if(limit == 0) return 0;
-        while(1) {
-            StringShiftLeft(target->Memory, n, 0);
-            cnt++;
-            
-            //if(Inf.ColumnOffset > 0)Inf.ColumnOffset--;
-            Inf.CursorX--;
-
-            if(cnt == limit) {
-                break;
-            }
-        }*/
     } return 0;
 
     case 8: // Backspace
@@ -777,11 +740,11 @@ char ProcessKeypress(){
 
                 StringBuffer temp = CreateBuffer(64);
                 while(target->Length > temp.Length) DoubleSize(&temp);
-                RemoveLineEx(&(Inf.RowArrayDisplay), Inf.CursorY, temp.Memory);
-                Inf.RowArrayDisplay.NumberOfElements--;
+                RemoveLineEx(&(Inf.RowArray), Inf.CursorY, temp.Memory);
+                Inf.RowArray.NumberOfElements--;
 
                 Inf.CursorY--;
-                StringBuffer *NewLine = StringBufferGetElemenetAt(&(Inf.RowArrayDisplay), Inf.CursorY);
+                StringBuffer *NewLine = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY);
                 uint32_t StrLength = StringLength(NewLine->Memory) - 1;
 
                 uint32_t FullStrLength = StringLength(temp.Memory) + StrLength;
@@ -802,24 +765,21 @@ char ProcessKeypress(){
             }
             else {
                 StringShiftLeft(target->Memory, Inf.CursorX-1, 0);
-                //if(Inf.ColumnOffset == 0)
                 Inf.CursorX--;
             }
         } return 0;
     case '\r':{
         Inf.EditorDirty = 1;
-        InsertLine(&(Inf.RowArrayDisplay), Inf.CursorY + 1, target->Memory + Inf.CursorX);
+        InsertLine(&(Inf.RowArray), Inf.CursorY + 1, target->Memory + Inf.CursorX);
         target = StringBufferGetElemenetAt(
-            &(Inf.RowArrayDisplay), 
+            &(Inf.RowArray), 
             Inf.CursorY
         );
         target->Memory[Inf.CursorX] = '\0';
-        //ZeroBufferEx(target, LinePossition);
         Inf.CursorY++;
         Inf.CursorX = 0;
     } return 0;
     case '\t':{
-        //for(uint32_t i = 0; i < TAB_SPACE_COUNT; i++) InsertCharacter(' ');
         InsertCharacter(' ');
         while((Inf.CursorX) % TAB_SPACE_COUNT != 0) {
             InsertCharacter(' ');
@@ -827,9 +787,6 @@ char ProcessKeypress(){
     } return 0;
     default:
         {
-            //char Str[64];
-            //CharToAnsi(c, StrExtr);
-            //PrintToBuffer(&Buffer, Str);
             return c;
         }
     }
