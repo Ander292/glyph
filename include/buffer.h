@@ -1,7 +1,6 @@
 #ifndef BUFFER_H
     #include "stringF.h"
-    //#include <windows.h>
-    //#include "win.h"
+    #include <windows.h>
 
     //-----StructDefinitions-----//
     
