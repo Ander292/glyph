@@ -1,5 +1,5 @@
 #ifndef MAIN_H
-    #include <conio.h>
+    
     #include "buffer.h"
     #include "fileF.h"
 
@@ -28,17 +28,11 @@
             char Message[128];
         } EditorMessage;
 
-    //-----Global Variables-----//
 
-        HANDLE hStdin;
-        HANDLE hStdout;
-        HANDLE hStderr;
-        HANDLE hHeap;
-        HANDLE hFile;
+    //-----Global Variables-----//
 
         BOOL Running = 1;
 
-        CONSOLE_SCREEN_BUFFER_INFO ScreenBufferInfo;
         StringBuffer Buffer;
         EditorInfo Inf;
 
@@ -91,6 +85,15 @@
 
     //-----Constants-----//
 
+        #define PAGE_UPDOWN_CONSTANT 10 // Unused
+
+        #define TIMEOUT_MS 2 // Unused
+        #define EDITOR_MESSAGE_TIME 15 // The (minimum) length in seconds of a screen message
+
+        #define TAB_SPACE_COUNT 4 // How much spacebars will a tab create
+        #define FIRST_LINE_EMPTY_FIELDS 6 // How many fields are empty in the first line before inverting the color
+        #define LINE_NUMBER_WIDTH 4 // How long is the line number string
+
         #define UP_ARROW    (char)0x01  //0000 0001
         #define DOWN_ARROW  (char)0x02  //0000 0010
         #define LEFT_ARROW  (char)0x04  //0000 0100
@@ -111,21 +114,14 @@
 
         #define CTRL_DELETE (char)0x06  //0000 0110
 
-
-        #define PAGE_UPDOWN_CONSTANT 10 // Unused
-
-        #define TIMEOUT_MS 2 // Unused
-        #define EDITOR_MESSAGE_TIME 15 // The (minimum) length in seconds of a screen message
-
-        #define TAB_SPACE_COUNT 4 // How much spacebars will a tab create
-        #define FIRST_LINE_EMPTY_FIELDS 6 // How many fields are empty in the first line before inverting the color
-        #define LINE_NUMBER_WIDTH 4 // How long is the line number string
-
-
     //-----EndSequences-----//
         
         #define INVERTED_TEXT_COLOR "\x1b[7m"
         #define RESET_TEXT_ATTRIBUTES  "\x1b[m"
+
+    //-----Functions-----//
+    
+        void TranslateStringArray();
 
 #define MAIN_H
 #endif
