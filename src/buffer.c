@@ -3,7 +3,11 @@
 
 StringBuffer CreateBuffer(uint32_t size){
     StringBuffer temp;
-    temp.Memory = HeapAlloc(hHeap, 0, size);
+    #if defined WINDOWS
+        temp.Memory = HeapAlloc(hHeap, 0, size);
+    #elif define LINUX
+
+    #endif
     temp.Length = size;
 
     //*(temp.Memory) = '\0';
@@ -15,11 +19,19 @@ StringBuffer CreateBuffer(uint32_t size){
 void DoubleSize(StringBuffer *Buffer){
     LPVOID PtrM = Buffer->Memory;
     Buffer->Length *= 2;
-    Buffer->Memory = HeapReAlloc(hHeap, 0, PtrM, Buffer->Length);
+    #if defined WINDOWS
+        Buffer->Memory = HeapReAlloc(hHeap, 0, PtrM, Buffer->Length);
+    #elif defined LINUX
+
+    #endif
 }
 
 void DeleteBuffer(StringBuffer *Buffer){
-    HeapFree(hHeap, 0, Buffer->Memory);
+    #if defined WINDOWS
+        HeapFree(hHeap, 0, Buffer->Memory);
+    #elif defined LINUX
+
+    #endif
     Buffer->Memory = NULL;
     Buffer->Length = 0;
 }

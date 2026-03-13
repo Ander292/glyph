@@ -59,7 +59,7 @@ $CompilationFlags = @(
     #"-Wstrict-overflow=5"
     "-fdiagnostics-show-option"
     "-g"
-    #"-O"
+    #"-O2"
     #"-fsanitize=address"
 )
 

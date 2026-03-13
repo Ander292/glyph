@@ -66,7 +66,7 @@
 
         void StringShiftRight(char *Str, uint32_t StartOffset, uint32_t EndOffset);
         
-
+        
         uint32_t CountForwardToBlankEx(char *Str, uint32_t CurrentPossition);
 
         uint32_t CountBackToBlankEx(char *Str, uint32_t CurrentPossition);

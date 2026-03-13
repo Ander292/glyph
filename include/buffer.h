@@ -1,5 +1,6 @@
 #ifndef BUFFER_H
     #include "stringF.h"
+    #define WINDOWS
     #include <windows.h>
 
     //-----StructDefinitions-----//
@@ -17,10 +18,12 @@
         } StringBufferArray;
 
     //-----Global Variables-----//
+        #if defined WINDOWS
+            extern HANDLE hHeap;
+            extern HANDLE hStdout;
+        #elif defined LINUX
 
-        extern HANDLE hHeap;
-        extern HANDLE hStdout;
-
+        #endif
     //-----FunctionDefinitions-----//
 
         // Creates a back buffer

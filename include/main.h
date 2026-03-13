@@ -5,6 +5,7 @@
 
     //-----Debug Defines-----//
         #undef DEBUG_INFO
+        #define WINDOWS
 
     //-----Struct Definitions-----//
 
@@ -49,26 +50,35 @@
 
     //-----MacroFunctions-----//
 
-        // Prints the string to stdout
-        #define Print(str) \
-            WriteFile(hStdout, str, StringLength(str), NULL, NULL)
+        #if defined WINDOWS
 
-        // Prints a char to the stdout
-        #define PrintChar(c) \
-            WriteFile(hStdout, &c, 1, NULL, NULL)
+            // Prints the string to stdout
+            #define Print(str) \
+                WriteFile(hStdout, str, StringLength(str), NULL, NULL)
 
-        #define ClearScreenAfterCursor Print("\x1b[2J")
-        #define ClearScreen Print("\x1b[1J")
+            // Prints a char to the stdout
+            #define PrintChar(c) \
+                WriteFile(hStdout, &c, 1, NULL, NULL)
 
-        #define ResetCursorPossition SetCursorPossition(0, 0)
+            #define ResetCursorPossition SetCursorPossition(0, 0)
+
+            #define SetCursorPossition(X, Y) \
+                SetConsoleCursorPosition(hStdout, (COORD){X, Y})
+
+        #elif defined LINUX
+
+        #endif
 
         #define ClearLine Print("\x1b[K")
+
+        #define ClearScreenAfterCursor Print("\x1b[2J")
+
+        #define ClearScreen Print("\x1b[1J")
         
         // Returns the key code of key k + CTRL
         #define CTRL_KEY(k) ((k) & 0x1f)
 
-        #define SetCursorPossition(X, Y) \
-            SetConsoleCursorPosition(hStdout, (COORD){X, Y})
+
 
         #define CTRL_DELETE_COMMANDS \
         { \
@@ -126,6 +136,11 @@
         
         #define INVERTED_TEXT_COLOR "\x1b[7m"
         #define RESET_TEXT_ATTRIBUTES  "\x1b[m"
+
+
+    //-----FunctionDeclarations-----//
+
+        void TranslateStringArray();
 
 #define MAIN_H
 #endif
