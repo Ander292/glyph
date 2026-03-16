@@ -39,6 +39,7 @@
 
     void DisableRawMode(){
         DWORD ConsoleMode;
+
         GetConsoleMode(hStdin, &ConsoleMode);
         ConsoleMode |= (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT);
         SetConsoleMode(hStdin, ConsoleMode);
@@ -54,6 +55,7 @@
         COORD ScrollTarget = {
             .X = 0,
             .Y = (short) (0 - ScrollRect.Bottom)
+
         };
         CHAR_INFO CharInfo = {
             .Char.AsciiChar = ' ',
@@ -61,6 +63,8 @@
         };
 
         ScrollConsoleScreenBufferA(hStdout, &ScrollRect, NULL, ScrollTarget, &CharInfo);
+
+
 
         ScreenBufferInfo.dwCursorPosition.X = 0;
         ScreenBufferInfo.dwCursorPosition.Y = 0;
@@ -70,6 +74,7 @@
 
     void ErrorExit(char *ErrorStr){
         ScrollScreen();
+
         if(hFile) CloseHandle(hFile);
 
         Print(ErrorStr);
@@ -118,6 +123,7 @@
                 hFile = CreateFileA(
                     fName,
                     GENERIC_READ | GENERIC_WRITE, 
+
                     FILE_SHARE_READ,
                     NULL,
                     CREATE_NEW,
@@ -144,6 +150,7 @@
         uint8_t EditorSave(char *fName){
 
             hFile = CreateFileA(
+
                     fName,
                     GENERIC_READ | GENERIC_WRITE, 
                     FILE_SHARE_READ,
@@ -255,6 +262,7 @@
         for(uint32_t i = 0; i <= Inf.RowArrayOrigin.NumberOfElements; i++){
             Inf.RowArray.NumberOfElements = i;
 
+
             StringBuffer *DisplayBuffer = StringBufferGetElemenetAt(&(Inf.RowArray), i);
             StringBuffer *OriginBuffer = StringBufferGetElemenetAt(&(Inf.RowArrayOrigin), i);
             if(DisplayBuffer==NULL || OriginBuffer == NULL)
@@ -296,6 +304,8 @@
 
         StringConcat(StrMain, "|Y:");
 
+
+
         UintToString(Inf.CursorY, StrAux, 3);
         StringConcat(StrMain, StrAux);
 
@@ -324,6 +334,7 @@
         //StringConcat(StrMain, INVERTED_TEXT_COLOR);
 
         //AddCharacters(StrMain, ' ', 3);
+
 
         StringConcat(StrMain, "|| F: ");
 
@@ -395,6 +406,7 @@
         // CharConcat(StrMain, '|');
 
         // AddCharacters(StrMain, ' ', 2);
+
         StringConcat(StrMain, StrInfo);
         AddCharacters(StrMain, ' ', 4);
 
@@ -408,6 +420,7 @@
 
         CharConcat(StrMain, '|');
         StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
+
         AddCharacters(StrMain, ' ', FIRST_LINE_EMPTY_FIELDS);
 
         
@@ -483,6 +496,7 @@ void InsertCharacter(char C){
 
     if(CurrentLineLength + 1 > CurrentBufferSize) {
         DoubleSize(target);
+
         target = StringBufferGetElemenetAt(&(Inf.RowArray), CurrentLine);
 
         ZeroBufferEx(target, CurrentBufferSize);
@@ -521,6 +535,7 @@ char ProcessKeypress(){
                 Inf.CursorX++;
             ArrowKeys = 0;
         } return 0;
+
         case LEFT_ARROW:{
                 Inf.CursorX--;
             ArrowKeys = 0;
@@ -541,19 +556,22 @@ char ProcessKeypress(){
                 n = CountBackToWordEx(target->Memory, Inf.CursorX);
             else
                 n = CountBackToBlankEx(target->Memory, Inf.CursorX);
+
             Inf.CursorX = Inf.CursorX - n;
             ArrowKeys = 0;
         } return 0;
         case CTRL_UP:{
             if(Inf.RowOffset > 0){
                 Inf.RowOffset--;
-                Inf.CursorY--;
+                if(Inf.CursorY - Inf.ColumnOffset == Inf.ConsoleRows + 1)
+                    Inf.CursorY--;
             } 
         } return 0;
         case CTRL_DOWN:{
             if(Inf.RowOffset < Inf.RowArray.NumberOfElements - Inf.CursorY - Inf.ConsoleColumns){
                 Inf.RowOffset++;
-                Inf.CursorY++;
+                if(Inf.CursorY - Inf.ConsoleRows == Inf.ColumnOffset)
+                    Inf.CursorY++;
             }
         } return 0;
         case PAGE_DOWN:{
@@ -577,6 +595,7 @@ char ProcessKeypress(){
         } return 0;
         case DELETE_KEY:{
             Inf.EditorDirty = 1;
+
             if(
                 ((uint32_t)Inf.CursorX == StringLength(target->Memory) - 1)
                 && (uint32_t)Inf.CursorY < Inf.RowArray.NumberOfElements - 1
@@ -601,7 +620,9 @@ char ProcessKeypress(){
 
             StringShiftLeft(target->Memory, Inf.CursorX, 0);
             
+
         } return 0;
+
         case CTRL_DELETE:{
             CTRL_DELETE_COMMANDS;
         }
@@ -629,6 +650,7 @@ char ProcessKeypress(){
             ResetCursorPossition;
             Running = 0;
         } return 0;
+
     case CTRL_KEY('c'):
         {
             char Str[64];
@@ -675,6 +697,7 @@ char ProcessKeypress(){
 
     case 8: // Backspace
         {
+
             Inf.EditorDirty = 1;
             if((int)Inf.CursorX == 0) {
                 if((Inf.CursorY == 0 && Inf.RowOffset == 0)) return 0;
@@ -702,6 +725,7 @@ char ProcessKeypress(){
 
             if(Inf.InsertMode == 1) { // Unsuported
                 target->Memory[Inf.CursorX - 1] = '\0';
+
                 Inf.CursorX--;
             }
             else {
@@ -724,6 +748,7 @@ char ProcessKeypress(){
         InsertCharacter(' ');
         while((Inf.CursorX) % TAB_SPACE_COUNT != 0) {
             InsertCharacter(' ');
+
         }
     } return 0;
     default:
@@ -744,6 +769,7 @@ int main(int argc, char* argv[]){
         Print("Error: You must provide an argument!\n");
         return 1;
     }
+
 
     char C;
 
