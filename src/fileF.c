@@ -1,8 +1,8 @@
 #include "fileF.h"
 
 void ReturnFileName(char *FullPath, char *OutFileName){
-    uint32_t FullPathLength = StringLength(FullPath);
-    uint32_t i;
+    int FullPathLength = StringLength(FullPath);
+    int i;
 
     for(i = FullPathLength - 1; i < FullPathLength; i--)
         if(FullPath[i] == '\\' || FullPath[i] == '/')
@@ -16,20 +16,20 @@ void ReturnFileName(char *FullPath, char *OutFileName){
     MemoryCopy(OutFileName, FullPath + i + 1, FullPathLength - i - 1);
 }
 
-void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer, uint32_t *LastLineIndex, LineContinuationInfo *Continuation){
+void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer, int *LastLineIndex, LineContinuationInfo *Continuation){
     
     char *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
     size_t RemainingSize = PrimaryBuffer->Length;
 
-    uint32_t LineNumber = *LastLineIndex;
+    int LineNumber = *LastLineIndex;
 
-    if(Continuation->BufferIndex != 0xFFFFFFFF){
+    if(Continuation->BufferIndex != 0xFFFFFFF){
         StringBuffer *target = StringBufferGetElemenetAt(StrArray, Continuation->BufferIndex);
-        uint32_t CurrentLineLength = StringLength(target->Memory) - 1;
-        uint32_t Offset = Continuation->Offset;
+        int CurrentLineLength = StringLength(target->Memory) - 1;
+        int Offset = Continuation->Offset;
 
         uint8_t FoundNewline = 0;
-        uint32_t CopyLength = LineLengthEx(PtrToCurrentPos, RemainingSize, &FoundNewline);
+        int CopyLength = LineLengthEx(PtrToCurrentPos, RemainingSize, &FoundNewline);
 
         while(CurrentLineLength + CopyLength + 1 > target->Length)
             DoubleSize(target);
@@ -57,7 +57,7 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
 
     while(RemainingSize > 0){
         uint8_t FoundNewline = 0;
-        uint32_t CopyLength = LineLengthEx(PtrToCurrentPos, RemainingSize, &FoundNewline);
+        int CopyLength = LineLengthEx(PtrToCurrentPos, RemainingSize, &FoundNewline);
 
         if(LineNumber >= StrArray->MaxNumberOfElements) 
             DoubleArrayCapacity(StrArray);
@@ -89,14 +89,14 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
 
 }
 
-void FileReadPortionS(HANDLE hFile, uint32_t PortionSize, StringBufferArray *StrArray){
+void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
 
     StringBuffer PrimaryBuffer = CreateBuffer(PortionSize + 1);
 
     DWORD ReadFeedback;
-    uint32_t LastLineIndex = 0;
+    int LastLineIndex = 0;
 
-    LineContinuationInfo Continuation = { 0xFFFFFFFF, 0, 0 };
+    LineContinuationInfo Continuation = { 0xFFFFFFF, 0, 0 };
 
     do{
         ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);

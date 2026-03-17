@@ -39,13 +39,13 @@
         int SmallerInteger(int a, int b);
 
         // Returns the smaller unsigned integer
-        int SmallerUnsigned(int a, int b);
+        uint32_t SmallerUnsigned(uint32_t a, uint32_t b);
 
         // Return the larger unsigned integer
-        int LargerUnsigned(int a, int b);
+        uint32_t LargerUnsigned(uint32_t a, uint32_t b);
 
         // Dont ask me why this exists
-        int AbsoluteUnsigned(int n);
+        uint32_t AbsoluteUnsigned(uint32_t n);
 
         // Converts a character to ascii code string
         void CharToAnsi(char c, char *pStr);
@@ -105,7 +105,8 @@
 
         // Adds multiple characters to the end of the string
         #define AddCharacters(Destination, Character, Count) \
-            { for(int i = 0; i < Count; i++){ \
+            { \
+                for(int i = 0; i < Count; i++){ \
                 CharConcat(Destination, Character); \
             }}
 

@@ -1,7 +1,7 @@
 // String buffer which will be displayed to the screen 
 #include "buffer.h"
 
-StringBuffer CreateBuffer(uint32_t size){
+StringBuffer CreateBuffer(int size){
     StringBuffer temp;
     #if defined WINDOWS
         temp.Memory = HeapAlloc(hHeap, 0, size);

@@ -3,16 +3,16 @@
     #include "buffer.h"
 
     typedef struct {
-        uint32_t BufferIndex;   // index in the StringBufferArray
-        uint32_t Offset;        // byte offset where the partial line ends
-        uint32_t Reserved;      // optional, for future use
+        int BufferIndex;   // index in the StringBufferArray
+        int Offset;        // byte offset where the partial line ends
+        int Reserved;      // optional, for future use
     } LineContinuationInfo;
 
     // Reads PortionSize bytes from hFile
     // Copies those bytes into data pointer
     void FileReadPortionS(
         HANDLE hFile, 
-        uint32_t PortionSize, 
+        DWORD PortionSize, 
         StringBufferArray *StrArray
     );
 
