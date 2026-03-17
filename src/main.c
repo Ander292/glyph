@@ -534,7 +534,7 @@ char ProcessKeypress(){
             if(Inf.RowOffset > 0){
                 Inf.RowOffset--;
                 // Will move the cursor up if it cannot scroll
-                if(Inf.CursorY - Inf.RowOffset == Inf.ConsoleRows)
+                if(Inf.CursorY - Inf.RowOffset == (uint32_t)Inf.ConsoleRows)
                     Inf.CursorY--;
             } 
         } return 0;
