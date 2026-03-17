@@ -289,43 +289,7 @@
 }
 
 
-
 //---Header Formating---//
-
-    uint32_t FormatDebugInfoText(char *StrOut){
-        char StrAux[8] = {0};
-        char StrMain[128] = {0};
-
-        //StringConcat(StrMain, INVERTED_TEXT_COLOR);
-        StringConcat(StrMain, "||X:");
-
-        UintToString(Inf.CursorX, StrAux, 3);
-        StringConcat(StrMain, StrAux);
-
-        StringConcat(StrMain, "|Y:");
-
-
-
-        UintToString(Inf.CursorY, StrAux, 3);
-        StringConcat(StrMain, StrAux);
-
-        StringConcat(StrMain, "|RO:");
-
-        UintToString(Inf.RowOffset, StrAux, 3);
-        StringConcat(StrMain, StrAux);
-
-        StringConcat(StrMain, "|CO:");
-
-        UintToString(Inf.ColumnOffset, StrAux, 3);
-        StringConcat(StrMain, StrAux);
-
-        StringConcat(StrMain, "||");
-        //StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
-        
-        StringCopy(StrOut, StrMain);
-
-        return StringLength(StrMain);
-    }
 
     uint32_t FormatInfoString(char *StrOut){
         char StrAux[8] = {0};
@@ -560,17 +524,25 @@ char ProcessKeypress(){
             Inf.CursorX = Inf.CursorX - n;
             ArrowKeys = 0;
         } return 0;
+        /*
+            PosOnScreen:
+                CursorY - RowOffset < 0             --> CursorY++; (down move)
+                CursorY - RowOffset > ConsoleRows   --> CursorY--; (up move)
+        
+        */
         case CTRL_UP:{
             if(Inf.RowOffset > 0){
                 Inf.RowOffset--;
-                if(Inf.CursorY - Inf.ColumnOffset == Inf.ConsoleRows + 1)
+                // Will move the cursor up if it cannot scroll
+                if(Inf.CursorY - Inf.RowOffset == Inf.ConsoleRows)
                     Inf.CursorY--;
             } 
         } return 0;
         case CTRL_DOWN:{
             if(Inf.RowOffset < Inf.RowArray.NumberOfElements - Inf.CursorY - Inf.ConsoleColumns){
                 Inf.RowOffset++;
-                if(Inf.CursorY - Inf.ConsoleRows == Inf.ColumnOffset)
+                // Will move the cursor down if it cannot scroll
+                if(Inf.CursorY + 1 - Inf.RowOffset == 0) 
                     Inf.CursorY++;
             }
         } return 0;
