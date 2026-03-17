@@ -7,14 +7,14 @@
     
         typedef struct{
             char *Memory;
-            uint32_t Length;
+            int Length;
         } StringBuffer;
 
         typedef struct{
             StringBuffer *Data;
             size_t MemorySize;
-            uint32_t NumberOfElements;
-            uint32_t MaxNumberOfElements;
+            int NumberOfElements;
+            int MaxNumberOfElements;
         } StringBufferArray;
 
     //-----Global Variables-----//
@@ -27,7 +27,7 @@
     //-----FunctionDefinitions-----//
 
         // Creates a back buffer
-        StringBuffer CreateBuffer(uint32_t size);
+        StringBuffer CreateBuffer(int size);
 
         // Doubles the size of the back buffer
         void DoubleSize(StringBuffer *Buffer);
@@ -39,7 +39,7 @@
         void ZeroBuffer(StringBuffer *Buffer);
 
         // Zeroes the buffer starting at a certain possition
-        void ZeroBufferEx(StringBuffer *Buffer, uint32_t StartIndex);
+        void ZeroBufferEx(StringBuffer *Buffer, int StartIndex);
 
         // Append to the end of the buffer (at the termination character)
         void AppendBuffer(StringBuffer *Buffer, char *Str);
@@ -48,12 +48,12 @@
         uint32_t AppendBufferEx(
             StringBuffer *Buffer,
             char *Str,
-            uint32_t MaxLength,
-            uint32_t Offset
+            int MaxLength,
+            int Offset
         );
 
         // Creates a new array of string buffers
-        StringBufferArray CreateBufferArray(uint32_t InitialMaxElements);
+        StringBufferArray CreateBufferArray(int InitialMaxElements);
 
         // Doubles the capacity of a StringArrayBuffer 
         // Alocates sufficient space on the heap for all the new elements
@@ -66,24 +66,24 @@
         // Returns a pointer to the selected element of the array
         StringBuffer *StringBufferGetElemenetAt(
             StringBufferArray *Array, 
-            uint32_t ElementIndex
+            int ElementIndex
         );
 
         // Inserts a line at given index. Pushes all other lines one place forward.
         void InsertLine(
             StringBufferArray *Array, 
-            uint32_t ElementIndex, 
+            int ElementIndex, 
             char *Str
         );
 
         // Removes a line at given index. Pulls all other lines one place backwards
-        void RemoveLine(StringBufferArray *Array, uint32_t ElementIndex);
+        void RemoveLine(StringBufferArray *Array, int ElementIndex);
 
         // Removes a line at a given index and copies the string that was inside it to OutString parameter. (Can be null)
-        void RemoveLineEx(StringBufferArray *Array, uint32_t ElementIndex, char *OutStr);
+        void RemoveLineEx(StringBufferArray *Array, int ElementIndex, char *OutStr);
 
         // Returns the longest line length
-        uint32_t MaxLineLength(StringBufferArray *Array);
+        int MaxLineLength(StringBufferArray *Array);
 
 
     //-----MacroFunctions-----//

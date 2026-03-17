@@ -4,7 +4,7 @@
     //-----FunctionDefinitions-----//
 
         // Returns the length of the string passed as an argument
-        uint32_t StringLength(char* ptr);
+        int StringLength(char* ptr);
 
         // Copies the contents of the 2nd string to the end of the first string
         void StringConcat(char *Destination, char *Source);
@@ -12,16 +12,16 @@
         // Copies "Size" number of bytes from "Source" to "Destination"
         // Disregards the previous content of Destination
         // Destination must be a pointer to a valid address
-        void MemoryCopy(char *Destination, char *Source, uint32_t Size);
+        void MemoryCopy(char *Destination, char *Source, int Size);
 
         // Converts the number to a string and writes the digits in ascii code inside pStr array
-        void UintToString(uint32_t n, char *pStr, int digits);
+        void UintToString(int n, char *pStr, int digits);
 
         // Converts a 64bit integer into an asci string
         void LongToString(int64_t n, char *pStr, int digits);
 
         // Inverts the number (ex. 1277 becomes 7721)
-        uint32_t ReverseOrder(uint32_t n, int cnt);
+        int ReverseOrder(int n, int cnt);
 
         // Invers a signed 64bit integer
         int64_t ReverseOrder64(int64_t n, int cnt);
@@ -39,50 +39,50 @@
         int SmallerInteger(int a, int b);
 
         // Returns the smaller unsigned integer
-        uint32_t SmallerUnsigned(uint32_t a, uint32_t b);
+        int SmallerUnsigned(int a, int b);
 
         // Return the larger unsigned integer
-        uint32_t LargerUnsigned(uint32_t a, uint32_t b);
+        int LargerUnsigned(int a, int b);
 
         // Dont ask me why this exists
-        uint32_t AbsoluteUnsigned(uint32_t n);
+        int AbsoluteUnsigned(int n);
 
         // Converts a character to ascii code string
         void CharToAnsi(char c, char *pStr);
 
         // Returns the length of the string until the first newline character
-        uint32_t LineLength(char* ptr);
+        int LineLength(char* ptr);
 
         // Returns the length of the string until the first newline character
         // It will not read more than MaxLength characters
         // FoundNewline will either be set to 1 or 0 depending on if the function actually found the newline
-        uint32_t LineLengthEx(char* ptr, uint32_t MaxLength, uint8_t *FoundNewline);
+        int LineLengthEx(char* ptr, int MaxLength, uint8_t *FoundNewline);
 
         // Counts the ammount of chars C in the string
         // If the string is invalid (not null terminated) this function will return a segmentation fault
-        uint32_t CharacterCount(char *String, char C);
+        int CharacterCount(char *String, char C);
 
-        void StringShiftLeft(char *Str, uint32_t StartOffset, uint32_t EndOffset);
+        void StringShiftLeft(char *Str, int StartOffset, int EndOffset);
 
-        void StringShiftRight(char *Str, uint32_t StartOffset, uint32_t EndOffset);
+        void StringShiftRight(char *Str, int StartOffset, int EndOffset);
         
         
-        uint32_t CountForwardToBlankEx(char *Str, uint32_t CurrentPossition);
+        int CountForwardToBlankEx(char *Str, int CurrentPossition);
 
-        uint32_t CountBackToBlankEx(char *Str, uint32_t CurrentPossition);
+        int CountBackToBlankEx(char *Str, int CurrentPossition);
 
-        uint32_t CountBackToWordEx(char* Str, uint32_t CurrentPossition);
+        int CountBackToWordEx(char* Str, int CurrentPossition);
 
-        uint32_t CountForwardToWordEx(char *Str, uint32_t CurrentPossition);
+        int CountForwardToWordEx(char *Str, int CurrentPossition);
 
 
-        uint32_t CountForwardToWord(char *Str, uint32_t CurrentPossition);
+        int CountForwardToWord(char *Str, int CurrentPossition);
 
-        uint32_t CountBackToWord(char* Str, uint32_t CurrentPossition);
+        int CountBackToWord(char* Str, int CurrentPossition);
         
-        uint32_t CountForwardToBlank(char *Str, uint32_t CurrentPossition);
+        int CountForwardToBlank(char *Str, int CurrentPossition);
 
-        uint32_t CountBackToBlank(char *Str, uint32_t CurrentPossition);
+        int CountBackToBlank(char *Str, int CurrentPossition);
     //-----MacroFunctions-----//
         
         // The maximum size of a string array
@@ -98,14 +98,14 @@
         //  Adds a character to the end of the string and moves the terminating sequence into the next one
         #define CharConcat(Destination, Character) \
             { \
-                uint32_t DestLength = StringLength(Destination); \
+                int DestLength = StringLength(Destination); \
                 Destination[DestLength - 1] = Character; \
                 Destination[DestLength] = '\0'; \
             }
 
         // Adds multiple characters to the end of the string
         #define AddCharacters(Destination, Character, Count) \
-            { for(uint32_t i = 0; i < Count; i++){ \
+            { for(int i = 0; i < Count; i++){ \
                 CharConcat(Destination, Character); \
             }}
 

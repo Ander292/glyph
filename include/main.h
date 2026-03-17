@@ -14,8 +14,8 @@
             int ConsoleRows;
             int ConsoleColumns;
 
-            uint32_t RowOffset;
-            uint32_t ColumnOffset;
+            int RowOffset;
+            int ColumnOffset;
             StringBufferArray RowArrayOrigin;
             StringBufferArray RowArray;
 
@@ -25,7 +25,7 @@
         } EditorInfo;
 
         typedef struct{
-            uint32_t TimeOfCreation;
+            uint64_t TimeOfCreation;
             char Message[128];
         } EditorMessage;
 

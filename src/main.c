@@ -407,8 +407,8 @@ void DrawRows(){
     if(Inf.CursorY < (int)(Inf.RowOffset))
         Inf.RowOffset = Inf.CursorY;
 
-    for(uint32_t i = 0; (i + Inf.RowOffset) < Inf.RowArray.NumberOfElements && i < (uint32_t)(Inf.ConsoleRows); i++) {
-        uint32_t RowNumber = i + Inf.RowOffset;
+    for(int i = 0; (i + Inf.RowOffset) < Inf.RowArray.NumberOfElements && i < (Inf.ConsoleRows); i++) {
+        int RowNumber = i + Inf.RowOffset;
 
         UintToString((RowNumber + 1) % 1000, Str, 3);
 
@@ -416,7 +416,7 @@ void DrawRows(){
         PrintToBuffer(&Buffer, "|");
 
         StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
-        uint32_t StringSize = StringLength(temp->Memory) - 1;
+        int StringSize = StringLength(temp->Memory) - 1;
 
         
 
@@ -425,7 +425,7 @@ void DrawRows(){
         else
             AppendBufferEx(&Buffer, temp->Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
 
-        if(i < (uint32_t)(Inf.ConsoleRows - 1)) PrintToBuffer(&Buffer, "\r\n");
+        if(i < (Inf.ConsoleRows - 1)) PrintToBuffer(&Buffer, "\r\n");
     }
 }
 
@@ -534,7 +534,7 @@ char ProcessKeypress(){
             if(Inf.RowOffset > 0){
                 Inf.RowOffset--;
                 // Will move the cursor up if it cannot scroll
-                if(Inf.CursorY - Inf.RowOffset == (uint32_t)Inf.ConsoleRows)
+                if(Inf.CursorY - Inf.RowOffset == Inf.ConsoleRows)
                     Inf.CursorY--;
             } 
         } return 0;
@@ -569,7 +569,7 @@ char ProcessKeypress(){
             Inf.EditorDirty = 1;
 
             if(
-                ((uint32_t)Inf.CursorX == StringLength(target->Memory) - 1)
+                (Inf.CursorX == StringLength(target->Memory) - 1)
                 && (uint32_t)Inf.CursorY < Inf.RowArray.NumberOfElements - 1
             ){
                 StringBuffer *NextLine = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY);
