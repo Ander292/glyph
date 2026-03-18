@@ -4,11 +4,11 @@ void ReturnFileName(char *FullPath, char *OutFileName){
     int FullPathLength = StringLength(FullPath);
     int i;
 
-    for(i = FullPathLength - 1; i < FullPathLength; i--)
+    for(i = FullPathLength - 1; i > 0; i--)
         if(FullPath[i] == '\\' || FullPath[i] == '/')
             break;
 
-    if(i >= FullPathLength) {
+    if(i == 0) {
         StringCopy(OutFileName, FullPath);
         return;
     }

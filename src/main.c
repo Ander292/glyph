@@ -302,7 +302,7 @@
 
         StringConcat(StrMain, "|| F: ");
 
-        char StrFileName[64];
+        char StrFileName[64] = {0};
         ReturnFileName(FileName, StrFileName);
 
         StringConcat(StrMain, StrFileName);
