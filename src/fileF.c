@@ -19,12 +19,20 @@ void ReturnFileName(char *FullPath, char *OutFileName){
 void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer, int *LastLineIndex, LineContinuationInfo *Continuation){
     
     char *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
-    size_t RemainingSize = PrimaryBuffer->Length;
+
+    int RemainingSize = PrimaryBuffer->Length;
+
+    #ifndef LINUX
+        if(*PtrToCurrentPos == '\n') {
+            PtrToCurrentPos++;
+            RemainingSize--;
+        }
+    #endif
 
     int LineNumber = *LastLineIndex;
 
-    if(Continuation->BufferIndex != 0xFFFFFFF){
-        StringBuffer *target = StringBufferGetElemenetAt(StrArray, Continuation->BufferIndex);
+    if(Continuation->Shift == 1){
+        StringBuffer *target = StringBufferGetElemenetAt(StrArray, LineNumber);
         int CurrentLineLength = StringLength(target->Memory) - 1;
         int Offset = Continuation->Offset;
 
@@ -42,13 +50,15 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
         PtrToCurrentPos += CopyLength;
         RemainingSize -= CopyLength;
 
-        if (RemainingSize > 0 && *PtrToCurrentPos == '\r') { PtrToCurrentPos++; RemainingSize--; }
-        if (RemainingSize > 0 && *PtrToCurrentPos == '\n') { PtrToCurrentPos++; RemainingSize--; }
+        if(RemainingSize > 0 && *PtrToCurrentPos == '\r') { PtrToCurrentPos++; RemainingSize--; }
+        if(RemainingSize > 0 && *PtrToCurrentPos == '\n') { PtrToCurrentPos++; RemainingSize--; }
 
-        if (FoundNewline) {
-            Continuation->BufferIndex = 0xFFFFFFFF;
-            LineNumber++;   
-        } else {
+        if(FoundNewline){
+            LineNumber++;
+            Continuation->Shift = 0;
+        }else{
+            Continuation->Shift = 1;
+            //Continuation->BufferIndex = LineNumber;
             Continuation->Offset = CurrentLineLength;
             *LastLineIndex = LineNumber;
             return;
@@ -73,11 +83,21 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
         PtrToCurrentPos += CopyLength;
         RemainingSize -= CopyLength;
 
-        if (RemainingSize > 0 && *PtrToCurrentPos == '\r') { PtrToCurrentPos++; RemainingSize--; }
-        if (RemainingSize > 0 && *PtrToCurrentPos == '\n') { PtrToCurrentPos++; RemainingSize--; }
+        if(RemainingSize > 0 && *PtrToCurrentPos == '\r' 
+            && *(PtrToCurrentPos + 1) == '\n' && *(PtrToCurrentPos + 2) == '\000'){
+                    LineNumber++;
+                    StrArray->NumberOfElements++;
+                    RemainingSize-=2;
+                    continue;
+                }
+        if(RemainingSize > 0 && *PtrToCurrentPos == '\r') { PtrToCurrentPos++; RemainingSize--; }
+        if(RemainingSize > 0 && *PtrToCurrentPos == '\n') { PtrToCurrentPos++; RemainingSize--; }
+        // while(RemainingSize > 0 && (*PtrToCurrentPos == '\r' || *PtrToCurrentPos == '\n')) 
+        //     { PtrToCurrentPos++; RemainingSize--; }
 
-        if (!FoundNewline) {
-            Continuation->BufferIndex = LineNumber;
+        if(!FoundNewline){
+            *LastLineIndex = LineNumber;
+            Continuation->Shift = 1;
             Continuation->Offset = CopyLength;
             break;
         }
@@ -96,7 +116,7 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
     DWORD ReadFeedback;
     int LastLineIndex = 0;
 
-    LineContinuationInfo Continuation = { 0xFFFFFFF, 0, 0 };
+    LineContinuationInfo Continuation = { -1, 0, 0 };
 
     do{
         ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
@@ -104,11 +124,12 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
         PrimaryBuffer.Memory[ReadFeedback] = '\0';
         PrimaryBuffer.Length = ReadFeedback;
 
-
         SeparateIntoLines(StrArray, &PrimaryBuffer, &LastLineIndex, &Continuation);
     }while(ReadFeedback >= PortionSize);
 
     if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
+    //StrArray->NumberOfElements++;
+
 
     DeleteBuffer(&PrimaryBuffer);
 }

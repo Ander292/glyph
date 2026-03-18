@@ -3,9 +3,10 @@
     #include "buffer.h"
 
     typedef struct {
-        int BufferIndex;   // index in the StringBufferArray
-        int Offset;        // byte offset where the partial line ends
-        int Reserved;      // optional, for future use
+        //int BufferIndex;   // index in the StringBufferArray
+        int Offset;         // byte offset where the partial line ends
+        int Reserved;       // optional, for future use
+        uint8_t Shift;      //If the current line is finished
     } LineContinuationInfo;
 
     // Reads PortionSize bytes from hFile

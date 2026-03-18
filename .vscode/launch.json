@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/glyph/glyph.exe",
             "args": [
-                "assets\\test.txt"
+                "C:\\Users\\Korisnik\\test.txt"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
