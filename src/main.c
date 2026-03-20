@@ -539,7 +539,11 @@ char ProcessKeypress(){
             } 
         } return 0;
         case CTRL_DOWN:{
-            if(Inf.RowOffset < Inf.RowArray.NumberOfElements - Inf.CursorY - Inf.ConsoleColumns){
+            char Str[128];
+            UintToString(Inf.RowArray.NumberOfElements, Str, 0);
+            PushEditorMessage(Str);
+            PrintToBuffer(&Buffer, Str);
+            if(Inf.RowOffset < Inf.RowArray.NumberOfElements){
                 Inf.RowOffset++;
                 // Will move the cursor down if it cannot scroll
                 if(Inf.CursorY + 1 - Inf.RowOffset == 0) 
