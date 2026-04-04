@@ -1,6 +1,7 @@
 #ifndef MAIN_H
     #include <conio.h>
     #include "buffer.h"
+    #include "buffer8.h"
     #include "fileF.h"
 
     //-----Debug Defines-----//
