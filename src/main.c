@@ -21,12 +21,19 @@
         GetConsoleMode(hStdin, &ConsoleMode);
 
         //| ENABLE_MOUSE_INPUT
-        ConsoleMode = ConsoleMode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT) | (ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT);
+        ConsoleMode = ConsoleMode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT) | (ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
         SetConsoleMode(hStdin, ConsoleMode);
 
         GetConsoleSystemInfo();
 
         //Inf.CursorX = 4;
+        Inf.ModeUtf8 = 0;
+
+        if(Inf.ModeUtf8){
+            SetConsoleOutputCP(CP_UTF8);
+            SetConsoleCP(CP_UTF8);
+        }
+
         Inf.CursorX = 0;
         Inf.CursorY = 0;
         Inf.InsertMode = 0;

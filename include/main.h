@@ -23,6 +23,7 @@
             uint64_t CurrentTime;
             uint8_t InsertMode;
             uint8_t EditorDirty;
+            uint8_t ModeUtf8;
         } EditorInfo;
 
         typedef struct{
