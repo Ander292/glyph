@@ -27,11 +27,15 @@
         GetConsoleSystemInfo();
 
         //Inf.CursorX = 4;
-        Inf.ModeUtf8 = 0;
+        Inf.StringMode = MODE_UTF16;
 
-        if(Inf.ModeUtf8){
+        if(Inf.StringMode == MODE_UTF8){
             SetConsoleOutputCP(CP_UTF8);
             SetConsoleCP(CP_UTF8);
+        }
+        else if(Inf.StringMode == MODE_UTF16){
+            SetConsoleOutputCP(CP_WINUNICODE);
+            SetConsoleCP(CP_WINUNICODE);
         }
 
         Inf.CursorX = 0;
@@ -285,10 +289,21 @@
                 }
             }
             else if(InpRec.EventType = MOUSE_EVENT){
+                MOUSE_EVENT_RECORD mRecord = InpRec.Event.MouseEvent;
+                if(mRecord.dwEventFlags == 0){
+                    int MouseX = mRecord.dwMousePosition.X;
+                    int MouseY = mRecord.dwMousePosition.Y;
 
+                    if(mRecord.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED){
+                        SetCursorPossition(MouseX, MouseY);
+                    }
+                }
             }
         }
-        else Sleep(TIMEOUT_MS);
+        else {
+            Sleep(TIMEOUT_MS);
+            Inf.ToRender = FALSE;
+        }
         return Result;
     }
 
@@ -548,7 +563,11 @@ void RefreshScreen(){
 }
 
 void InsertCharacter(char C){
-    if(C == 0) return;
+    if(C == 0) {
+        Inf.ToRender = TRUE;
+        Inf.ToFixCursor = TRUE;
+        return;
+    } 
     Inf.EditorDirty = 1;
     int CurrentColumn = Inf.CursorX;
     int CurrentLine = Inf.CursorY;
@@ -864,16 +883,19 @@ int main(int argc, char* argv[]){
     while(Running){
         GetConsoleSystemInfo();
 
-        RefreshScreen();
+        if(Inf.ToRender) RefreshScreen();
+        Inf.ToRender = FALSE;
 
         C = ProcessKeypress();
 
         InsertCharacter(C);
         
-        HideConsoleCursor();
-        FixCursorPossitionEx();
-        DisplayConsoleCursor();
-
+        if(Inf.ToFixCursor){
+            HideConsoleCursor();
+            FixCursorPossitionEx();
+            DisplayConsoleCursor();
+        }
+        Inf.ToFixCursor = FALSE;
         //Sleep(TIMEOUT_MS);
     }
 

@@ -1,13 +1,14 @@
 #ifndef MAIN_H
     #include <conio.h>
     #include "buffer.h"
-    #include "buffer8.h"
     #include "fileF.h"
 
     //-----Debug Defines-----//
         #undef DEBUG_INFO
         #define WINDOWS
-
+        #define UNICODE
+        #define _UNICODE
+        
     //-----Struct Definitions-----//
 
         typedef struct{
@@ -23,7 +24,9 @@
             uint64_t CurrentTime;
             uint8_t InsertMode;
             uint8_t EditorDirty;
-            uint8_t ModeUtf8;
+            uint8_t StringMode;
+            uint8_t ToRender;
+            uint8_t ToFixCursor;
         } EditorInfo;
 
         typedef struct{
@@ -121,13 +124,15 @@
 
         #define PAGE_UPDOWN_CONSTANT 10 // Unused
 
-        #define TIMEOUT_MS 5 // Unused
-        #define EDITOR_MESSAGE_TIME 15 // The (minimum) length in seconds of a screen message
+        #define TIMEOUT_MS 10
+        #define EDITOR_MESSAGE_TIME 8 // The (minimum) length in seconds of a screen message
 
         #define TAB_SPACE_COUNT 4 // How much spacebars will a tab create
         #define FIRST_LINE_EMPTY_FIELDS 6 // How many fields are empty in the first line before inverting the color
         #define LINE_NUMBER_WIDTH 4 // How long is the line number string
 
+        #define MODE_UTF8 1
+        #define MODE_UTF16 2
 
     //-----EndSequences-----//
         
