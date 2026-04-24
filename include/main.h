@@ -83,23 +83,7 @@
 
 
         #define CTRL_DELETE_COMMANDS \
-        { \
-            Inf.EditorDirty = 1; \
-            uint32_t n; \
-            if(*(target->Memory + Inf.CursorX) == ' ') \
-                n = CountForwardToWordEx(target->Memory, Inf.CursorX); \
-            else if(*(target->Memory + Inf.CursorX) == '\0') \
-                n = 0; \
-            else \
-                n = CountForwardToBlankEx(target->Memory, Inf.CursorX); \
-        \
-            int counter = n; \
-            while(1) { \
-                if(counter == 0) break; \
-                counter--; \
-                StringShiftLeft(target->Memory, Inf.CursorX, 0); \
-            } \
-        } \
+        
 
     //-----Constants-----//
 
@@ -123,10 +107,21 @@
 
         #define CTRL_DELETE (char)0x06  //0000 0110
 
+        #define CTRL_Q      (char)0x07  //0000 0111
+        #define CTRL_C      (char)0x09  //0000 1001
+        #define CTRL_S      (char)0x0A  //0000 1010
+        //#define CTRL_D      (char)0x0B  //0000 1011
+
+        #define CTRL_W      (char)0x0C  //0000 1100
+        #define BACKSPACE   (char)0x0D  //0000 1101
+        #define NEWLINE     (char)0x0E  //0000 1110
+        #define TAB         (char)0x0F  //0000 1111
+        #define CTRL_BACKSPACE CTRL_W
+
 
         #define PAGE_UPDOWN_CONSTANT 10 // Unused
 
-        #define TIMEOUT_MS 2 // Unused
+        #define TIMEOUT_MS 5 // Unused
         #define EDITOR_MESSAGE_TIME 15 // The (minimum) length in seconds of a screen message
 
         #define TAB_SPACE_COUNT 4 // How much spacebars will a tab create
@@ -143,6 +138,7 @@
     //-----FunctionDeclarations-----//
 
         void TranslateStringArray();
+        void PushEditorMessage(char *Str);
 
 #define MAIN_H
 #endif
