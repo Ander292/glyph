@@ -4,21 +4,21 @@
     //-----FunctionDefinitions-----//
 
         // Returns the length of the string passed as an argument
-        int StringLength(char* ptr);
+        int StringLength(wchar_t *ptr);
 
         // Copies the contents of the 2nd string to the end of the first string
-        void StringConcat(char *Destination, char *Source);
+        void StringConcat(wchar_t *Destination, wchar_t *Source);
 
         // Copies "Size" number of bytes from "Source" to "Destination"
         // Disregards the previous content of Destination
         // Destination must be a pointer to a valid address
-        void MemoryCopy(char *Destination, char *Source, int Size);
+        void MemoryCopy(wchar_t *Destination, wchar_t *Source, int Size);
 
         // Converts the number to a string and writes the digits in ascii code inside pStr array
-        void UintToString(int n, char *pStr, int digits);
+        void UintToString(int n, wchar_t * pStr, int digits);
 
         // Converts a 64bit integer into an asci string
-        void LongToString(int64_t n, char *pStr, int digits);
+        void LongToString(int64_t n, wchar_t * pStr, int digits);
 
         // Inverts the number (ex. 1277 becomes 7721)
         int ReverseOrder(int n, int cnt);
@@ -48,41 +48,41 @@
         uint32_t AbsoluteUnsigned(uint32_t n);
 
         // Converts a character to ascii code string
-        void CharToAnsi(char c, char *pStr);
+        void CharToAnsi(wchar_t C, wchar_t * pStr);
 
         // Returns the length of the string until the first newline character
-        int LineLength(char* ptr);
+        int LineLength(wchar_t * ptr);
 
         // Returns the length of the string until the first newline character
         // It will not read more than MaxLength characters
         // FoundNewline will either be set to 1 or 0 depending on if the function actually found the newline
-        int LineLengthEx(char* ptr, int MaxLength, uint8_t *FoundNewline);
+        int LineLengthEx(wchar_t * ptr, int MaxLength, uint8_t *FoundNewline);
 
         // Counts the ammount of chars C in the string
         // If the string is invalid (not null terminated) this function will return a segmentation fault
-        int CharacterCount(char *String, char C);
+        int CharacterCount(wchar_t *String, wchar_t C);
 
-        void StringShiftLeft(char *Str, int StartOffset, int EndOffset);
+        void StringShiftLeft(wchar_t *Str, int StartOffset, int EndOffset);
 
-        void StringShiftRight(char *Str, int StartOffset, int EndOffset);
+        void StringShiftRight(wchar_t *Str, int StartOffset, int EndOffset);
         
         
-        int CountForwardToBlankEx(char *Str, int CurrentPossition);
+        int CountForwardToBlankEx(wchar_t *Str, int CurrentPossition);
 
-        int CountBackToBlankEx(char *Str, int CurrentPossition);
+        int CountBackToBlankEx(wchar_t *Str, int CurrentPossition);
 
-        int CountBackToWordEx(char* Str, int CurrentPossition);
+        int CountBackToWordEx(wchar_t * Str, int CurrentPossition);
 
-        int CountForwardToWordEx(char *Str, int CurrentPossition);
+        int CountForwardToWordEx(wchar_t *Str, int CurrentPossition);
 
 
-        int CountForwardToWord(char *Str, int CurrentPossition);
+        int CountForwardToWord(wchar_t *Str, int CurrentPossition);
 
-        int CountBackToWord(char* Str, int CurrentPossition);
+        int CountBackToWord(wchar_t * Str, int CurrentPossition);
         
-        int CountForwardToBlank(char *Str, int CurrentPossition);
+        int CountForwardToBlank(wchar_t *Str, int CurrentPossition);
 
-        int CountBackToBlank(char *Str, int CurrentPossition);
+        int CountBackToBlank(wchar_t *Str, int CurrentPossition);
     //-----MacroFunctions-----//
         
         // The maximum size of a string array

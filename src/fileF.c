@@ -1,6 +1,7 @@
+#define FILE_C
 #include "fileF.h"
 
-void ReturnFileName(char *FullPath, char *OutFileName){
+void ReturnFileName(wchar_t *FullPath, wchar_t *OutFileName){
     int FullPathLength = StringLength(FullPath);
     int i;
 
@@ -18,7 +19,7 @@ void ReturnFileName(char *FullPath, char *OutFileName){
 
 void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer, int *LastLineIndex, LineContinuationInfo *Continuation){
     
-    char *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
+    wchar_t *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
 
     int RemainingSize = PrimaryBuffer->Length;
 
@@ -111,7 +112,7 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
 
 void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
 
-    StringBuffer PrimaryBuffer = CreateBuffer(PortionSize + 1);
+    StringBufferA PrimaryBuffer = CreateBufferA(PortionSize + 1);
 
     DWORD ReadFeedback;
     int LastLineIndex = 0;
@@ -124,12 +125,18 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
         PrimaryBuffer.Memory[ReadFeedback] = '\0';
         PrimaryBuffer.Length = ReadFeedback;
 
-        SeparateIntoLines(StrArray, &PrimaryBuffer, &LastLineIndex, &Continuation);
+        DWORD DestinationSize = MultiByteToWideChar(CP_UTF8, 0, PrimaryBuffer.Memory, -1, NULL, 0);
+        StringBuffer DestBuffer = CreateBuffer(DestinationSize);
+        MultiByteToWideChar(CP_UTF8, 0, PrimaryBuffer.Memory, -1, DestBuffer.Memory, DestinationSize);
+
+        
+        SeparateIntoLines(StrArray, &DestBuffer, &LastLineIndex, &Continuation);
+        DeleteBuffer(&DestBuffer);
     }while(ReadFeedback >= PortionSize);
 
     if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
     //StrArray->NumberOfElements++;
 
 
-    DeleteBuffer(&PrimaryBuffer);
+    DeleteBufferA(&PrimaryBuffer);
 }

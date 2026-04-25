@@ -1,6 +1,11 @@
 #ifndef FILEF_H
+#define FILEF_H
     #include <windows.h>
     #include "buffer.h"
+
+#if defined FILE_C || 1
+    #include "bufferANSI.h"
+#endif
 
     typedef struct {
         //int BufferIndex;   // index in the StringBufferArray
@@ -18,7 +23,6 @@
     );
 
     // Separetes a file name and puts it into OutFileName
-    void ReturnFileName(char *FullPath, char *OutFileName);
+    void ReturnFileName(wchar_t* FullPath, wchar_t* OutFileName);
 
-#define FILEF_H
 #endif

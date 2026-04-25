@@ -2,7 +2,7 @@
 
 // String functions
 
-int StringLength(char* ptr){
+int StringLength(wchar_t* ptr){
     int Length = 0;
     for(Length = 0; *(ptr + Length) != '\0'; Length++); // This will just count the characters
     
@@ -11,7 +11,7 @@ int StringLength(char* ptr){
     //return Length;
 }
 
-void StringConcat(char *Destination, char *Source){
+void StringConcat(wchar_t*Destination, wchar_t*Source){
     int DestinationLength = StringLength(Destination);
     int SourceLength = StringLength(Source);
 
@@ -25,12 +25,12 @@ void StringConcat(char *Destination, char *Source){
         Destination[DestinationLength + i - 1] = Source[i];
 }
 
-void MemoryCopy(char *Destination, char *Source, int Size){
+void MemoryCopy(wchar_t*Destination, wchar_t*Source, int Size){
     for(int i = 0; i < Size; i++)
         Destination[i] = Source[i];
 }
 
-void UintToString(int n, char *pStr, int digits){
+void UintToString(int n, wchar_t* pStr, int digits){
     int cnt = DigitCount(n);
     int invert = ReverseOrder(n, cnt);
     int pos = 0;
@@ -45,7 +45,7 @@ void UintToString(int n, char *pStr, int digits){
     *(pStr + pos) = '\0';
 }
 
-void LongToString(int64_t n, char *pStr, int digits){
+void LongToString(int64_t n, wchar_t* pStr, int digits){
     int cnt = DigitCount(n);
     int64_t invert = ReverseOrder64(n, cnt);
     int pos = 0;
@@ -62,20 +62,20 @@ void LongToString(int64_t n, char *pStr, int digits){
 
 //Char
 
-void CharToAnsi(char c, char *pStr){
+void CharToAnsi(wchar_t c, wchar_t* pStr){
     UintToString(c, pStr, 0);
 }
 
 // Special Functions
 
-int LineLength(char* ptr){
+int LineLength(wchar_t* ptr){
     int Length = 0;
     for(Length = 0; *(ptr + Length) != '\n'; Length++); // This will just count the characters
     
     return Length;
 }
 
-int LineLengthEx(char* ptr, int MaxLength, uint8_t *FoundNewline){
+int LineLengthEx(wchar_t* ptr, int MaxLength, uint8_t *FoundNewline){
     int Length = 0;
     *FoundNewline = 0U;
     for(Length = 0; Length < MaxLength; Length++){
@@ -88,7 +88,7 @@ int LineLengthEx(char* ptr, int MaxLength, uint8_t *FoundNewline){
     return Length;
 }
 
-int CharacterCount(char *String, char C){
+int CharacterCount(wchar_t*String, wchar_t C){
     int CharCount = 0;
     int Pos = 0;
     while(String[Pos] != '\0')
@@ -97,7 +97,7 @@ int CharacterCount(char *String, char C){
     return CharCount;
 }
 
-void StringShiftLeft(char *Str, int StartOffset, int EndOffset){
+void StringShiftLeft(wchar_t*Str, int StartOffset, int EndOffset){
     int StringSize = StringLength(Str) - 1;
 
     if(StringSize < 2) Str[0] = '\0';
@@ -106,7 +106,7 @@ void StringShiftLeft(char *Str, int StartOffset, int EndOffset){
         Str[i] = Str[i+1];
 }
 
-void StringShiftRight(char *Str, int StartOffset, int EndOffset){
+void StringShiftRight(wchar_t*Str, int StartOffset, int EndOffset){
     int StringSize = StringLength(Str);
 
     for(int i = StringSize - EndOffset; i > StartOffset; i--){
@@ -114,7 +114,7 @@ void StringShiftRight(char *Str, int StartOffset, int EndOffset){
     }
 }
 
-int CountForwardToWordEx(char *Str, int CurrentPossition){
+int CountForwardToWordEx(wchar_t *Str, int CurrentPossition){
     int StrLength = StringLength(Str);
     int StartPossition = CurrentPossition;
     while(Str[CurrentPossition] == ' ' && CurrentPossition < StrLength) CurrentPossition++;
@@ -122,7 +122,7 @@ int CountForwardToWordEx(char *Str, int CurrentPossition){
     return CurrentPossition - StartPossition;
 }
 
-int CountBackToWordEx(char* Str,int CurrentPossition){
+int CountBackToWordEx(wchar_t *Str,int CurrentPossition){
     int StartPossition = CurrentPossition;
     CurrentPossition--;
     //uint32_t StrLength = StringLength(Str);
@@ -133,28 +133,30 @@ int CountBackToWordEx(char* Str,int CurrentPossition){
     return StartPossition - CurrentPossition - 1;
 }
 
-int CountForwardToBlankEx(char *Str, int CurrentPossition){
+int CountForwardToBlankEx(wchar_t *Str, int CurrentPossition){
     int StrLength = StringLength(Str);
     int StartPossition = CurrentPossition;
+
+    // TODO: This shouldn't compare by ascii table!!!
 
     if((Str[CurrentPossition] < 48) ||
         (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
         (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
-        (Str[CurrentPossition] > 122))
+        (Str[CurrentPossition] > 122 && Str[CurrentPossition] < 255))
         return CurrentPossition + 1 - StartPossition;
 
     while(CurrentPossition < StrLength){
         if((Str[CurrentPossition] < 48) ||
         (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
         (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
-        (Str[CurrentPossition] > 122)) break;
+        (Str[CurrentPossition] > 122 && Str[CurrentPossition] < 255)) break;
 
         CurrentPossition++;
     }
     return CurrentPossition - StartPossition;
 }
 
-int CountBackToBlankEx(char *Str, int CurrentPossition){
+int CountBackToBlankEx(wchar_t *Str, int CurrentPossition){
     int StartPossition = CurrentPossition;
     CurrentPossition--;
     //uint32_t StrLength = StringLength(Str);
@@ -183,14 +185,14 @@ int CountBackToBlankEx(char *Str, int CurrentPossition){
     return StartPossition - CurrentPossition - 1;
 }
 
-int CountForwardToWord(char *Str, int CurrentPossition){
+int CountForwardToWord(wchar_t *Str, int CurrentPossition){
     int StrLength = StringLength(Str);
     while(Str[CurrentPossition] == ' ' && CurrentPossition < StrLength) CurrentPossition++;
 
     return CurrentPossition;
 }
 
-int CountBackToWord(char* Str, int CurrentPossition){
+int CountBackToWord(wchar_t *Str, int CurrentPossition){
     CurrentPossition--;
     //uint32_t StrLength = StringLength(Str);
     while(Str[CurrentPossition] == ' ' && CurrentPossition > 0) CurrentPossition--;
@@ -200,7 +202,7 @@ int CountBackToWord(char* Str, int CurrentPossition){
     return CurrentPossition + 1;
 }
 
-int CountForwardToBlank(char *Str, int CurrentPossition){
+int CountForwardToBlank(wchar_t *Str, int CurrentPossition){
     int StrLength = StringLength(Str);
 
     if((Str[CurrentPossition] < 48) ||
@@ -220,7 +222,7 @@ int CountForwardToBlank(char *Str, int CurrentPossition){
     return CurrentPossition;
 }
 
-int CountBackToBlank(char *Str, int CurrentPossition){
+int CountBackToBlank(wchar_t *Str, int CurrentPossition){
     CurrentPossition--;
     int StrLength = StringLength(Str);
 
