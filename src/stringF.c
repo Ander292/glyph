@@ -164,14 +164,14 @@ int CountBackToBlankEx(wchar_t *Str, int CurrentPossition){
     if((Str[CurrentPossition] < 48) ||
         (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
         (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
-        (Str[CurrentPossition] > 122))
+        (Str[CurrentPossition] > 122 && Str[CurrentPossition] < 255))
         return StartPossition - CurrentPossition;
 
     while(CurrentPossition != 0){
         if((Str[CurrentPossition] < 48) ||
         (Str[CurrentPossition] > 57 && Str[CurrentPossition] < 65) ||
         (Str[CurrentPossition] > 90 && Str[CurrentPossition] < 97) ||
-        (Str[CurrentPossition] > 122)) break;
+        (Str[CurrentPossition] > 122 && Str[CurrentPossition] < 255)) break;
 
         CurrentPossition--;
     }

@@ -2,6 +2,8 @@
 
 A simple command line text editor made for windows. I decided to refrain from using most standard c libraries for file I/O. I used only windows, conio and stdint libraries. This program was written to be used for the new win11 windows terminal host and will not work (at least not properly) on the older conhost.exe that is the default for win10 and earlier. The new windows terminal host can be downloaded from microsoft store for win10.
 
+It now uses UTF-16 internally and translates when it writes to stdout or another file.
+
 ### How to use:
 
 It is ran from the command line and requires a path to a file as argument. If the file already exists it will open it and if it doesnt it will create it. It doesnt support being called without a file path at startup. Ctrl+q is used to quit and Ctrl+s is used to save. All other shortcuts are intuitive and similar to most other text editors.
