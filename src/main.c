@@ -595,20 +595,23 @@ void RefreshScreen(){
     Buffer = CreateBuffer(64);
 
     SyncEditorMessage();
-    FormatHeaderEx();
+    //FormatHeaderEx();
     DrawRows();
 
+#if 0
     uint32_t DestSize = (uint32_t)WideCharToMultiByte(CP_UTF8, 0, Buffer.Memory, -1, 
         NULL, 0, NULL, NULL);
     StringBufferA BufferA = CreateBufferA(DestSize + 1);
-    WideCharToMultiByte(CP_UTF8, 0, Buffer.Memory, -1, 
+    WideCharToMultiByte(CP_UTF8, 0, Buffer.Memory, -1,
         BufferA.Memory, BufferA.Length, NULL, NULL);
+#else
+    StringBufferA BufferA = TranslateToUtf8Ex(Buffer.Memory);
+#endif
     PrintA(BufferA.Memory);
-
     DeleteBufferA(&BufferA);
 
     // Moved Both x and y by one forward
-    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
+    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 1 - Inf.RowOffset);
     DisplayConsoleCursor();
 }
 
