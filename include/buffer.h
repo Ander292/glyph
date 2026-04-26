@@ -1,6 +1,7 @@
 #ifndef BUFFER_H
     #include "stringF.h"
     #define WINDOWS
+    #include <stddef.h>
     #include <windows.h>
 
     //-----StructDefinitions-----//
@@ -42,12 +43,12 @@
         void ZeroBufferEx(StringBuffer *Buffer, int StartIndex);
 
         // Append to the end of the buffer (at the termination character)
-        void AppendBuffer(StringBuffer *Buffer, wchar_t*Str);
+        void AppendBuffer(StringBuffer *Buffer, wchar_t *Str);
 
         // Apped to the end of the buffer (maximum of MaxLength characters)
         uint32_t AppendBufferEx(
             StringBuffer *Buffer,
-            wchar_t*Str,
+            wchar_t *Str,
             int MaxLength,
             int Offset
         );
@@ -73,14 +74,14 @@
         void InsertLine(
             StringBufferArray *Array, 
             int ElementIndex, 
-            wchar_t*Str
+            wchar_t *Str
         );
 
         // Removes a line at given index. Pulls all other lines one place backwards
         void RemoveLine(StringBufferArray *Array, int ElementIndex);
 
         // Removes a line at a given index and copies the string that was inside it to OutString parameter. (Can be null)
-        void RemoveLineEx(StringBufferArray *Array, int ElementIndex, wchar_t*OutStr);
+        void RemoveLineEx(StringBufferArray *Array, int ElementIndex, wchar_t *OutStr);
 
         // Returns the longest line length
         int MaxLineLength(StringBufferArray *Array);

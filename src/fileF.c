@@ -1,6 +1,29 @@
 #define FILE_C
 #include "fileF.h"
 
+// ---------BufferTranslation--------- //
+
+StringBufferA TranslateToUtf8Ex(wchar_t *Src){
+    // uint32_t DestSize = (uint32_t)WideCharToMultiByte(CP_UTF8, 0, Src, -1, 
+    //     NULL, 0, NULL, NULL);
+    uint32_t DestSize = GetConvertedSize8(Src);
+    StringBufferA DestBuffer = CreateBufferA(DestSize + 1);
+    // WideCharToMultiByte(CP_UTF8, 0, temp->Memory, -1, 
+    //     LoopConvertBuffer.Memory, LoopConvertBuffer.Length, NULL, NULL);
+    TranslateToUtf8(DestBuffer.Memory, DestSize, Src, -1);
+
+    return DestBuffer;
+}
+
+StringBuffer TranslateToUtf16Ex(char *Src){
+    DWORD DestinationSize = GetConvertedSize16(Src);
+    StringBuffer DestBuffer = CreateBuffer(DestinationSize);
+    TranslateToUtf16(DestBuffer.Memory, DestinationSize, Src, -1);
+    //MultiByteToWideChar(CP_UTF8, 0, Src, -1, DestBuffer.Memory, DestinationSize);
+
+    return DestBuffer;
+}
+
 void ReturnFileName(wchar_t *FullPath, wchar_t *OutFileName){
     int FullPathLength = StringLength(FullPath);
     int i;
@@ -125,10 +148,8 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
         PrimaryBuffer.Memory[ReadFeedback] = '\0';
         PrimaryBuffer.Length = ReadFeedback;
 
-        DWORD DestinationSize = MultiByteToWideChar(CP_UTF8, 0, PrimaryBuffer.Memory, -1, NULL, 0);
-        StringBuffer DestBuffer = CreateBuffer(DestinationSize);
-        MultiByteToWideChar(CP_UTF8, 0, PrimaryBuffer.Memory, -1, DestBuffer.Memory, DestinationSize);
-
+        
+        StringBuffer DestBuffer = TranslateToUtf16Ex(PrimaryBuffer.Memory);
         
         SeparateIntoLines(StrArray, &DestBuffer, &LastLineIndex, &Continuation);
         DeleteBuffer(&DestBuffer);

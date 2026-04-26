@@ -2,7 +2,7 @@
 
 // String functions
 
-int StringLength(wchar_t* ptr){
+int StringLength(wchar_t * ptr){
     int Length = 0;
     for(Length = 0; *(ptr + Length) != '\0'; Length++); // This will just count the characters
     
@@ -11,7 +11,7 @@ int StringLength(wchar_t* ptr){
     //return Length;
 }
 
-void StringConcat(wchar_t*Destination, wchar_t*Source){
+void StringConcat(wchar_t * Destination, wchar_t * Source){
     int DestinationLength = StringLength(Destination);
     int SourceLength = StringLength(Source);
 
@@ -25,12 +25,12 @@ void StringConcat(wchar_t*Destination, wchar_t*Source){
         Destination[DestinationLength + i - 1] = Source[i];
 }
 
-void MemoryCopy(wchar_t*Destination, wchar_t*Source, int Size){
+void MemoryCopy(wchar_t *Destination, wchar_t *Source, int Size){
     for(int i = 0; i < Size; i++)
         Destination[i] = Source[i];
 }
 
-void UintToString(int n, wchar_t* pStr, int digits){
+void UintToString(int n, wchar_t * pStr, int digits){
     int cnt = DigitCount(n);
     int invert = ReverseOrder(n, cnt);
     int pos = 0;
@@ -45,7 +45,7 @@ void UintToString(int n, wchar_t* pStr, int digits){
     *(pStr + pos) = '\0';
 }
 
-void LongToString(int64_t n, wchar_t* pStr, int digits){
+void LongToString(int64_t n, wchar_t * pStr, int digits){
     int cnt = DigitCount(n);
     int64_t invert = ReverseOrder64(n, cnt);
     int pos = 0;
@@ -62,20 +62,20 @@ void LongToString(int64_t n, wchar_t* pStr, int digits){
 
 //Char
 
-void CharToAnsi(wchar_t c, wchar_t* pStr){
+void CharToAnsi(wchar_t c, wchar_t * pStr){
     UintToString(c, pStr, 0);
 }
 
 // Special Functions
 
-int LineLength(wchar_t* ptr){
+int LineLength(wchar_t * ptr){
     int Length = 0;
     for(Length = 0; *(ptr + Length) != '\n'; Length++); // This will just count the characters
     
     return Length;
 }
 
-int LineLengthEx(wchar_t* ptr, int MaxLength, uint8_t *FoundNewline){
+int LineLengthEx(wchar_t * ptr, int MaxLength, uint8_t *FoundNewline){
     int Length = 0;
     *FoundNewline = 0U;
     for(Length = 0; Length < MaxLength; Length++){
@@ -88,7 +88,7 @@ int LineLengthEx(wchar_t* ptr, int MaxLength, uint8_t *FoundNewline){
     return Length;
 }
 
-int CharacterCount(wchar_t*String, wchar_t C){
+int CharacterCount(wchar_t *String, wchar_t C){
     int CharCount = 0;
     int Pos = 0;
     while(String[Pos] != '\0')
@@ -97,7 +97,7 @@ int CharacterCount(wchar_t*String, wchar_t C){
     return CharCount;
 }
 
-void StringShiftLeft(wchar_t*Str, int StartOffset, int EndOffset){
+void StringShiftLeft(wchar_t *Str, int StartOffset, int EndOffset){
     int StringSize = StringLength(Str) - 1;
 
     if(StringSize < 2) Str[0] = '\0';
@@ -106,7 +106,7 @@ void StringShiftLeft(wchar_t*Str, int StartOffset, int EndOffset){
         Str[i] = Str[i+1];
 }
 
-void StringShiftRight(wchar_t*Str, int StartOffset, int EndOffset){
+void StringShiftRight(wchar_t *Str, int StartOffset, int EndOffset){
     int StringSize = StringLength(Str);
 
     for(int i = StringSize - EndOffset; i > StartOffset; i--){
@@ -324,3 +324,4 @@ uint32_t AbsoluteUnsigned(uint32_t n){
     if((int)n > 0) return n;
     else return (uint32_t)((int)n * -1);
 }
+

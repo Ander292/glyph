@@ -45,7 +45,8 @@
         Inf.RowArrayOrigin = CreateBufferArray(32);
         Inf.RowArray = CreateBufferArray(32);
         
-        for(int i = 0; i < ScreenBufferInfo.dwSize.Y; i++) PrintChar("\n");
+        //for(int i = 0; i < ScreenBufferInfo.dwSize.Y; i++) PrintChar("\n");
+        PrintA(MOVE_TO_AUX_BUFFER);
     }
 
     void DisableRawMode(){
@@ -83,11 +84,21 @@
         SetConsoleCursorPosition(hStdout, ScreenBufferInfo.dwCursorPosition);
     }
 
-    void ErrorExit(wchar_t*ErrorStr){
-        ScrollScreen();
+    void ScrollScreenEx(){
+        ResetCursorPossition();
+        int ConY = Inf.ConsoleRows;
+
+        char BufferA[16];
+        wsprintfA(BufferA, ESC_SEQ "%dM", ConY);
+        PrintA(BufferA);
+        //SetCursorPossition(Inf.CursorX, Inf.CursorY);
+    }
+
+    void ErrorExit(wchar_t *ErrorStr){
+        ScrollScreenEx();
 
         if(hFile) CloseHandle(hFile);
-
+        PrintA(MOVE_TO_MAIN_BUFFER);
         Print(ErrorStr);
         DisableRawMode();
 
@@ -95,7 +106,7 @@
     }
 
 //---Cursor---//
-
+#if 0
     void DisplayConsoleCursor(){
         CONSOLE_CURSOR_INFO CursorInfo;
 
@@ -111,12 +122,34 @@
         CursorInfo.bVisible = FALSE;
         SetConsoleCursorInfo(hStdout, &CursorInfo);
     }
+#else
+    // TODO: Maybe these should be macros???
 
+    static inline void DisplayConsoleCursor(){
+        PrintA(ESC_SHOW_CURSOR);
+    }
+
+    static inline void HideConsoleCursor(){
+        PrintA(ESC_HIDE_CURSOR);
+    }
+
+    static inline void SetCursorPossition(int x, int y){
+        char Buffer[16];
+        int len = wsprintfA(Buffer, ESC_SEQ "%d;%dH", y, x);
+        PrintAL(Buffer, len + 1);
+    }
+
+    static inline void ResetCursorPossition(){
+        PrintA(ESC("0;0H"));
+    }
+
+#endif
 //---I/O---//
 
     void EditorOpen(char *fNameANSI){
         wchar_t fName[128];
-        if(!MultiByteToWideChar(CP_UTF8, 0, fNameANSI, -1, fName, 128)){
+        //if(!MultiByteToWideChar(CP_UTF8, 0, fNameANSI, -1, fName, 128)){
+        if(TranslateToUtf16(fName, 128, fNameANSI, -1)){
             ErrorExit(L"Fatal error while converting filename");
         }
         if(StringLength(fName) > 128) ErrorExit(L"File name too long (128 characters max)");
@@ -179,11 +212,7 @@
             StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), i);
             uint32_t StringSize = StringLength(temp->Memory);
 
-            uint32_t DestSize = (uint32_t)WideCharToMultiByte(CP_UTF8, 0, temp->Memory, -1, 
-                NULL, 0, NULL, NULL);
-            StringBufferA LoopConvertBuffer = CreateBufferA(DestSize + 1);
-            WideCharToMultiByte(CP_UTF8, 0, temp->Memory, -1, 
-                LoopConvertBuffer.Memory, LoopConvertBuffer.Length, NULL, NULL);
+            StringBufferA LoopConvertBuffer = TranslateToUtf8Ex(temp->Memory);
 
             AppendBufferA(&TempBuffer, LoopConvertBuffer.Memory);
             DeleteBufferA(&LoopConvertBuffer);
@@ -215,7 +244,7 @@
             Inf.ToRender = TRUE;
             Inf.ToFixCursor = TRUE;
             if(!ReadConsoleInputW(hStdin, &InpRec, 1, &InputFeedback)){
-            PushEditorMessage((wchar_t*)"ConsoleInputError");
+            PushEditorMessage((wchar_t *)"ConsoleInputError");
             }
 
             if(InpRec.EventType == KEY_EVENT){
@@ -419,7 +448,7 @@
 
 //---Header Formating---//
 
-    uint32_t FormatInfoString(wchar_t*StrOut){
+    uint32_t FormatInfoString(wchar_t * StrOut){
         wchar_t StrAux[8] = {0};
         wchar_t StrMain[128] = {0};
 
@@ -546,7 +575,7 @@ void DrawRows(){
         StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
         int StringSize = StringLength(temp->Memory) - 1;
 
-        
+
 
         if(StringSize < Inf.ColumnOffset)
             AppendBufferEx(&Buffer, L"<--", 3, 0);
@@ -559,8 +588,8 @@ void DrawRows(){
 
 void RefreshScreen(){
     HideConsoleCursor();
-    ResetCursorPossition;
-    ScrollScreen();
+    ResetCursorPossition();
+    ScrollScreenEx();
 
     DeleteBuffer(&Buffer);
     Buffer = CreateBuffer(64);
@@ -578,7 +607,8 @@ void RefreshScreen(){
 
     DeleteBufferA(&BufferA);
 
-    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset, Inf.CursorY + 1 - Inf.RowOffset);
+    // Moved Both x and y by one forward
+    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
     DisplayConsoleCursor();
 }
 
@@ -883,15 +913,15 @@ wchar_t ProcessKeypress(){
 int main(int argc, char* argv[]){
 
     PrepareConsole();
-    ScrollScreen();
+    ScrollScreenEx();
 
     if(argc == 2)
         EditorOpen(argv[1]);
     else{
-        Print(L"Error: You must provide an argument!\n");
+        PrintA(MOVE_TO_MAIN_BUFFER);
+        PrintA("Error: You must provide an argument!\n");
         return 1;
     }
-
 
     wchar_t C;
 
@@ -915,8 +945,8 @@ int main(int argc, char* argv[]){
         Inf.ToFixCursor = FALSE;
         //Sleep(TIMEOUT_MS);
     }
-
-    ScrollScreen();
+    ScrollScreenEx();
+    PrintA(MOVE_TO_MAIN_BUFFER);
     DisableRawMode();
 
     return 0;

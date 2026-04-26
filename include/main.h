@@ -53,14 +53,32 @@
 
         EditorMessage DebugMessage;
 
+    //-----EndSequences-----//
+        
+        #define ESC_SEQ "\x1b["
+        #define ESC(c) ESC_SEQ c
+
+        #define ESC_HIDE_CURSOR ESC("?25l")
+        #define ESC_SHOW_CURSOR ESC("?25h")
+
+        #define MOVE_TO_AUX_BUFFER  ESC("?1049h")
+        #define MOVE_TO_MAIN_BUFFER ESC("?1049l")
+
+        #define INVERTED_TEXT_COLOR L"\x1b[7m"
+        #define RESET_TEXT_ATTRIBUTES  L"\x1b[m"
+
+
+
     //-----MacroFunctions-----//
 
         #if defined WINDOWS
 
+            #define PrintAL(str, len) \
+                WriteFile(hStdout, (str), (len), NULL, NULL)
+
             // Prints the string to stdout (possibly convert to a function and use WriteConsoleOutputW)
             #define PrintA(str) \
-                WriteFile(hStdout, str, StringLengthA(str), NULL, NULL)
-                //WriteConsoleOutputW(hStdout, str, )
+                PrintAL((str), StringLengthA(str))
 
             #define Print(str) \
                 WriteFile(hStdout, str, StringLength(str) * 2, NULL, NULL)
@@ -69,12 +87,14 @@
             // Prints a wchar_t to the stdout
             #define PrintChar(c) \
                 WriteFile(hStdout, &c, 2, NULL, NULL)
+#if 0
+            #define ResetCursorPossitionM SetCursorPossition(0, 0)
 
-            #define ResetCursorPossition SetCursorPossition(0, 0)
-
-            #define SetCursorPossition(X, Y) \
+            #define SetCursorPossitionM(X, Y) \
                 SetConsoleCursorPosition(hStdout, (COORD){X, Y})
+#else
 
+#endif
         #elif defined LINUX
 
         #endif
@@ -86,12 +106,7 @@
         #define ClearScreen Print("\x1b[1J")
         
         // Returns the key code of key k + CTRL
-        #define CTRL_KEY(k) ((k) & 0x1f)
-
-
-
-        #define CTRL_DELETE_COMMANDS \
-        
+        #define CTRL_KEY(k) ((k) & 0x1f)        
 
     //-----Constants-----//
 
@@ -139,16 +154,13 @@
         #define MODE_UTF8 1
         #define MODE_UTF16 2
 
-    //-----EndSequences-----//
-        
-        #define INVERTED_TEXT_COLOR L"\x1b[7m"
-        #define RESET_TEXT_ATTRIBUTES  L"\x1b[m"
-
 
     //-----FunctionDeclarations-----//
 
         void TranslateStringArray();
         void PushEditorMessage(wchar_t *Str);
+        static inline void ResetCursorPossition();
+        static inline void SetCursorPossition(int x, int y);
 
 #define MAIN_H
 #endif
