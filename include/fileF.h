@@ -23,18 +23,18 @@
     );
 
     // Separetes a file name and puts it into OutFileName
-    void ReturnFileName(wchar_t *FullPath, wchar_t *OutFileName);
+    void ReturnFileName(wchar *FullPath, wchar *OutFileName);
 
     // Translates an UTF-8 or ansi string into an UTF-16 string
     StringBuffer TranslateToUtf16Ex(char *Src);
 
     // Translates an UTF-16 string into an UTF-8 string
-    StringBufferA TranslateToUtf8Ex(wchar_t *Src);
+    StringBufferA TranslateToUtf8Ex(wchar *Src);
 
     //------Macros------//
 
         /* 
-            wchar_t *Dest, 
+            wchar *Dest, 
             int DestSize, 
             char *Src,
             int SrcSize // Can be -1 if the string is null terminated
@@ -49,7 +49,7 @@
         /* 
             char *Dest, 
             int DestSize, 
-            wchar_t *Src,
+            wchar *Src,
             int SrcSize // Can be -1 if the string is null terminated
         */
         #define TranslateToUtf8(DestMulti, DestSize, SrcWide, SrcSize) \

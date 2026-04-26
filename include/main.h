@@ -31,7 +31,7 @@
 
         typedef struct{
             uint64_t TimeOfCreation;
-            wchar_t Message[128];
+            wchar Message[128];
         } EditorMessage;
 
     //-----Global Variables-----//
@@ -48,8 +48,8 @@
         StringBuffer Buffer;
         EditorInfo Inf;
 
-        wchar_t ArrowKeys = 0;
-        wchar_t FileName[128];
+        wchar ArrowKeys = 0;
+        wchar FileName[128];
 
         EditorMessage DebugMessage;
 
@@ -84,7 +84,7 @@
                 WriteFile(hStdout, str, StringLength(str) * 2, NULL, NULL)
 
 
-            // Prints a wchar_t to the stdout
+            // Prints a wchar to the stdout
             #define PrintChar(c) \
                 WriteFile(hStdout, &c, 2, NULL, NULL)
 #if 0
@@ -110,35 +110,35 @@
 
     //-----Constants-----//
 
-        #define UP_ARROW    (wchar_t)0x01  //0000 0001
-        #define DOWN_ARROW  (wchar_t)0x02  //0000 0010
-        #define LEFT_ARROW  (wchar_t)0x04  //0000 0100
-        #define RIGHT_ARROW (wchar_t)0x08  //0000 1000
+        #define UP_ARROW    (wchar)0x01  //0000 0001
+        #define DOWN_ARROW  (wchar)0x02  //0000 0010
+        #define LEFT_ARROW  (wchar)0x04  //0000 0100
+        #define RIGHT_ARROW (wchar)0x08  //0000 1000
 
-        #define CTRL_UP     (wchar_t)0xfe  //1111 1110
-        #define CTRL_DOWN   (wchar_t)0xfd  //1111 1101
-        #define CTRL_LEFT   (wchar_t)0xfb  //1111 1011
-        #define CTRL_RIGHT  (wchar_t)0xf7  //1111 0111
+        #define CTRL_UP     (wchar)0xfe  //1111 1110
+        #define CTRL_DOWN   (wchar)0xfd  //1111 1101
+        #define CTRL_LEFT   (wchar)0xfb  //1111 1011
+        #define CTRL_RIGHT  (wchar)0xf7  //1111 0111
 
-        #define PAGE_DOWN   (wchar_t)0x10  //0001 0000
-        #define PAGE_UP     (wchar_t)0x20  //0010 0000
-        #define HOME_KEY    (wchar_t)0x40  //0100 0000
-        #define END_KEY     (wchar_t)0x80  //1000 0000
+        #define PAGE_DOWN   (wchar)0x10  //0001 0000
+        #define PAGE_UP     (wchar)0x20  //0010 0000
+        #define HOME_KEY    (wchar)0x40  //0100 0000
+        #define END_KEY     (wchar)0x80  //1000 0000
 
-        #define DELETE_KEY  (wchar_t)0x03  //0000 0011
-        #define INSERT_KEY  (wchar_t)0x05  //0000 0101
+        #define DELETE_KEY  (wchar)0x03  //0000 0011
+        #define INSERT_KEY  (wchar)0x05  //0000 0101
 
-        #define CTRL_DELETE (wchar_t)0x06  //0000 0110
+        #define CTRL_DELETE (wchar)0x06  //0000 0110
 
-        #define CTRL_Q      (wchar_t)0x07  //0000 0111
-        #define CTRL_C      (wchar_t)0x09  //0000 1001
-        #define CTRL_S      (wchar_t)0x0A  //0000 1010
-        //#define CTRL_D      (wchar_t)0x0B  //0000 1011
+        #define CTRL_Q      (wchar)0x07  //0000 0111
+        #define CTRL_C      (wchar)0x09  //0000 1001
+        #define CTRL_S      (wchar)0x0A  //0000 1010
+        //#define CTRL_D      (wchar)0x0B  //0000 1011
 
-        #define CTRL_W      (wchar_t)0x0C  //0000 1100
-        #define BACKSPACE   (wchar_t)0x0D  //0000 1101
-        #define NEWLINE     (wchar_t)0x0E  //0000 1110
-        #define TAB         (wchar_t)0x0F  //0000 1111
+        #define CTRL_W      (wchar)0x0C  //0000 1100
+        #define BACKSPACE   (wchar)0x0D  //0000 1101
+        #define NEWLINE     (wchar)0x0E  //0000 1110
+        #define TAB         (wchar)0x0F  //0000 1111
         #define CTRL_BACKSPACE CTRL_W
 
 
@@ -158,7 +158,7 @@
     //-----FunctionDeclarations-----//
 
         void TranslateStringArray();
-        void PushEditorMessage(wchar_t *Str);
+        void PushEditorMessage(wchar *Str);
         static inline void ResetCursorPossition();
         static inline void SetCursorPossition(int x, int y);
 

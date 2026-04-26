@@ -3,7 +3,7 @@
 
 // ---------BufferTranslation--------- //
 
-StringBufferA TranslateToUtf8Ex(wchar_t *Src){
+StringBufferA TranslateToUtf8Ex(wchar *Src){
     // uint32_t DestSize = (uint32_t)WideCharToMultiByte(CP_UTF8, 0, Src, -1, 
     //     NULL, 0, NULL, NULL);
     uint32_t DestSize = GetConvertedSize8(Src);
@@ -24,7 +24,7 @@ StringBuffer TranslateToUtf16Ex(char *Src){
     return DestBuffer;
 }
 
-void ReturnFileName(wchar_t *FullPath, wchar_t *OutFileName){
+void ReturnFileName(wchar *FullPath, wchar *OutFileName){
     int FullPathLength = StringLength(FullPath);
     int i;
 
@@ -42,7 +42,7 @@ void ReturnFileName(wchar_t *FullPath, wchar_t *OutFileName){
 
 void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer, int *LastLineIndex, LineContinuationInfo *Continuation){
     
-    wchar_t *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
+    wchar *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
 
     int RemainingSize = PrimaryBuffer->Length;
 

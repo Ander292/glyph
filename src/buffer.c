@@ -46,7 +46,7 @@ void ZeroBufferEx(StringBuffer *Buffer, int StartIndex){
         Buffer->Memory[i] = L'\0';
 }
 
-void AppendBuffer(StringBuffer *Buffer, wchar_t *Str){
+void AppendBuffer(StringBuffer *Buffer, wchar *Str){
     int BufferStringLength = StringLength(Buffer->Memory);
     int StringSize = StringLength(Str);
 
@@ -56,7 +56,7 @@ void AppendBuffer(StringBuffer *Buffer, wchar_t *Str){
     StringConcat(Buffer->Memory, Str);
 }
 
-uint32_t AppendBufferEx(StringBuffer *Buffer, wchar_t *Str, int MaxLength, int Offset){
+uint32_t AppendBufferEx(StringBuffer *Buffer, wchar *Str, int MaxLength, int Offset){
     int BufferStringLength = StringLength(Buffer->Memory);
     int StringSize = StringLength(Str);
 
@@ -125,7 +125,7 @@ StringBuffer *StringBufferGetElemenetAt(StringBufferArray *Array, int ElementInd
     return &(Array->Data[ElementIndex]);
 }
 
-void InsertLine(StringBufferArray *Array, int ElementIndex, wchar_t *Str){
+void InsertLine(StringBufferArray *Array, int ElementIndex, wchar *Str){
 
     while(Array->NumberOfElements + 1 >= Array->MaxNumberOfElements) DoubleArrayCapacity(Array);
 
@@ -157,7 +157,7 @@ void RemoveLine(StringBufferArray *Array, int ElementIndex){
 
 }
 
-void RemoveLineEx(StringBufferArray *Array, int ElementIndex, wchar_t *OutStr){
+void RemoveLineEx(StringBufferArray *Array, int ElementIndex, wchar *OutStr){
     if(OutStr)
         StringCopy(OutStr, StringBufferGetElemenetAt(Array, ElementIndex)->Memory);
     

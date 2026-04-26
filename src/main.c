@@ -94,7 +94,7 @@
         //SetCursorPossition(Inf.CursorX, Inf.CursorY);
     }
 
-    void ErrorExit(wchar_t *ErrorStr){
+    void ErrorExit(wchar *ErrorStr){
         ScrollScreenEx();
 
         if(hFile) CloseHandle(hFile);
@@ -147,7 +147,7 @@
 //---I/O---//
 
     void EditorOpen(char *fNameANSI){
-        wchar_t fName[128];
+        wchar fName[128];
         //if(!MultiByteToWideChar(CP_UTF8, 0, fNameANSI, -1, fName, 128)){
         if(TranslateToUtf16(fName, 128, fNameANSI, -1)){
             ErrorExit(L"Fatal error while converting filename");
@@ -194,7 +194,7 @@
         Inf.EditorDirty = 0;
     }
 
-    uint8_t EditorSave(wchar_t *fName){
+    uint8_t EditorSave(wchar *fName){
 
         hFile = CreateFileW(
                 fName,
@@ -233,10 +233,10 @@
         return 0;
     }
 
-    wchar_t ReadCharacter(){
+    wchar ReadCharacter(){
         INPUT_RECORD InpRec;
         DWORD InputFeedback = 0;
-        wchar_t Result = 0;
+        wchar Result = 0;
 
         GetNumberOfConsoleInputEvents(hStdin, &InputFeedback);
 
@@ -244,7 +244,7 @@
             Inf.ToRender = TRUE;
             Inf.ToFixCursor = TRUE;
             if(!ReadConsoleInputW(hStdin, &InpRec, 1, &InputFeedback)){
-            PushEditorMessage((wchar_t *)"ConsoleInputError");
+            PushEditorMessage((wchar *)"ConsoleInputError");
             }
 
             if(InpRec.EventType == KEY_EVENT){
@@ -324,7 +324,7 @@
                         default: 
                             default_jump:
                             ArrowKeys = 0; 
-                            Result = (wchar_t)KeyInfo.uChar.UnicodeChar;
+                            Result = (wchar)KeyInfo.uChar.UnicodeChar;
                     }
                 }
             }
@@ -350,7 +350,7 @@
     }
 
     // I became like microsoft...
-    wchar_t ReadCharacterEx(){
+    wchar ReadCharacterEx(){
         int c;
         c = _getch();
         if(c == 0xE0 || c == 0){
@@ -448,9 +448,9 @@
 
 //---Header Formating---//
 
-    uint32_t FormatInfoString(wchar_t * StrOut){
-        wchar_t StrAux[8] = {0};
-        wchar_t StrMain[128] = {0};
+    uint32_t FormatInfoString(wchar * StrOut){
+        wchar StrAux[8] = {0};
+        wchar StrMain[128] = {0};
 
         //StringConcat(StrMain, INVERTED_TEXT_COLOR);
 
@@ -459,7 +459,7 @@
 
         StringConcat(StrMain, L"|| F: ");
 
-        wchar_t StrFileName[64] = {0};
+        wchar StrFileName[64] = {0};
         ReturnFileName(FileName, StrFileName);
 
         StringConcat(StrMain, StrFileName);
@@ -493,7 +493,7 @@
         return StringLength(StrMain);
     }
 
-    void PushEditorMessage(wchar_t *Str){
+    void PushEditorMessage(wchar *Str){
         //uint64_t CurrentTime = GetTickCount64();
         //uint32_t InputStringSize = StringLength(Str);
         //StringCopy(Str, "|:");
@@ -515,8 +515,8 @@
     void FormatHeaderEx(){
         int X = Inf.ConsoleColumns;
         
-        wchar_t StrMain[256] = {0};
-        wchar_t StrInfo[256] = {0};
+        wchar StrMain[256] = {0};
+        wchar StrInfo[256] = {0};
 
         uint32_t EditorMessageLength = StringLength(DebugMessage.Message);
         uint32_t ReturnStringLength = FormatInfoString(StrInfo);
@@ -552,7 +552,7 @@
 //---Main---//
 
 void DrawRows(){
-    wchar_t Str[64];
+    wchar Str[64];
 
     if(Inf.CursorX > (int)(Inf.ConsoleColumns - 4 + Inf.ColumnOffset))
         Inf.ColumnOffset = Inf.CursorX - Inf.ConsoleColumns + 4;
@@ -612,7 +612,7 @@ void RefreshScreen(){
     DisplayConsoleCursor();
 }
 
-void InsertCharacter(wchar_t C){
+void InsertCharacter(wchar C){
     if(C == 0) return;
 
     Inf.EditorDirty = 1;
@@ -644,8 +644,8 @@ void InsertCharacter(wchar_t C){
     Inf.CursorX++;
 }
 
-wchar_t ProcessKeypress(){
-    wchar_t C = ReadCharacter();
+wchar ProcessKeypress(){
+    wchar C = ReadCharacter();
 
     StringBuffer *target = StringBufferGetElemenetAt(
         &(Inf.RowArray),
@@ -790,7 +790,7 @@ wchar_t ProcessKeypress(){
                 RefreshScreen();
                 
                 repeat:
-                wchar_t C = _getch();
+                wchar C = _getch();
                 if(C == L's') EditorSave(FileName);
                 else if(C == L'n') {
                     DebugMessage.TimeOfCreation = 0;
@@ -809,7 +809,7 @@ wchar_t ProcessKeypress(){
         case CTRL_C:
         {  
             ArrowKeys = 0;
-            wchar_t Str[64];
+            wchar Str[64];
             UintToString(Inf.CursorX, Str, 0);
             PushEditorMessage(Str);
         } return 0;
@@ -923,7 +923,7 @@ int main(int argc, char* argv[]){
         return 1;
     }
 
-    wchar_t C;
+    wchar C;
 
     PushEditorMessage(L"Ctrl+q to quit");
     Inf.ToRender = TRUE;
