@@ -221,7 +221,7 @@ uint32_t EditorSave8(StringBufferA *Dest){
         }
     }
 
-    return Result + 1;
+    return Result;
 }
 
 uint32_t EditorSave16(StringBuffer *Dest){
@@ -243,7 +243,7 @@ uint32_t EditorSave16(StringBuffer *Dest){
         }
     }
 
-    return Result + 1;
+    return Result;
 }
 
 uint8_t EditorSave(wchar *fName){
@@ -256,7 +256,7 @@ uint8_t EditorSave(wchar *fName){
     if(Inf.FileMode == MODE_UTF8){
         TempBuffer8 = CreateBufferA(512);
         BytesToWrite = EditorSave8(&TempBuffer8);
-        DWORD StrlenResult = (DWORD)StringLengthA(TempBuffer8.Memory);
+        DWORD StrlenResult = (DWORD)StringLengthA(TempBuffer8.Memory) - 1;
         if(BytesToWrite != StrlenResult){
             return 2U;
         }
@@ -265,7 +265,7 @@ uint8_t EditorSave(wchar *fName){
     else {
         TempBuffer16 = CreateBuffer(512);
         uint32_t CharCount = EditorSave16(&TempBuffer16);
-        DWORD StrlenResult = (DWORD)StringLength(TempBuffer16.Memory);
+        DWORD StrlenResult = (DWORD)StringLength(TempBuffer16.Memory) - 1;
         if(CharCount != StrlenResult){
             return 2U;
         }
