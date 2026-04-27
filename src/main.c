@@ -3,421 +3,368 @@
 #if defined WINDOWS
 //-----Windows-----//
 
-    void GetConsoleSystemInfo(){
-        GetConsoleScreenBufferInfo(hStdout, &(ScreenBufferInfo));
-        Inf.ConsoleRows = ScreenBufferInfo.dwSize.Y - 1;
-        Inf.ConsoleColumns = ScreenBufferInfo.dwSize.X - 1;
+void GetConsoleSystemInfo(){
+    GetConsoleScreenBufferInfo(hStdout, &(ScreenBufferInfo));
+    Inf.ConsoleRows = ScreenBufferInfo.dwSize.Y - 1;
+    Inf.ConsoleColumns = ScreenBufferInfo.dwSize.X - 1;
 
-        Inf.CurrentTime = GetTickCount64();
+    Inf.CurrentTime = GetTickCount64();
+}
+
+void PrepareConsole(){
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    hStderr = GetStdHandle(STD_ERROR_HANDLE);
+    hHeap = GetProcessHeap();
+
+    DWORD ConsoleMode;
+    GetConsoleMode(hStdin, &ConsoleMode);
+
+    //| ENABLE_MOUSE_INPUT ; ENABLE_QUICK_EDIT_MODE
+    OldConsoleMode = ConsoleMode;
+    ConsoleMode = ConsoleMode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_INPUT) | (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT);
+    SetConsoleMode(hStdin, ConsoleMode);
+
+    GetConsoleSystemInfo();
+
+    //Inf.CursorX = 4;
+    Inf.StringMode = MODE_UTF16;
+
+    if(Inf.StringMode == MODE_UTF8){
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
+    }
+    else if(Inf.StringMode == MODE_UTF16){
+        SetConsoleOutputCP(CP_UTF8);
+        SetConsoleCP(CP_UTF8);
     }
 
-    void PrepareConsole(){
-        hStdin = GetStdHandle(STD_INPUT_HANDLE);
-        hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-        hStderr = GetStdHandle(STD_ERROR_HANDLE);
-        hHeap = GetProcessHeap();
+    Inf.CursorX = 0;
+    Inf.CursorY = 0;
+    Inf.InsertMode = 0;
+    Inf.MouseEnabled = 0;
 
-        DWORD ConsoleMode;
-        GetConsoleMode(hStdin, &ConsoleMode);
+    Inf.RowArrayOrigin = CreateBufferArray(32);
+    Inf.RowArray = CreateBufferArray(32);
 
-        //| ENABLE_MOUSE_INPUT ; ENABLE_QUICK_EDIT_MODE
-        OldConsoleMode = ConsoleMode;
-        ConsoleMode = ConsoleMode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_INPUT) | (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT);
-        SetConsoleMode(hStdin, ConsoleMode);
+    //for(int i = 0; i < ScreenBufferInfo.dwSize.Y; i++) PrintChar("\n");
+    PrintA(MOVE_TO_AUX_BUFFER);
+    //PrintA(ENABLE_MOUSE_TRACKING);
+    PrintA(DISABLE_MOUSE_TRACKING);
+}
 
-        GetConsoleSystemInfo();
+void DisableRawMode(){
+    DWORD ConsoleMode = OldConsoleMode;
 
-        //Inf.CursorX = 4;
-        Inf.StringMode = MODE_UTF16;
+    //GetConsoleMode(hStdin, &ConsoleMode);
+    //ConsoleMode |= (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT);
 
-        if(Inf.StringMode == MODE_UTF8){
-            SetConsoleOutputCP(CP_UTF8);
-            SetConsoleCP(CP_UTF8);
-        }
-        else if(Inf.StringMode == MODE_UTF16){
-            SetConsoleOutputCP(CP_UTF8);
-            SetConsoleCP(CP_UTF8);
-        }
+    SetConsoleMode(hStdin, ConsoleMode);
 
-        Inf.CursorX = 0;
-        Inf.CursorY = 0;
-        Inf.InsertMode = 0;
+    PrintA(DISABLE_MOUSE_TRACKING);
+}
+
+void SwitchMouseMode(){
+    if(Inf.MouseEnabled){
+        PushEditorMessage(L"Mouse Disabled");
+        PrintA(DISABLE_MOUSE_TRACKING);
         Inf.MouseEnabled = 0;
-        
-        Inf.RowArrayOrigin = CreateBufferArray(32);
-        Inf.RowArray = CreateBufferArray(32);
-        
-        //for(int i = 0; i < ScreenBufferInfo.dwSize.Y; i++) PrintChar("\n");
-        PrintA(MOVE_TO_AUX_BUFFER);
-        //PrintA(ENABLE_MOUSE_TRACKING);
-        PrintA(DISABLE_MOUSE_TRACKING);
     }
-
-    void DisableRawMode(){
-        DWORD ConsoleMode = OldConsoleMode;
-
-        //GetConsoleMode(hStdin, &ConsoleMode);
-        //ConsoleMode |= (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT);
-        
-        SetConsoleMode(hStdin, ConsoleMode);
-
-        PrintA(DISABLE_MOUSE_TRACKING);
+    else{
+        PushEditorMessage(L"Mouse Enabled");
+        PrintA(ENABLE_MOUSE_TRACKING);
+        Inf.MouseEnabled = 1;
     }
+}
 
-    void SwitchMouseMode(){
-        if(Inf.MouseEnabled){
-            PushEditorMessage(L"Mouse Disabled");
-            PrintA(DISABLE_MOUSE_TRACKING);
-            Inf.MouseEnabled = 0;
-        }
-        else{
-            PushEditorMessage(L"Mouse Enabled");
-            PrintA(ENABLE_MOUSE_TRACKING);
-            Inf.MouseEnabled = 1;
-        }
-    }
+void ScrollScreen(){
+    SMALL_RECT ScrollRect = {
+        .Left = 0,
+        .Top = 0,
+        .Right = ScreenBufferInfo.dwSize.X,
+        .Bottom = ScreenBufferInfo.dwSize.Y
+    };
+    COORD ScrollTarget = {
+        .X = 0,
+        .Y = (short) (0 - ScrollRect.Bottom)
 
-    void ScrollScreen(){
-        SMALL_RECT ScrollRect = {
-            .Left = 0,
-            .Top = 0,
-            .Right = ScreenBufferInfo.dwSize.X,
-            .Bottom = ScreenBufferInfo.dwSize.Y
-        };
-        COORD ScrollTarget = {
-            .X = 0,
-            .Y = (short) (0 - ScrollRect.Bottom)
+    };
+    CHAR_INFO CharInfo = {
+        .Char.UnicodeChar= L' ',
+        .Attributes = ScreenBufferInfo.wAttributes
+    };
 
-        };
-        CHAR_INFO CharInfo = {
-            .Char.UnicodeChar= L' ',
-            .Attributes = ScreenBufferInfo.wAttributes
-        };
-
-        ScrollConsoleScreenBufferA(hStdout, &ScrollRect, NULL, ScrollTarget, &CharInfo);
+    ScrollConsoleScreenBufferA(hStdout, &ScrollRect, NULL, ScrollTarget, &CharInfo);
 
 
 
-        ScreenBufferInfo.dwCursorPosition.X = 0;
-        ScreenBufferInfo.dwCursorPosition.Y = 0;
+    ScreenBufferInfo.dwCursorPosition.X = 0;
+    ScreenBufferInfo.dwCursorPosition.Y = 0;
 
-        SetConsoleCursorPosition(hStdout, ScreenBufferInfo.dwCursorPosition);
-    }
+    SetConsoleCursorPosition(hStdout, ScreenBufferInfo.dwCursorPosition);
+}
 
-    void ScrollScreenEx(){
-        ResetCursorPossition();
-        int ConY = Inf.ConsoleRows;
+void ScrollScreenEx(){
+    ResetCursorPossition();
+    int ConY = Inf.ConsoleRows;
 
-        char BufferA[16];
-        wsprintfA(BufferA, ESC_SEQ "%dM", ConY);
-        PrintA(BufferA);
-        //SetCursorPossition(Inf.CursorX, Inf.CursorY);
-    }
+    char BufferA[16];
+    wsprintfA(BufferA, ESC_SEQ "%dM", ConY);
+    PrintA(BufferA);
+    //SetCursorPossition(Inf.CursorX, Inf.CursorY);
+}
 
-    void ErrorExit(wchar *ErrorStr){
-        ScrollScreenEx();
+void ErrorExit(wchar *ErrorStr){
+    ScrollScreenEx();
 
-        if(hFile) CloseHandle(hFile);
-        PrintA(MOVE_TO_MAIN_BUFFER);
-        Print(ErrorStr);
-        DisableRawMode();
+    if(hFile) CloseHandle(hFile);
+    PrintA(MOVE_TO_MAIN_BUFFER);
+    Print(ErrorStr);
+    DisableRawMode();
 
-        exit(1);
-    }
+    exit(1);
+}
 
 //---Cursor---//
-#if 0
-    void DisplayConsoleCursor(){
-        CONSOLE_CURSOR_INFO CursorInfo;
 
-        GetConsoleCursorInfo(hStdout, &CursorInfo);
-        CursorInfo.bVisible = TRUE;
-        SetConsoleCursorInfo(hStdout, &CursorInfo);
-    }
+// TODO: Maybe these should be macros???
 
-    void HideConsoleCursor(){
-        CONSOLE_CURSOR_INFO CursorInfo;
+static inline void DisplayConsoleCursor(){
+    PrintA(ESC_SHOW_CURSOR);
+}
 
-        GetConsoleCursorInfo(hStdout, &CursorInfo);
-        CursorInfo.bVisible = FALSE;
-        SetConsoleCursorInfo(hStdout, &CursorInfo);
-    }
-#else
-    // TODO: Maybe these should be macros???
+static inline void HideConsoleCursor(){
+    PrintA(ESC_HIDE_CURSOR);
+}
 
-    static inline void DisplayConsoleCursor(){
-        PrintA(ESC_SHOW_CURSOR);
-    }
+static inline void SetCursorPossition(int x, int y){
+    char Buffer[16];
+    int len = wsprintfA(Buffer, ESC_SEQ "%d;%dH", y, x);
+    PrintAL(Buffer, len + 1);
+}
 
-    static inline void HideConsoleCursor(){
-        PrintA(ESC_HIDE_CURSOR);
-    }
+static inline void ResetCursorPossition(){
+    PrintA(ESC("0;0H"));
+}
 
-    static inline void SetCursorPossition(int x, int y){
-        char Buffer[16];
-        int len = wsprintfA(Buffer, ESC_SEQ "%d;%dH", y, x);
-        PrintAL(Buffer, len + 1);
-    }
 
-    static inline void ResetCursorPossition(){
-        PrintA(ESC("0;0H"));
-    }
-
-#endif
 //---I/O---//
 
-    void EditorOpen(char *fNameANSI){
-        wchar fName[128];
-        //if(!MultiByteToWideChar(CP_UTF8, 0, fNameANSI, -1, fName, 128)){
-        if(TranslateToUtf16(fName, 128, fNameANSI, -1)){
-            ErrorExit(L"Fatal error while converting filename");
-        }
-        if(StringLength(fName) > 128) ErrorExit(L"File name too long (128 characters max)");
-        
+void EditorOpen(char *fNameANSI){
+    wchar fName[128];
+    //if(!MultiByteToWideChar(CP_UTF8, 0, fNameANSI, -1, fName, 128)){
+    if(TranslateToUtf16(fName, 128, fNameANSI, -1)){
+        ErrorExit(L"Fatal error while converting filename");
+    }
+    if(StringLength(fName) > 128) ErrorExit(L"File name too long (128 characters max)");
+    
+    hFile = CreateFileW(
+        fName,
+        GENERIC_READ | GENERIC_WRITE, 
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        Print(L"Cannot open file, creating...\r\n");
+
         hFile = CreateFileW(
             fName,
             GENERIC_READ | GENERIC_WRITE, 
+
             FILE_SHARE_READ,
             NULL,
-            OPEN_EXISTING,
+            CREATE_NEW,
             FILE_ATTRIBUTE_NORMAL,
             NULL
         );
 
-        if (hFile == INVALID_HANDLE_VALUE) {
-            Print(L"Cannot open file, creating...\r\n");
-
-            hFile = CreateFileW(
-                fName,
-                GENERIC_READ | GENERIC_WRITE, 
-
-                FILE_SHARE_READ,
-                NULL,
-                CREATE_NEW,
-                FILE_ATTRIBUTE_NORMAL,
-                NULL
-            );
-
-            if(hFile == INVALID_HANDLE_VALUE){
-                DisableRawMode();
-                Print(L"Fatal error: Couldn't create file\r\n");
-                exit(1);
-            }
+        if(hFile == INVALID_HANDLE_VALUE){
+            DisableRawMode();
+            Print(L"Fatal error: Couldn't create file\r\n");
+            exit(1);
         }
-
-        StringCopy(FileName, fName);
-        FileReadPortionS(hFile, 256, &(Inf.RowArrayOrigin));
-        TranslateStringArray();
-        
-        CloseHandle(hFile);
-        hFile = NULL;
-        Inf.EditorDirty = 0;
     }
 
-    uint8_t EditorSave(wchar *fName){
+    StringCopy(FileName, fName);
+    FileReadPortionS(hFile, 256, &(Inf.RowArrayOrigin));
+    TranslateStringArray();
+    
+    CloseHandle(hFile);
+    hFile = NULL;
+    Inf.EditorDirty = 0;
+}
 
-        hFile = CreateFileW(
-                fName,
-                GENERIC_READ | GENERIC_WRITE, 
-                FILE_SHARE_READ,
-                NULL,
-                CREATE_ALWAYS, // Erases old file content
-                FILE_ATTRIBUTE_NORMAL,
-                NULL
-            );
+uint8_t EditorSave(wchar *fName){
 
-        StringBufferA TempBuffer = CreateBufferA(64);
-        uint32_t LoopLimit = Inf.RowArray.NumberOfElements;
-        for (uint32_t i = 0; i < LoopLimit; i++) {
-            StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), i);
-            uint32_t StringSize = StringLength(temp->Memory);
+    hFile = CreateFileW(
+            fName,
+            GENERIC_READ | GENERIC_WRITE, 
+            FILE_SHARE_READ,
+            NULL,
+            CREATE_ALWAYS, // Erases old file content
+            FILE_ATTRIBUTE_NORMAL,
+            NULL
+        );
 
-            StringBufferA LoopConvertBuffer = TranslateToUtf8Ex(temp->Memory);
+    StringBufferA TempBuffer = CreateBufferA(64);
+    uint32_t LoopLimit = Inf.RowArray.NumberOfElements;
+    for (uint32_t i = 0; i < LoopLimit; i++) {
+        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), i);
+        uint32_t StringSize = StringLength(temp->Memory);
 
-            AppendBufferA(&TempBuffer, LoopConvertBuffer.Memory);
-            DeleteBufferA(&LoopConvertBuffer);
+        StringBufferA LoopConvertBuffer = TranslateToUtf8Ex(temp->Memory);
 
-            if(i < LoopLimit - 1) AppendBufferA(&TempBuffer, "\r\n");
-        }
+        AppendBufferA(&TempBuffer, LoopConvertBuffer.Memory);
+        DeleteBufferA(&LoopConvertBuffer);
 
-        DWORD BytesWritten;
-        DWORD BytesToWrite = StringLengthA(TempBuffer.Memory) - 1;
-        WriteFile(hFile, TempBuffer.Memory, BytesToWrite, &BytesWritten, 0);
-
-        DeleteBufferA(&TempBuffer);
-        CloseHandle(hFile);
-        hFile = NULL;
-
-        if(BytesWritten != BytesToWrite) return 1;
-        Inf.EditorDirty = 0;
-        return 0;
+        if(i < LoopLimit - 1) AppendBufferA(&TempBuffer, "\r\n");
     }
 
-    wchar ReadCharacter(){
-        INPUT_RECORD InpRec;
-        DWORD InputFeedback = 0;
-        wchar Result = 0;
+    DWORD BytesWritten;
+    DWORD BytesToWrite = StringLengthA(TempBuffer.Memory) - 1;
+    WriteFile(hFile, TempBuffer.Memory, BytesToWrite, &BytesWritten, 0);
 
-        GetNumberOfConsoleInputEvents(hStdin, &InputFeedback);
+    DeleteBufferA(&TempBuffer);
+    CloseHandle(hFile);
+    hFile = NULL;
 
-        if(InputFeedback){
-            Inf.ToRender = TRUE;
-            Inf.ToFixCursor = TRUE;
-            if(!ReadConsoleInputW(hStdin, &InpRec, 1, &InputFeedback)){
-                PushEditorMessage((wchar *)"ConsoleInputError");
-            }
+    if(BytesWritten != BytesToWrite) return 1;
+    Inf.EditorDirty = 0;
+    return 0;
+}
 
-            if(InpRec.EventType == KEY_EVENT){
-                KEY_EVENT_RECORD KeyInfo = InpRec.Event.KeyEvent;
-                if(KeyInfo.bKeyDown){
-                    switch(KeyInfo.wVirtualKeyCode){
-                        case VK_UP: 
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_UP;
-                            else ArrowKeys = UP_ARROW; 
-                            break;
-                        case VK_DOWN: 
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)    
-                                ArrowKeys = CTRL_DOWN;
-                            else ArrowKeys = DOWN_ARROW;    
-                            break;
-                        case VK_RIGHT:
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_RIGHT;
-                            else ArrowKeys = RIGHT_ARROW; 
-                            break;
-                        case VK_LEFT: 
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_LEFT;
-                            else ArrowKeys = LEFT_ARROW; 
-                            break;
+wchar ReadCharacter(){
+    INPUT_RECORD InpRec;
+    DWORD InputFeedback = 0;
+    wchar Result = 0;
 
-                        case VK_NEXT: ArrowKeys = PAGE_DOWN; break;
-                        case VK_PRIOR: ArrowKeys = PAGE_UP; break;
+    GetNumberOfConsoleInputEvents(hStdin, &InputFeedback);
 
-                        case VK_HOME: ArrowKeys = HOME_KEY; break;
-                        case VK_END: ArrowKeys = END_KEY; break;
+    if(InputFeedback){
+        RefreshInf.ToRender = TRUE;
+        RefreshInf.ToFixCursor = TRUE;
+        if(!ReadConsoleInputW(hStdin, &InpRec, 1, &InputFeedback)){
+            PushEditorMessage((wchar *)"ConsoleInputError");
+        }
 
-                        case VK_RETURN: ArrowKeys = NEWLINE; break;
-                        case VK_TAB: ArrowKeys = TAB; break;
+        if(InpRec.EventType == KEY_EVENT){
+            KEY_EVENT_RECORD KeyInfo = InpRec.Event.KeyEvent;
+            if(KeyInfo.bKeyDown){
+                switch(KeyInfo.wVirtualKeyCode){
+                    case VK_UP: 
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_UP;
+                        else ArrowKeys = UP_ARROW; 
+                        break;
+                    case VK_DOWN: 
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)    
+                            ArrowKeys = CTRL_DOWN;
+                        else ArrowKeys = DOWN_ARROW;    
+                        break;
+                    case VK_RIGHT:
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_RIGHT;
+                        else ArrowKeys = RIGHT_ARROW; 
+                        break;
+                    case VK_LEFT: 
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_LEFT;
+                        else ArrowKeys = LEFT_ARROW; 
+                        break;
 
-                        case VK_INSERT: ArrowKeys = INSERT_KEY; break;
-                        
-                        case VK_DELETE: 
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_DELETE;
-                            else ArrowKeys = DELETE_KEY;
-                            break;
-                        case VK_BACK: 
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_BACKSPACE;
-                            else ArrowKeys = BACKSPACE;
-                            break;
-                        
+                    case VK_NEXT: ArrowKeys = PAGE_DOWN; break;
+                    case VK_PRIOR: ArrowKeys = PAGE_UP; break;
+
+                    case VK_HOME: ArrowKeys = HOME_KEY; break;
+                    case VK_END: ArrowKeys = END_KEY; break;
+
+                    case VK_RETURN: ArrowKeys = NEWLINE; break;
+                    case VK_TAB: ArrowKeys = TAB; break;
+
+                    case VK_INSERT: ArrowKeys = INSERT_KEY; break;
                     
-                        case 'Q':
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_Q;
-                            else goto default_jump;
-                            break;
-                        case 'C':
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_C;
-                            else goto default_jump;
-                            break;
-                        case 'S':
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_S;
-                            else goto default_jump;
-                            break;
-                        case 'D':
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_DELETE;
-                            else goto default_jump;
-                            break;
-                        case 'W':
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
-                                ArrowKeys = CTRL_W;
-                            else goto default_jump;
-                            break;
-                        case 'M':
-                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
-                                if(KeyInfo.wRepeatCount > 1) return 0;
-                                ArrowKeys = CTRL_M;
-                            }
-                            else goto default_jump;
-                            break;
+                    case VK_DELETE: 
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_DELETE;
+                        else ArrowKeys = DELETE_KEY;
+                        break;
+                    case VK_BACK: 
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_BACKSPACE;
+                        else ArrowKeys = BACKSPACE;
+                        break;
+                    
+                
+                    case 'Q':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_Q;
+                        else goto default_jump;
+                        break;
+                    case 'C':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_C;
+                        else goto default_jump;
+                        break;
+                    case 'S':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_S;
+                        else goto default_jump;
+                        break;
+                    case 'D':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_DELETE;
+                        else goto default_jump;
+                        break;
+                    case 'W':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                            ArrowKeys = CTRL_W;
+                        else goto default_jump;
+                        break;
+                    case 'M':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                            if(KeyInfo.wRepeatCount > 1) return 0;
+                            ArrowKeys = CTRL_M;
+                        }
+                        else goto default_jump;
+                        break;
 
-                        default: 
-                            default_jump:
-                            ArrowKeys = 0;
-                            Result = (wchar)KeyInfo.uChar.UnicodeChar;
-                    }
+                    default: 
+                        default_jump:
+                        ArrowKeys = 0;
+                        Result = (wchar)KeyInfo.uChar.UnicodeChar;
                 }
             }
-            else if(InpRec.EventType == MOUSE_EVENT){
-                MOUSE_EVENT_RECORD mRecord = InpRec.Event.MouseEvent;
-                if(mRecord.dwEventFlags == 0){
-                    int MouseX = mRecord.dwMousePosition.X;
-                    int MouseY = mRecord.dwMousePosition.Y;
+        }
+        else if(InpRec.EventType == MOUSE_EVENT){
+            MOUSE_EVENT_RECORD mRecord = InpRec.Event.MouseEvent;
+            if(mRecord.dwEventFlags == 0){
+                int MouseX = mRecord.dwMousePosition.X;
+                int MouseY = mRecord.dwMousePosition.Y;
 
-                    if(mRecord.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED){
-                        PushEditorMessage(L"Left mouse clicked");
-                        Inf.CursorX = MouseX - LINE_NUMBER_WIDTH;
-                        Inf.CursorY = MouseY - 1;
-                    }
-                    else Sleep(TIMEOUT_MS);
+                if(mRecord.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED){
+                    PushEditorMessage(L"Left mouse clicked");
+                    Inf.CursorX = MouseX - LINE_NUMBER_WIDTH;
+                    Inf.CursorY = MouseY - 1;
                 }
-            }
-            else if(InpRec.EventType == WINDOW_BUFFER_SIZE_EVENT){
-                WINDOW_BUFFER_SIZE_RECORD bRecord = InpRec.Event.WindowBufferSizeEvent;
-                PushEditorMessage(L"Window fiddled!");
+                else Sleep(TIMEOUT_MS);
             }
         }
-        else {
-            Sleep(TIMEOUT_MS);
-            Inf.ToRender = FALSE;
-            Inf.ToFixCursor = FALSE;
-        }
-        return Result;
-    }
-
-    // I became like microsoft...
-    wchar ReadCharacterEx(){
-        int c;
-        c = _getch();
-        if(c == 0xE0 || c == 0){
-            c = _getch();
-            switch(c){
-                case 72: ArrowKeys = UP_ARROW; break;
-                case 80: ArrowKeys = DOWN_ARROW; break;
-                case 77: ArrowKeys = RIGHT_ARROW; break;
-                case 75: ArrowKeys = LEFT_ARROW; break;
-
-                case 141: ArrowKeys = CTRL_UP; break;
-                case 145: ArrowKeys = CTRL_DOWN; break;
-                case 116: ArrowKeys = CTRL_RIGHT; break;
-                case 115: ArrowKeys = CTRL_LEFT; break;
-
-                case 81: ArrowKeys = PAGE_DOWN; break;
-                case 73: ArrowKeys = PAGE_UP; break;
-
-                case 71: ArrowKeys = HOME_KEY; break;
-                case 79: ArrowKeys = END_KEY; break;
-
-                case 82: ArrowKeys = INSERT_KEY; break;
-                case 83: ArrowKeys = DELETE_KEY; break;
-
-                case 147: ArrowKeys = CTRL_DELETE; break;
-                default: ArrowKeys = 0; break;
-            }
-            return 0;
-        }
-        else {
-            ArrowKeys = 0;
-            return (char)c;
+        else if(InpRec.EventType == WINDOW_BUFFER_SIZE_EVENT){
+            WINDOW_BUFFER_SIZE_RECORD bRecord = InpRec.Event.WindowBufferSizeEvent;
+            PushEditorMessage(L"Window fiddled!");
         }
     }
+    else {
+        Sleep(TIMEOUT_MS);
+        RefreshInf.ToRender = FALSE;
+        RefreshInf.ToFixCursor = FALSE;
+    }
+    return Result;
+}
 
 #elif defined LINUX
 
@@ -480,52 +427,7 @@ void FixCursorPossitionEx(){
 
 
 //---Header Formating---//
-#if 0
-uint32_t FormatInfoString(wchar * StrOut){
-    wchar StrAux[8] = {0};
-    wchar StrMain[128] = {0};
 
-    //StringConcat(StrMain, INVERTED_TEXT_COLOR);
-
-    //AddCharacters(StrMain, ' ', 3);
-
-
-    StringConcat(StrMain, L"|| F: ");
-
-    wchar StrFileName[64] = {0};
-    ReturnFileName(FileName, StrFileName);
-
-    StringConcat(StrMain, StrFileName);
-    
-    StringConcat(StrMain, L" | ");
-
-    StringConcat(StrMain, L"LC: ");
-
-    uint32_t LineCount = Inf.RowArray.NumberOfElements;
-    UintToString(LineCount, StrAux, 3);
-    StringConcat(StrMain, StrAux);
-
-    StringConcat(StrMain, L" | L:");
-
-    UintToString(Inf.CursorY + 1, StrAux, 3);
-    StringConcat(StrMain, StrAux);
-
-    StringConcat(StrMain, L" | C:");
-
-    UintToString(Inf.CursorX + 1, StrAux, 3);
-    //uint32_t RowMaxSize = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY + Inf.RowOffset - 1)->Length;
-
-    //UintToString(RowMaxSize, StrAux, 3);
-    StringConcat(StrMain, StrAux);
-
-    StringConcat(StrMain, L" ||");
-
-    //StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
-    
-    StringCopy(StrOut, StrMain);
-    return StringLength(StrMain);
-}
-#else
 uint32_t FormatInfoString(char* StrOut){
     wchar StrFileName[64] = {0};
     ReturnFileName(FileName, StrFileName);
@@ -539,13 +441,9 @@ uint32_t FormatInfoString(char* StrOut){
         "|| F: %s | LC: %4u | L: %4u | C: %4u ||",
         fName8, LineCount, Line, Column);
 }
-#endif
+
 void PushEditorMessage(wchar *Str){
-    //uint64_t CurrentTime = GetTickCount64();
-    //uint32_t InputStringSize = StringLength(Str);
-    //StringCopy(Str, "|:");
     StringCopy(DebugMessage.Message, Str);
-    //StringConcat(Str, ":|");
     DebugMessage.TimeOfCreation = Inf.CurrentTime;
 }
 
@@ -565,7 +463,7 @@ void FormatHeader(){
     char StrMain[X*2+1];
     char StrInfo[128];
     char MessageBuffer[128];
-    char StrSpaces[128] = {0};
+    char StrSpaces[X*2]; StrSpaces[0] = (char)0;
 
     //StringBufferA TempMessageBuffer = TranslateToUtf8Ex(DebugMessage.Message);
     TranslateToUtf8(MessageBuffer, 128, DebugMessage.Message, -1);
@@ -623,44 +521,6 @@ void FormatHeader(){
 
     PrintToBufferA(&Buffer, StrMain);
 }
-#if 0
-void FormatHeaderEx(){
-    int X = Inf.ConsoleColumns;
-    
-    wchar StrMain[256] = {0};
-    wchar StrInfo[256] = {0};
-
-    uint32_t EditorMessageLength = StringLength(DebugMessage.Message);
-    uint32_t ReturnStringLength = FormatInfoString(StrInfo);
-    int MessageSpace = X - 2 * FIRST_LINE_EMPTY_FIELDS - 8 - ReturnStringLength;
-
-    AddCharacters(StrMain, L' ', FIRST_LINE_EMPTY_FIELDS);
-    StringConcat(StrMain, INVERTED_TEXT_COLOR);
-    // CharConcat(StrMain, '|');
-
-    // AddCharacters(StrMain, ' ', 2);
-
-    StringConcat(StrMain, StrInfo);
-    AddCharacters(StrMain, L' ', 4);
-
-    StringConcat(StrMain, L"|: ");
-    StringConcat(StrMain, DebugMessage.Message);
-    StringConcat(StrMain, L" :|");
-    if((uint32_t)MessageSpace > EditorMessageLength){
-        MessageSpace = MessageSpace - EditorMessageLength - 6;
-        AddCharacters(StrMain, L' ', MessageSpace);
-    }
-
-    CharConcat(StrMain, L'|');
-    StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
-
-    AddCharacters(StrMain, L' ', FIRST_LINE_EMPTY_FIELDS);
-
-    
-    StringConcat(StrMain, L"\n");
-    //PrintToBuffer(&Buffer, StrMain);
-}
-#endif
 
 
 //---Main---//
@@ -705,7 +565,6 @@ void DrawRows(){
 void RefreshScreen(){
     HideConsoleCursor();
     ResetCursorPossition();
-    ScrollScreenEx();
 
     DeleteBufferA(&Buffer);
     Buffer = CreateBufferA(64);
@@ -713,10 +572,10 @@ void RefreshScreen(){
     SyncEditorMessage();
     FormatHeader();
     DrawRows();
-
+    
+    ScrollScreenEx();
     PrintA(Buffer.Memory);
 
-    // Moved x and y by one forward
     SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
     DisplayConsoleCursor();
 }
@@ -1043,23 +902,23 @@ int main(int argc, char* argv[]){
     wchar C;
 
     PushEditorMessage(L"Ctrl+q to quit");
-    Inf.ToRender = TRUE;
+    RefreshInf.ToRender = TRUE;
 
     while(Running){
         GetConsoleSystemInfo();
 
-        if(Inf.ToRender) RefreshScreen();
-        Inf.ToRender = FALSE;
+        if(RefreshInf.ToRender) RefreshScreen();
+        RefreshInf.ToRender = FALSE;
 
         C = ProcessKeypress();
         InsertCharacter(C);
         
-        if(Inf.ToFixCursor){
+        if(RefreshInf.ToFixCursor){
             HideConsoleCursor();
             FixCursorPossitionEx();
             DisplayConsoleCursor();
         }
-        Inf.ToFixCursor = FALSE;
+        RefreshInf.ToFixCursor = FALSE;
         //Sleep(TIMEOUT_MS);
     }
     ScrollScreenEx();

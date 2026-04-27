@@ -25,10 +25,13 @@
             uint8_t InsertMode;
             uint8_t EditorDirty;
             uint8_t StringMode;
-            uint8_t ToRender;
-            uint8_t ToFixCursor;
             uint8_t MouseEnabled;
         } EditorInfo;
+
+        typedef struct{
+            uint8_t ToRender;
+            uint8_t ToFixCursor;
+        } RefreshInfo;
 
         typedef struct{
             uint64_t TimeOfCreation;
@@ -48,6 +51,7 @@
         CONSOLE_SCREEN_BUFFER_INFO ScreenBufferInfo;
         StringBufferA Buffer;
         EditorInfo Inf;
+        RefreshInfo RefreshInf;
 
         wchar ArrowKeys = 0;
         wchar FileName[128];
