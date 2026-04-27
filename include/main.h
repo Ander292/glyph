@@ -1,5 +1,4 @@
 #ifndef MAIN_H
-    #include <conio.h>
     #include "buffer.h"
     #include "fileF.h"
 
@@ -24,7 +23,7 @@
             uint64_t CurrentTime;
             uint8_t InsertMode;
             uint8_t EditorDirty;
-            uint8_t StringMode;
+            uint8_t FileMode;
             uint8_t MouseEnabled;
         } EditorInfo;
 
@@ -156,7 +155,8 @@
         #define NEWLINE     (wchar)0x0E  //0000 1110
         #define TAB         (wchar)0x0F  //0000 1111
         #define CTRL_M      (wchar)0x11  //0001 0001
-
+        #define CTRL_N      (wchar)0x12  //0001 0010
+        #define CTRL_U      (wchar)0x13  //0001 0011
         #define CTRL_BACKSPACE CTRL_W
 
 

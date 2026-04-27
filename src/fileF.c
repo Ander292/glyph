@@ -3,7 +3,7 @@
 
 // ---------BufferTranslation--------- //
 
-StringBufferA TranslateToUtf8Ex(wchar *Src){
+StringBufferA TranslateToUtf8Ex(wchar *Src, uint32_t *WriteSize){
     // uint32_t DestSize = (uint32_t)WideCharToMultiByte(CP_UTF8, 0, Src, -1, 
     //     NULL, 0, NULL, NULL);
     uint32_t DestSize = GetConvertedSize8(Src);
@@ -12,15 +12,21 @@ StringBufferA TranslateToUtf8Ex(wchar *Src){
     //     LoopConvertBuffer.Memory, LoopConvertBuffer.Length, NULL, NULL);
     TranslateToUtf8(DestBuffer.Memory, DestSize, Src, -1);
 
+    if(WriteSize != NULL){
+        *WriteSize = DestSize;
+    }
     return DestBuffer;
 }
 
-StringBuffer TranslateToUtf16Ex(char *Src){
+StringBuffer TranslateToUtf16Ex(char *Src, uint32_t *WriteSize){
     DWORD DestinationSize = GetConvertedSize16(Src);
     StringBuffer DestBuffer = CreateBuffer(DestinationSize);
     TranslateToUtf16(DestBuffer.Memory, DestinationSize, Src, -1);
     //MultiByteToWideChar(CP_UTF8, 0, Src, -1, DestBuffer.Memory, DestinationSize);
 
+    if(WriteSize != NULL){
+        *WriteSize = DestinationSize;
+    }
     return DestBuffer;
 }
 
@@ -133,8 +139,7 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
 
 }
 
-void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
-
+void FileReadPortionS8(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
     StringBufferA PrimaryBuffer = CreateBufferA(PortionSize + 1);
 
     DWORD ReadFeedback;
@@ -149,8 +154,7 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
         PrimaryBuffer.Length = ReadFeedback;
 
         
-        StringBuffer DestBuffer = TranslateToUtf16Ex(PrimaryBuffer.Memory);
-        
+        StringBuffer DestBuffer = TranslateToUtf16Ex(PrimaryBuffer.Memory, NULL);
         SeparateIntoLines(StrArray, &DestBuffer, &LastLineIndex, &Continuation);
         DeleteBuffer(&DestBuffer);
     }while(ReadFeedback >= PortionSize);
@@ -160,4 +164,46 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
 
 
     DeleteBufferA(&PrimaryBuffer);
+}
+
+void FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
+    StringBuffer PrimaryBuffer = CreateBuffer((PortionSize + 1) * 2);
+
+    DWORD ReadFeedback;
+    int LastLineIndex = 0;
+
+    LineContinuationInfo Continuation = { -1, 0, 0 };
+    
+
+    do{
+        ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
+
+        PrimaryBuffer.Memory[ReadFeedback] = '\0';
+        //PrimaryBuffer.Length = ReadFeedback;
+
+        SeparateIntoLines(StrArray, &PrimaryBuffer, &LastLineIndex, &Continuation);
+    }while(ReadFeedback >= PortionSize);
+
+    if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
+    //StrArray->NumberOfElements++;
+
+    DeleteBuffer(&PrimaryBuffer);
+}
+
+void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray, uint8_t *FileMode){
+    // BOM check
+    wchar BOM = 0xFEFF;
+    wchar Check;
+    ReadFile(hFile, &Check, 2, NULL, NULL);
+    if(Check == BOM){
+        *FileMode = MODE_UTF16;
+    }
+    else{
+        SetFilePointerEx(hFile, (LARGE_INTEGER)0LL, NULL, FILE_BEGIN);
+    }
+
+    if(*FileMode == MODE_UTF8)
+        FileReadPortionS8(hFile, PortionSize, StrArray);
+    else
+        FileReadPortionS16(hFile, PortionSize, StrArray);
 }

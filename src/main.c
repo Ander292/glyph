@@ -28,17 +28,20 @@ void PrepareConsole(){
     GetConsoleSystemInfo();
 
     //Inf.CursorX = 4;
-    Inf.StringMode = MODE_UTF16;
-
-    if(Inf.StringMode == MODE_UTF8){
+    Inf.FileMode = MODE_UTF8; // Mode defaults to UTF8
+#if 0
+    if(Inf.FileMode == MODE_UTF8){
         SetConsoleOutputCP(CP_UTF8);
         SetConsoleCP(CP_UTF8);
     }
-    else if(Inf.StringMode == MODE_UTF16){
+    else if(Inf.FileMode == MODE_UTF16){
         SetConsoleOutputCP(CP_UTF8);
         SetConsoleCP(CP_UTF8);
     }
-
+#else
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+#endif
     Inf.CursorX = 0;
     Inf.CursorY = 0;
     Inf.InsertMode = 0;
@@ -174,7 +177,6 @@ void EditorOpen(char *fNameANSI){
         hFile = CreateFileW(
             fName,
             GENERIC_READ | GENERIC_WRITE, 
-
             FILE_SHARE_READ,
             NULL,
             CREATE_NEW,
@@ -190,7 +192,7 @@ void EditorOpen(char *fNameANSI){
     }
 
     StringCopy(FileName, fName);
-    FileReadPortionS(hFile, 256, &(Inf.RowArrayOrigin));
+    FileReadPortionS(hFile, 256, &(Inf.RowArrayOrigin), &Inf.FileMode);
     TranslateStringArray();
     
     CloseHandle(hFile);
@@ -198,43 +200,103 @@ void EditorOpen(char *fNameANSI){
     Inf.EditorDirty = 0;
 }
 
-uint8_t EditorSave(wchar *fName){
+uint32_t EditorSave8(StringBufferA *Dest){
+    uint32_t Result = 0;
 
-    hFile = CreateFileW(
-            fName,
-            GENERIC_READ | GENERIC_WRITE, 
-            FILE_SHARE_READ,
-            NULL,
-            CREATE_ALWAYS, // Erases old file content
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
-        );
-
-    StringBufferA TempBuffer = CreateBufferA(64);
     uint32_t LoopLimit = Inf.RowArray.NumberOfElements;
     for (uint32_t i = 0; i < LoopLimit; i++) {
         StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), i);
         uint32_t StringSize = StringLength(temp->Memory);
 
-        StringBufferA LoopConvertBuffer = TranslateToUtf8Ex(temp->Memory);
+        uint32_t LineLen;
+        StringBufferA LoopConvertBuffer = TranslateToUtf8Ex(temp->Memory, &LineLen);
+        Result += (LineLen - 1);
 
-        AppendBufferA(&TempBuffer, LoopConvertBuffer.Memory);
+        AppendBufferA(Dest, LoopConvertBuffer.Memory);
         DeleteBufferA(&LoopConvertBuffer);
 
-        if(i < LoopLimit - 1) AppendBufferA(&TempBuffer, "\r\n");
+        if(i < LoopLimit - 1) {
+            AppendBufferA(Dest, "\r\n");
+            Result += 2;
+        }
     }
 
-    DWORD BytesWritten;
-    DWORD BytesToWrite = StringLengthA(TempBuffer.Memory) - 1;
-    WriteFile(hFile, TempBuffer.Memory, BytesToWrite, &BytesWritten, 0);
+    return Result + 1;
+}
 
-    DeleteBufferA(&TempBuffer);
+uint32_t EditorSave16(StringBuffer *Dest){
+    uint32_t Result = 0;
+    uint32_t LoopLimit = Inf.RowArray.NumberOfElements;
+    wchar BOM = (wchar)0xFEFF;
+    PrintToBuffer(Dest, &BOM); Result++;
+
+    for (uint32_t i = 0; i < LoopLimit; i++) {
+        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), i);
+        uint32_t StringSize = StringLength(temp->Memory);
+
+        Result += (StringSize - 1);
+        AppendBuffer(Dest, temp->Memory);
+
+        if(i < LoopLimit - 1) {
+            AppendBuffer(Dest, L"\r\n");
+            Result += 2;
+        }
+    }
+
+    return Result + 1;
+}
+
+uint8_t EditorSave(wchar *fName){
+    StringBufferA TempBuffer8;
+    StringBuffer TempBuffer16;
+    char *WriteStr;
+
+    DWORD BytesToWrite;
+    DWORD BytesWritten;
+    if(Inf.FileMode == MODE_UTF8){
+        TempBuffer8 = CreateBufferA(512);
+        BytesToWrite = EditorSave8(&TempBuffer8);
+        DWORD StrlenResult = (DWORD)StringLengthA(TempBuffer8.Memory);
+        if(BytesToWrite != StrlenResult){
+            return 2U;
+        }
+        WriteStr = TempBuffer8.Memory;
+    }
+    else {
+        TempBuffer16 = CreateBuffer(512);
+        uint32_t CharCount = EditorSave16(&TempBuffer16);
+        DWORD StrlenResult = (DWORD)StringLength(TempBuffer16.Memory);
+        if(CharCount != StrlenResult){
+            return 2U;
+        }
+        BytesToWrite = 2 * CharCount;
+        WriteStr = (char *)TempBuffer16.Memory;
+    }
+
+    hFile = CreateFileW(
+        fName,
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ,
+        NULL,
+        CREATE_ALWAYS, // Erases old file content
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+
+    WriteFile(hFile, WriteStr, BytesToWrite, &BytesWritten, 0);
     CloseHandle(hFile);
     hFile = NULL;
 
-    if(BytesWritten != BytesToWrite) return 1;
+    if(Inf.FileMode == MODE_UTF8){
+        DeleteBufferA(&TempBuffer8);
+    }
+    else{
+        DeleteBuffer(&TempBuffer16);
+    }
+
+    if(BytesWritten != BytesToWrite) return 1U;
     Inf.EditorDirty = 0;
-    return 0;
+    return 0U;
 }
 
 wchar ReadCharacter(){
@@ -324,10 +386,24 @@ wchar ReadCharacter(){
                             ArrowKeys = CTRL_W;
                         else goto default_jump;
                         break;
+                    case 'N':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                            // if(KeyInfo.wRepeatCount > 1) return 0;
+                            ArrowKeys = CTRL_N;
+                        }
+                        else goto default_jump;
+                        break;
                     case 'M':
                         if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
-                            if(KeyInfo.wRepeatCount > 1) return 0;
+                            // if(KeyInfo.wRepeatCount > 1) return 0;
                             ArrowKeys = CTRL_M;
+                        }
+                        else goto default_jump;
+                        break;
+                    case 'U':
+                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                            // if(KeyInfo.wRepeatCount > 1) return 0;
+                            ArrowKeys = CTRL_U;
                         }
                         else goto default_jump;
                         break;
@@ -440,8 +516,8 @@ uint32_t FormatInfoString(char* StrOut){
     uint32_t Line = Inf.CursorY + 1;
     uint32_t Column = Inf.CursorX + 1;
     wsprintfA(StrOut,
-        "|| F: %s | LC: %4u | L: %4u | C: %4u ||",
-        fName8, LineCount, Line, Column);
+        "|| F: %s | LC: %4u | L: %4u | C: %4u | Mode: %s ||",
+        fName8, LineCount, Line, Column, (Inf.FileMode == MODE_UTF8 ? "UTF8" : "UTF16"));
 }
 
 void PushEditorMessage(wchar *Str){
@@ -551,7 +627,7 @@ void DrawRows(StringBufferA *BufferA){
         StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
         int StringSize = StringLength(temp->Memory) - 1;
 
-        StringBufferA TempBuffer = TranslateToUtf8Ex(temp->Memory);
+        StringBufferA TempBuffer = TranslateToUtf8Ex(temp->Memory, NULL);
 
         if(StringSize < Inf.ColumnOffset)
             AppendBufferExA(BufferA, "<--", 3, 0);
@@ -894,10 +970,13 @@ wchar ProcessKeypress(){
             }
         } return 0;
         
-        case CTRL_M:{
-#if 0
-            SwitchMouseMode();
-#endif
+        case CTRL_U:
+        case CTRL_M:
+        case CTRL_N:{
+            ArrowKeys = 0;
+            if(Inf.FileMode == MODE_UTF8) Inf.FileMode = MODE_UTF16;
+            else if(Inf.FileMode == MODE_UTF16) Inf.FileMode = MODE_UTF8;
+            else PushEditorMessage(L"Error switching mode");
         } return 0;
     }
     return C;

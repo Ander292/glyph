@@ -7,6 +7,11 @@
     #include "bufferANSI.h"
 #endif
 
+    //-------Constants-------//
+
+        #define MODE_UTF8 1
+        #define MODE_UTF16 2
+
     typedef struct {
         //int BufferIndex;   // index in the StringBufferArray
         int Offset;         // byte offset where the partial line ends
@@ -19,17 +24,18 @@
     void FileReadPortionS(
         HANDLE hFile, 
         DWORD PortionSize, 
-        StringBufferArray *StrArray
+        StringBufferArray *StrArray,
+        uint8_t *FileMode
     );
 
     // Separetes a file name and puts it into OutFileName
     void ReturnFileName(wchar *FullPath, wchar *OutFileName);
 
     // Translates an UTF-8 or ansi string into an UTF-16 string
-    StringBuffer TranslateToUtf16Ex(char *Src);
+    StringBuffer TranslateToUtf16Ex(char *Src, uint32_t *WriteSize);
 
     // Translates an UTF-16 string into an UTF-8 string
-    StringBufferA TranslateToUtf8Ex(wchar *Src);
+    StringBufferA TranslateToUtf8Ex(wchar *Src, uint32_t *WriteSize);
 
     //------Macros------//
 
