@@ -245,25 +245,25 @@ wchar ReadCharacter(){
     GetNumberOfConsoleInputEvents(hStdin, &InputFeedback);
 
     if(InputFeedback){
-        RefreshInf.ToRender = TRUE;
-        RefreshInf.ToFixCursor = TRUE;
         if(!ReadConsoleInputW(hStdin, &InpRec, 1, &InputFeedback)){
             PushEditorMessage((wchar *)"ConsoleInputError");
         }
 
         if(InpRec.EventType == KEY_EVENT){
+            RefreshInf.FullRender = TRUE;
+            RefreshInf.ToFixCursor = TRUE;
             KEY_EVENT_RECORD KeyInfo = InpRec.Event.KeyEvent;
             if(KeyInfo.bKeyDown){
                 switch(KeyInfo.wVirtualKeyCode){
                     case VK_UP: 
                         if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
                             ArrowKeys = CTRL_UP;
-                        else ArrowKeys = UP_ARROW; 
+                        else ArrowKeys = UP_ARROW;
                         break;
-                    case VK_DOWN: 
+                    case VK_DOWN:
                         if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)    
                             ArrowKeys = CTRL_DOWN;
-                        else ArrowKeys = DOWN_ARROW;    
+                        else ArrowKeys = DOWN_ARROW;
                         break;
                     case VK_RIGHT:
                         if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
@@ -355,12 +355,14 @@ wchar ReadCharacter(){
         }
         else if(InpRec.EventType == WINDOW_BUFFER_SIZE_EVENT){
             WINDOW_BUFFER_SIZE_RECORD bRecord = InpRec.Event.WindowBufferSizeEvent;
-            PushEditorMessage(L"Window fiddled!");
+            //PushEditorMessage(L"Window fiddled!");
+            RefreshInf.FullRender = TRUE;
+            RefreshInf.ToFixCursor = TRUE;
         }
     }
     else {
         Sleep(TIMEOUT_MS);
-        RefreshInf.ToRender = FALSE;
+        RefreshInf.FullRender = FALSE;
         RefreshInf.ToFixCursor = FALSE;
     }
     return Result;
@@ -457,7 +459,7 @@ uint8_t SyncEditorMessage(){
     return 0U;
 }
 
-void FormatHeader(){
+void FormatHeader(StringBufferA *BufferA){
     int X = Inf.ConsoleColumns;
 
     char StrMain[X*2+1];
@@ -519,13 +521,13 @@ void FormatHeader(){
             "\0", INVERTED_TEXT_COLOR, StrInfo, "\0", MessageBuffer, StrSpaces, RESET_TEXT_ATTRIBUTES);
     }
 
-    PrintToBufferA(&Buffer, StrMain);
+    PrintToBufferA(BufferA, StrMain);
 }
 
 
 //---Main---//
 
-void DrawRows(){
+void DrawRows(StringBufferA *BufferA){
     char Str[64];
 
     if(Inf.CursorX > (int)(Inf.ConsoleColumns - 4 + Inf.ColumnOffset))
@@ -543,8 +545,8 @@ void DrawRows(){
 
         UintToStringA((RowNumber + 1) % 1000, Str, 3);
 
-        PrintToBufferA(&Buffer, Str);
-        PrintToBufferA(&Buffer, "|");
+        PrintToBufferA(BufferA, Str);
+        PrintToBufferA(BufferA, "|");
 
         StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
         int StringSize = StringLength(temp->Memory) - 1;
@@ -552,13 +554,13 @@ void DrawRows(){
         StringBufferA TempBuffer = TranslateToUtf8Ex(temp->Memory);
 
         if(StringSize < Inf.ColumnOffset)
-            AppendBufferExA(&Buffer, "<--", 3, 0);
+            AppendBufferExA(BufferA, "<--", 3, 0);
         else
-            AppendBufferExA(&Buffer, TempBuffer.Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
+            AppendBufferExA(BufferA, TempBuffer.Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
 
         DeleteBufferA(&TempBuffer);
 
-        if(i < (Inf.ConsoleRows - 1)) PrintToBufferA(&Buffer, "\r\n");
+        if(i < (Inf.ConsoleRows - 1)) PrintToBufferA(BufferA, "\r\n");
     }
 }
 
@@ -567,17 +569,32 @@ void RefreshScreen(){
     ResetCursorPossition();
 
     DeleteBufferA(&Buffer);
-    Buffer = CreateBufferA(64);
+    Buffer = CreateBufferA(256);
 
-    SyncEditorMessage();
-    FormatHeader();
-    DrawRows();
-    
+    //SyncEditorMessage();
+    FormatHeader(&Buffer);
+    DrawRows(&Buffer);
+
     ScrollScreenEx();
     PrintA(Buffer.Memory);
 
     SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
     DisplayConsoleCursor();
+}
+
+void RefreshHeader(){
+    HideConsoleCursor();
+    ResetCursorPossition();
+
+    StringBufferA HeaderB = CreateBufferA(256);
+
+    FormatHeader(&HeaderB);
+    PrintA(HeaderB.Memory);
+
+    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
+    DisplayConsoleCursor();
+
+    DeleteBufferA(&HeaderB);
 }
 
 void InsertCharacter(wchar C){
@@ -902,13 +919,20 @@ int main(int argc, char* argv[]){
     wchar C;
 
     PushEditorMessage(L"Ctrl+q to quit");
-    RefreshInf.ToRender = TRUE;
+    RefreshInf.FullRender = TRUE;
+    RefreshInf.ToFixCursor = TRUE;
 
     while(Running){
+        SyncEditorMessage();
         GetConsoleSystemInfo();
 
-        if(RefreshInf.ToRender) RefreshScreen();
-        RefreshInf.ToRender = FALSE;
+        if(RefreshInf.FullRender) {
+            RefreshScreen();
+            RefreshInf.FullRender = FALSE;
+        } else if(RefreshInf.HeaderOnly){
+            RefreshHeader();
+            RefreshInf.HeaderOnly = FALSE;
+        }
 
         C = ProcessKeypress();
         InsertCharacter(C);
@@ -917,8 +941,8 @@ int main(int argc, char* argv[]){
             HideConsoleCursor();
             FixCursorPossitionEx();
             DisplayConsoleCursor();
+            RefreshInf.ToFixCursor = FALSE;
         }
-        RefreshInf.ToFixCursor = FALSE;
         //Sleep(TIMEOUT_MS);
     }
     ScrollScreenEx();
