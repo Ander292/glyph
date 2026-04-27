@@ -27,6 +27,8 @@
 
         void MemoryCopyA(char *Destination, char *Source, int Size);
 
+        void UintToStringA(int n, char *pStr, int digits);
+
         // Creates a back buffer
         StringBufferA CreateBufferA(int size);
 

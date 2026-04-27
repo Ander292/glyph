@@ -30,6 +30,34 @@ void MemoryCopyA(char *Destination, char *Source, int Size){
         Destination[i] = Source[i];
 }
 
+int StringCompareA(char *Str1, char *Str2){
+    uint32_t StrLen1 = StringLengthA(Str1);
+    uint32_t StrLen2 = StringLengthA(Str2);
+
+    if(StrLen1 != StrLen2) return -1;
+    for(uint32_t i = 0; i < StrLen1; i++){
+        if(Str1[i] != Str2[i]) return i;
+    }
+    return 0;
+}
+
+void UintToStringA(int n, char *pStr, int digits){
+    int cnt = DigitCount(n);
+    int invert = ReverseOrder(n, cnt);
+    int pos = 0;
+    for(int i = 0; i < digits - cnt; i++){
+        pStr[pos++] = ' ';
+    }
+    for(int i = 0; i < cnt; i++){
+        pStr[pos++] = invert % 10 + 0x30; 
+        // ASCII for 1 is 0x31, for 2 its 0x32 and so on...
+        invert /= 10;
+    }
+    *(pStr + pos) = '\0';
+}
+
+// --- Buffer Functions --- //
+
 void ZeroBufferA(StringBufferA *Buffer){
     for(int i = 0; i < Buffer->Length; i++)
         Buffer->Memory[i] = '\0';

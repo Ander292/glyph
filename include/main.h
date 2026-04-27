@@ -27,6 +27,7 @@
             uint8_t StringMode;
             uint8_t ToRender;
             uint8_t ToFixCursor;
+            uint8_t MouseEnabled;
         } EditorInfo;
 
         typedef struct{
@@ -45,16 +46,20 @@
         BOOL Running = 1;
 
         CONSOLE_SCREEN_BUFFER_INFO ScreenBufferInfo;
-        StringBuffer Buffer;
+        StringBufferA Buffer;
         EditorInfo Inf;
 
         wchar ArrowKeys = 0;
         wchar FileName[128];
 
         EditorMessage DebugMessage;
+        DWORD OldConsoleMode;
 
     //-----EndSequences-----//
         
+        #define TO_STR_H(str) #str
+        #define TO_STR(str) TO_STR_H(str)
+
         #define ESC_SEQ "\x1b["
         #define ESC(c) ESC_SEQ c
 
@@ -63,10 +68,16 @@
 
         #define MOVE_TO_AUX_BUFFER  ESC("?1049h")
         #define MOVE_TO_MAIN_BUFFER ESC("?1049l")
+        #define ENABLE_MOUSE_TRACKING ESC("?1000h")
+        #define DISABLE_MOUSE_TRACKING ESC("?1000l")
 
+        #define INVERTED_TEXT_COLOR ESC("7m")
+        #define RESET_TEXT_ATTRIBUTES ESC("m")
+
+#if 0
         #define INVERTED_TEXT_COLOR L"\x1b[7m"
         #define RESET_TEXT_ATTRIBUTES  L"\x1b[m"
-
+#endif
 
 
     //-----MacroFunctions-----//
@@ -139,6 +150,8 @@
         #define BACKSPACE   (wchar)0x0D  //0000 1101
         #define NEWLINE     (wchar)0x0E  //0000 1110
         #define TAB         (wchar)0x0F  //0000 1111
+        #define CTRL_M      (wchar)0x11  //0001 0001
+
         #define CTRL_BACKSPACE CTRL_W
 
 
@@ -148,7 +161,7 @@
         #define EDITOR_MESSAGE_TIME 8 // The (minimum) length in seconds of a screen message
 
         #define TAB_SPACE_COUNT 4 // How much spacebars will a tab create
-        #define FIRST_LINE_EMPTY_FIELDS 6 // How many fields are empty in the first line before inverting the color
+        #define FIRST_LINE_EMPTY_FIELDS 4 // How many fields are empty in the first line before inverting the color
         #define LINE_NUMBER_WIDTH 4 // How long is the line number string
 
         #define MODE_UTF8 1

@@ -20,7 +20,8 @@
         DWORD ConsoleMode;
         GetConsoleMode(hStdin, &ConsoleMode);
 
-        //| ENABLE_MOUSE_INPUT
+        //| ENABLE_MOUSE_INPUT ; ENABLE_QUICK_EDIT_MODE
+        OldConsoleMode = ConsoleMode;
         ConsoleMode = ConsoleMode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_INPUT) | (ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT);
         SetConsoleMode(hStdin, ConsoleMode);
 
@@ -41,20 +42,39 @@
         Inf.CursorX = 0;
         Inf.CursorY = 0;
         Inf.InsertMode = 0;
+        Inf.MouseEnabled = 0;
         
         Inf.RowArrayOrigin = CreateBufferArray(32);
         Inf.RowArray = CreateBufferArray(32);
         
         //for(int i = 0; i < ScreenBufferInfo.dwSize.Y; i++) PrintChar("\n");
         PrintA(MOVE_TO_AUX_BUFFER);
+        //PrintA(ENABLE_MOUSE_TRACKING);
+        PrintA(DISABLE_MOUSE_TRACKING);
     }
 
     void DisableRawMode(){
-        DWORD ConsoleMode;
+        DWORD ConsoleMode = OldConsoleMode;
 
-        GetConsoleMode(hStdin, &ConsoleMode);
-        ConsoleMode |= (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT);
+        //GetConsoleMode(hStdin, &ConsoleMode);
+        //ConsoleMode |= (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT);
+        
         SetConsoleMode(hStdin, ConsoleMode);
+
+        PrintA(DISABLE_MOUSE_TRACKING);
+    }
+
+    void SwitchMouseMode(){
+        if(Inf.MouseEnabled){
+            PushEditorMessage(L"Mouse Disabled");
+            PrintA(DISABLE_MOUSE_TRACKING);
+            Inf.MouseEnabled = 0;
+        }
+        else{
+            PushEditorMessage(L"Mouse Enabled");
+            PrintA(ENABLE_MOUSE_TRACKING);
+            Inf.MouseEnabled = 1;
+        }
     }
 
     void ScrollScreen(){
@@ -244,7 +264,7 @@
             Inf.ToRender = TRUE;
             Inf.ToFixCursor = TRUE;
             if(!ReadConsoleInputW(hStdin, &InpRec, 1, &InputFeedback)){
-            PushEditorMessage((wchar *)"ConsoleInputError");
+                PushEditorMessage((wchar *)"ConsoleInputError");
             }
 
             if(InpRec.EventType == KEY_EVENT){
@@ -320,25 +340,38 @@
                                 ArrowKeys = CTRL_W;
                             else goto default_jump;
                             break;
+                        case 'M':
+                            if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                                if(KeyInfo.wRepeatCount > 1) return 0;
+                                ArrowKeys = CTRL_M;
+                            }
+                            else goto default_jump;
+                            break;
 
                         default: 
                             default_jump:
-                            ArrowKeys = 0; 
+                            ArrowKeys = 0;
                             Result = (wchar)KeyInfo.uChar.UnicodeChar;
                     }
                 }
             }
-            else if(InpRec.EventType = MOUSE_EVENT){
+            else if(InpRec.EventType == MOUSE_EVENT){
                 MOUSE_EVENT_RECORD mRecord = InpRec.Event.MouseEvent;
                 if(mRecord.dwEventFlags == 0){
                     int MouseX = mRecord.dwMousePosition.X;
                     int MouseY = mRecord.dwMousePosition.Y;
 
                     if(mRecord.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED){
-                        SetCursorPossition(MouseX, MouseY);
+                        PushEditorMessage(L"Left mouse clicked");
+                        Inf.CursorX = MouseX - LINE_NUMBER_WIDTH;
+                        Inf.CursorY = MouseY - 1;
                     }
                     else Sleep(TIMEOUT_MS);
                 }
+            }
+            else if(InpRec.EventType == WINDOW_BUFFER_SIZE_EVENT){
+                WINDOW_BUFFER_SIZE_RECORD bRecord = InpRec.Event.WindowBufferSizeEvent;
+                PushEditorMessage(L"Window fiddled!");
             }
         }
         else {
@@ -392,167 +425,248 @@
 
 //---Editor---//
 
-    void TranslateStringBuffer(StringBuffer *Destination, StringBuffer *Source){
-        int TabCount = CharacterCount(Source->Memory, '\t');
+void TranslateStringBuffer(StringBuffer *Destination, StringBuffer *Source){
+    int TabCount = CharacterCount(Source->Memory, '\t');
 
-        while(Destination->Length < Source->Length + TabCount)
-            DoubleSize(Destination);
+    while(Destination->Length < Source->Length + TabCount)
+        DoubleSize(Destination);
 
-        ZeroBuffer(Destination);
-        int Limit = StringLength(Source->Memory) - 1;
+    ZeroBuffer(Destination);
+    int Limit = StringLength(Source->Memory) - 1;
 
-        int DestPos = 0;
-        for(int SrcPos = 0; SrcPos < Limit; SrcPos++){
-            if(Source->Memory[SrcPos] == '\t')
-                for(int i = 0; i < TAB_SPACE_COUNT; i++) Destination->Memory[DestPos++] = ' ';
-            else
-                Destination->Memory[DestPos++] = Source->Memory[SrcPos];
-        }
-
-        Destination->Memory[DestPos] = '\0';
+    int DestPos = 0;
+    for(int SrcPos = 0; SrcPos < Limit; SrcPos++){
+        if(Source->Memory[SrcPos] == '\t')
+            for(int i = 0; i < TAB_SPACE_COUNT; i++) Destination->Memory[DestPos++] = ' ';
+        else
+            Destination->Memory[DestPos++] = Source->Memory[SrcPos];
     }
 
-    void TranslateStringArray(){
-        while(Inf.RowArray.MaxNumberOfElements < Inf.RowArrayOrigin.MaxNumberOfElements){
-            DoubleArrayCapacity(&(Inf.RowArray));
-        }
-        for(int i = 0; i <= Inf.RowArrayOrigin.NumberOfElements; i++){
-            Inf.RowArray.NumberOfElements = i;
+    Destination->Memory[DestPos] = '\0';
+}
+
+void TranslateStringArray(){
+    while(Inf.RowArray.MaxNumberOfElements < Inf.RowArrayOrigin.MaxNumberOfElements){
+        DoubleArrayCapacity(&(Inf.RowArray));
+    }
+    for(int i = 0; i <= Inf.RowArrayOrigin.NumberOfElements; i++){
+        Inf.RowArray.NumberOfElements = i;
 
 
-            StringBuffer *DisplayBuffer = StringBufferGetElemenetAt(&(Inf.RowArray), i);
-            StringBuffer *OriginBuffer = StringBufferGetElemenetAt(&(Inf.RowArrayOrigin), i);
-            if(DisplayBuffer==NULL || OriginBuffer == NULL)
-                continue;
+        StringBuffer *DisplayBuffer = StringBufferGetElemenetAt(&(Inf.RowArray), i);
+        StringBuffer *OriginBuffer = StringBufferGetElemenetAt(&(Inf.RowArrayOrigin), i);
+        if(DisplayBuffer==NULL || OriginBuffer == NULL)
+            continue;
 
-            TranslateStringBuffer(
-                DisplayBuffer,
-                OriginBuffer
-            );
-        }
-
-        DeleteBufferArray(&(Inf.RowArrayOrigin));
+        TranslateStringBuffer(
+            DisplayBuffer,
+            OriginBuffer
+        );
     }
 
-    void FixCursorPossitionEx(){
-        if(Inf.CursorY < 0) Inf.CursorY = 0;
-        if(Inf.CursorY > Inf.RowArray.NumberOfElements - 1) Inf.CursorY = Inf.RowArray.NumberOfElements - 1;
+    DeleteBufferArray(&(Inf.RowArrayOrigin));
+}
 
-        StringBuffer *target = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY);
-        uint32_t LineLength = StringLength(target->Memory) - 1;
-        
-        if(Inf.CursorX < 0) Inf.CursorX = 0;
-        if((uint32_t)Inf.CursorX > LineLength) Inf.CursorX = LineLength;
-    }
+void FixCursorPossitionEx(){
+    if(Inf.CursorY < 0) Inf.CursorY = 0;
+    if(Inf.CursorY > Inf.RowArray.NumberOfElements - 1) Inf.CursorY = Inf.RowArray.NumberOfElements - 1;
+
+    StringBuffer *target = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY);
+    uint32_t LineLength = StringLength(target->Memory) - 1;
+    
+    if(Inf.CursorX < 0) Inf.CursorX = 0;
+    if((uint32_t)Inf.CursorX > LineLength) Inf.CursorX = LineLength;
+}
 
 
 //---Header Formating---//
+#if 0
+uint32_t FormatInfoString(wchar * StrOut){
+    wchar StrAux[8] = {0};
+    wchar StrMain[128] = {0};
 
-    uint32_t FormatInfoString(wchar * StrOut){
-        wchar StrAux[8] = {0};
-        wchar StrMain[128] = {0};
+    //StringConcat(StrMain, INVERTED_TEXT_COLOR);
 
-        //StringConcat(StrMain, INVERTED_TEXT_COLOR);
-
-        //AddCharacters(StrMain, ' ', 3);
+    //AddCharacters(StrMain, ' ', 3);
 
 
-        StringConcat(StrMain, L"|| F: ");
+    StringConcat(StrMain, L"|| F: ");
 
-        wchar StrFileName[64] = {0};
-        ReturnFileName(FileName, StrFileName);
+    wchar StrFileName[64] = {0};
+    ReturnFileName(FileName, StrFileName);
 
-        StringConcat(StrMain, StrFileName);
-        
-        StringConcat(StrMain, L" | ");
+    StringConcat(StrMain, StrFileName);
+    
+    StringConcat(StrMain, L" | ");
 
-        StringConcat(StrMain, L"LC: ");
+    StringConcat(StrMain, L"LC: ");
 
-        uint32_t LineCount = Inf.RowArray.NumberOfElements;
-        UintToString(LineCount, StrAux, 3);
-        StringConcat(StrMain, StrAux);
+    uint32_t LineCount = Inf.RowArray.NumberOfElements;
+    UintToString(LineCount, StrAux, 3);
+    StringConcat(StrMain, StrAux);
 
-        StringConcat(StrMain, L" | L:");
+    StringConcat(StrMain, L" | L:");
 
-        UintToString(Inf.CursorY + 1, StrAux, 3);
-        StringConcat(StrMain, StrAux);
+    UintToString(Inf.CursorY + 1, StrAux, 3);
+    StringConcat(StrMain, StrAux);
 
-        StringConcat(StrMain, L" | C:");
+    StringConcat(StrMain, L" | C:");
 
-        UintToString(Inf.CursorX + 1, StrAux, 3);
-        //uint32_t RowMaxSize = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY + Inf.RowOffset - 1)->Length;
+    UintToString(Inf.CursorX + 1, StrAux, 3);
+    //uint32_t RowMaxSize = StringBufferGetElemenetAt(&(Inf.RowArray), Inf.CursorY + Inf.RowOffset - 1)->Length;
 
-        //UintToString(RowMaxSize, StrAux, 3);
-        StringConcat(StrMain, StrAux);
+    //UintToString(RowMaxSize, StrAux, 3);
+    StringConcat(StrMain, StrAux);
 
-        StringConcat(StrMain, L" ||");
+    StringConcat(StrMain, L" ||");
 
-        //StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
-        
-        StringCopy(StrOut, StrMain);
-        return StringLength(StrMain);
+    //StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
+    
+    StringCopy(StrOut, StrMain);
+    return StringLength(StrMain);
+}
+#else
+uint32_t FormatInfoString(char* StrOut){
+    wchar StrFileName[64] = {0};
+    ReturnFileName(FileName, StrFileName);
+    char fName8[64];
+    TranslateToUtf8(fName8, 64, StrFileName, -1);
+
+    uint32_t LineCount = Inf.RowArray.NumberOfElements;
+    uint32_t Line = Inf.CursorY + 1;
+    uint32_t Column = Inf.CursorX + 1;
+    wsprintfA(StrOut,
+        "|| F: %s | LC: %4u | L: %4u | C: %4u ||",
+        fName8, LineCount, Line, Column);
+}
+#endif
+void PushEditorMessage(wchar *Str){
+    //uint64_t CurrentTime = GetTickCount64();
+    //uint32_t InputStringSize = StringLength(Str);
+    //StringCopy(Str, "|:");
+    StringCopy(DebugMessage.Message, Str);
+    //StringConcat(Str, ":|");
+    DebugMessage.TimeOfCreation = Inf.CurrentTime;
+}
+
+uint8_t SyncEditorMessage(){
+    if(Inf.CurrentTime - DebugMessage.TimeOfCreation > EDITOR_MESSAGE_TIME * 1000){
+        DebugMessage.TimeOfCreation = 0;
+        DebugMessage.Message[0] = L'\0';
+        StringConcat(DebugMessage.Message, L"---");
+        return 1U;
     }
+    return 0U;
+}
 
-    void PushEditorMessage(wchar *Str){
-        //uint64_t CurrentTime = GetTickCount64();
-        //uint32_t InputStringSize = StringLength(Str);
-        //StringCopy(Str, "|:");
-        StringCopy(DebugMessage.Message, Str);
-        //StringConcat(Str, ":|");
-        DebugMessage.TimeOfCreation = Inf.CurrentTime;
-    }
+void FormatHeader(){
+    int X = Inf.ConsoleColumns;
 
-    uint8_t SyncEditorMessage(){
-        if(Inf.CurrentTime - DebugMessage.TimeOfCreation > EDITOR_MESSAGE_TIME * 1000){
-            DebugMessage.TimeOfCreation = 0;
-            DebugMessage.Message[0] = L'\0';
-            StringConcat(DebugMessage.Message, L"---");
-            return 1U;
+    char StrMain[X*2+1];
+    char StrInfo[128];
+    char MessageBuffer[128];
+    char StrSpaces[128] = {0};
+
+    //StringBufferA TempMessageBuffer = TranslateToUtf8Ex(DebugMessage.Message);
+    TranslateToUtf8(MessageBuffer, 128, DebugMessage.Message, -1);
+    uint32_t MessageSize = StringLengthA(MessageBuffer);
+
+    uint32_t InfoLength = FormatInfoString(StrInfo);
+    int Space = X - 2 * FIRST_LINE_EMPTY_FIELDS;
+    int MessageSpace = Space - InfoLength - 6;
+    int FreeSpace = MessageSpace - MessageSize - 2;
+
+    if(FreeSpace < 0){
+        if(DebugMessage.TimeOfCreation == 0) {
+            int Blanks = Space - InfoLength;
+            if(Blanks < 0){
+                for(int i = 0; i < Space; i++){
+                    StringConcatA(StrMain, " ");
+                }
+                StringConcatA(StrMain, "\n");
+            }
+            else{
+                for(int i = 0; i < Blanks; i++){
+                    StringConcatA(StrSpaces, " ");
+                }
+                wsprintfA(StrMain,
+                "%"TO_STR(FIRST_LINE_EMPTY_FIELDS)"s""%s%s%s%s%s\n",
+                "\0", INVERTED_TEXT_COLOR, StrInfo, "\0", StrSpaces, RESET_TEXT_ATTRIBUTES);
+            }
         }
-        return 0U;
-    }
-
-    void FormatHeaderEx(){
-        int X = Inf.ConsoleColumns;
-        
-        wchar StrMain[256] = {0};
-        wchar StrInfo[256] = {0};
-
-        uint32_t EditorMessageLength = StringLength(DebugMessage.Message);
-        uint32_t ReturnStringLength = FormatInfoString(StrInfo);
-        int MessageSpace = X - 2 * FIRST_LINE_EMPTY_FIELDS - 8 - ReturnStringLength;
-
-        AddCharacters(StrMain, L' ', FIRST_LINE_EMPTY_FIELDS);
-        StringConcat(StrMain, INVERTED_TEXT_COLOR);
-        // CharConcat(StrMain, '|');
-
-        // AddCharacters(StrMain, ' ', 2);
-
-        StringConcat(StrMain, StrInfo);
-        AddCharacters(StrMain, L' ', 4);
-
-        StringConcat(StrMain, L"|: ");
-        StringConcat(StrMain, DebugMessage.Message);
-        StringConcat(StrMain, L" :|");
-        if((uint32_t)MessageSpace > EditorMessageLength){
-            MessageSpace = MessageSpace - EditorMessageLength - 6;
-            AddCharacters(StrMain, L' ', MessageSpace);
+        else{
+            int Blanks = Space - MessageSize - 6;
+            if(Blanks < 0){
+                for(int i = 0; i < Space; i++){
+                    StringConcatA(StrMain, " ");
+                }
+                StringConcatA(StrMain, "\n");
+            }
+            else {
+                for(int i = 0; i < Blanks; i++){
+                    StringConcatA(StrSpaces, " ");
+                }
+                wsprintfA(StrMain,
+                "%"TO_STR(FIRST_LINE_EMPTY_FIELDS)"s""%s|: %s :|%s%s\n",
+                "\0", INVERTED_TEXT_COLOR, MessageBuffer, StrSpaces, RESET_TEXT_ATTRIBUTES);
+            }
         }
-
-        CharConcat(StrMain, L'|');
-        StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
-
-        AddCharacters(StrMain, L' ', FIRST_LINE_EMPTY_FIELDS);
-
-        
-        StringConcat(StrMain, L"\n");
-        PrintToBuffer(&Buffer, StrMain);
     }
+    else{
+        for(int i = 0; i < FreeSpace; i++){
+            StringConcatA(StrSpaces, " ");
+        }
+        wsprintfA(StrMain,
+            "%"TO_STR(FIRST_LINE_EMPTY_FIELDS)"s""%s""%s""%4s""|: %s :|%s%s\n",
+            "\0", INVERTED_TEXT_COLOR, StrInfo, "\0", MessageBuffer, StrSpaces, RESET_TEXT_ATTRIBUTES);
+    }
+
+    PrintToBufferA(&Buffer, StrMain);
+}
+#if 0
+void FormatHeaderEx(){
+    int X = Inf.ConsoleColumns;
+    
+    wchar StrMain[256] = {0};
+    wchar StrInfo[256] = {0};
+
+    uint32_t EditorMessageLength = StringLength(DebugMessage.Message);
+    uint32_t ReturnStringLength = FormatInfoString(StrInfo);
+    int MessageSpace = X - 2 * FIRST_LINE_EMPTY_FIELDS - 8 - ReturnStringLength;
+
+    AddCharacters(StrMain, L' ', FIRST_LINE_EMPTY_FIELDS);
+    StringConcat(StrMain, INVERTED_TEXT_COLOR);
+    // CharConcat(StrMain, '|');
+
+    // AddCharacters(StrMain, ' ', 2);
+
+    StringConcat(StrMain, StrInfo);
+    AddCharacters(StrMain, L' ', 4);
+
+    StringConcat(StrMain, L"|: ");
+    StringConcat(StrMain, DebugMessage.Message);
+    StringConcat(StrMain, L" :|");
+    if((uint32_t)MessageSpace > EditorMessageLength){
+        MessageSpace = MessageSpace - EditorMessageLength - 6;
+        AddCharacters(StrMain, L' ', MessageSpace);
+    }
+
+    CharConcat(StrMain, L'|');
+    StringConcat(StrMain, RESET_TEXT_ATTRIBUTES);
+
+    AddCharacters(StrMain, L' ', FIRST_LINE_EMPTY_FIELDS);
+
+    
+    StringConcat(StrMain, L"\n");
+    //PrintToBuffer(&Buffer, StrMain);
+}
+#endif
+
 
 //---Main---//
 
 void DrawRows(){
-    wchar Str[64];
+    char Str[64];
 
     if(Inf.CursorX > (int)(Inf.ConsoleColumns - 4 + Inf.ColumnOffset))
         Inf.ColumnOffset = Inf.CursorX - Inf.ConsoleColumns + 4;
@@ -567,22 +681,24 @@ void DrawRows(){
     for(int i = 0; (i + Inf.RowOffset) < Inf.RowArray.NumberOfElements && i < (Inf.ConsoleRows); i++) {
         int RowNumber = i + Inf.RowOffset;
 
-        UintToString((RowNumber + 1) % 1000, Str, 3);
+        UintToStringA((RowNumber + 1) % 1000, Str, 3);
 
-        PrintToBuffer(&Buffer, Str);
-        PrintToBuffer(&Buffer, L"|");
+        PrintToBufferA(&Buffer, Str);
+        PrintToBufferA(&Buffer, "|");
 
         StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
         int StringSize = StringLength(temp->Memory) - 1;
 
-
+        StringBufferA TempBuffer = TranslateToUtf8Ex(temp->Memory);
 
         if(StringSize < Inf.ColumnOffset)
-            AppendBufferEx(&Buffer, L"<--", 3, 0);
+            AppendBufferExA(&Buffer, "<--", 3, 0);
         else
-            AppendBufferEx(&Buffer, temp->Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
+            AppendBufferExA(&Buffer, TempBuffer.Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
 
-        if(i < (Inf.ConsoleRows - 1)) PrintToBuffer(&Buffer, L"\r\n");
+        DeleteBufferA(&TempBuffer);
+
+        if(i < (Inf.ConsoleRows - 1)) PrintToBufferA(&Buffer, "\r\n");
     }
 }
 
@@ -591,27 +707,17 @@ void RefreshScreen(){
     ResetCursorPossition();
     ScrollScreenEx();
 
-    DeleteBuffer(&Buffer);
-    Buffer = CreateBuffer(64);
+    DeleteBufferA(&Buffer);
+    Buffer = CreateBufferA(64);
 
     SyncEditorMessage();
-    //FormatHeaderEx();
+    FormatHeader();
     DrawRows();
 
-#if 0
-    uint32_t DestSize = (uint32_t)WideCharToMultiByte(CP_UTF8, 0, Buffer.Memory, -1, 
-        NULL, 0, NULL, NULL);
-    StringBufferA BufferA = CreateBufferA(DestSize + 1);
-    WideCharToMultiByte(CP_UTF8, 0, Buffer.Memory, -1,
-        BufferA.Memory, BufferA.Length, NULL, NULL);
-#else
-    StringBufferA BufferA = TranslateToUtf8Ex(Buffer.Memory);
-#endif
-    PrintA(BufferA.Memory);
-    DeleteBufferA(&BufferA);
+    PrintA(Buffer.Memory);
 
-    // Moved Both x and y by one forward
-    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 1 - Inf.RowOffset);
+    // Moved x and y by one forward
+    SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
     DisplayConsoleCursor();
 }
 
@@ -793,15 +899,17 @@ wchar ProcessKeypress(){
                 RefreshScreen();
                 
                 repeat:
-                wchar C = _getch();
-                if(C == L's') EditorSave(FileName);
-                else if(C == L'n') {
+                wchar C = ReadCharacter();
+                ArrowKeys = 0;
+                if(C == L's' || C == L'S') EditorSave(FileName);
+                else if(C == L'n' || C == L'N') {
                     DebugMessage.TimeOfCreation = 0;
                     DebugMessage.Message[0] = L'\0';
                     return 0;
                 }
-                else if(C == L'y');
+                else if(C == L'y' || C == L'Y');
                 else{
+                    Sleep(TIMEOUT_MS);
                     goto repeat;
                 }
             }
@@ -908,6 +1016,12 @@ wchar ProcessKeypress(){
                 InsertCharacter(L' ');
 
             }
+        } return 0;
+        
+        case CTRL_M:{
+#if 0
+            SwitchMouseMode();
+#endif
         } return 0;
     }
     return C;
