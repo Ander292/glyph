@@ -16,6 +16,9 @@
         // Destination must be a pointer to a valid address
         void MemoryCopy(wchar *Destination, wchar *Source, int Size);
 
+        // Compares 2 strings
+        int StringCompare(wchar *Str1, wchar *Str2);
+
         // Converts the number to a string and writes the digits in ascii code inside pStr array
         void UintToString(int n, wchar * pStr, int digits);
 

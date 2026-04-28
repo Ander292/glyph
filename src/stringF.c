@@ -30,6 +30,17 @@ void MemoryCopy(wchar *Destination, wchar *Source, int Size){
         Destination[i] = Source[i];
 }
 
+int StringCompare(wchar *Str1, wchar *Str2){
+    uint32_t StrLen1 = StringLength(Str1);
+    uint32_t StrLen2 = StringLength(Str2);
+
+    if(StrLen1 != StrLen2) return -1;
+    for(uint32_t i = 0; i < StrLen1; i++){
+        if(Str1[i] != Str2[i]) return i;
+    }
+    return 0;
+}
+
 void UintToString(int n, wchar * pStr, int digits){
     int cnt = DigitCount(n);
     int invert = ReverseOrder(n, cnt);

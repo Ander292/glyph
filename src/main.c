@@ -987,11 +987,23 @@ int main(int argc, char* argv[]){
     PrepareConsole();
     ScrollScreenEx();
 
-    if(argc == 2)
+    if(argc > 1) {
+        if(argc == 3) {
+            if(!StringCompareA(argv[2], "-utf16") || !StringCompareA(argv[2], "-16") 
+                || !StringCompareA(argv[2], "-unicode") || !StringCompareA(argv[2], "-u"))
+                Inf.FileMode = MODE_UTF16;
+            else{
+                PrintA(MOVE_TO_MAIN_BUFFER);
+                PrintA("The argument is invalid!\n");
+                return 1;
+            }
+        }
         EditorOpen(argv[1]);
+    }
     else{
         PrintA(MOVE_TO_MAIN_BUFFER);
-        PrintA("Error: You must provide an argument!\n");
+        PrintA("Usage: .\\glyph.exe <filePath> [-u]\r\n"
+               "\"-u\" will force the editor to treat the file as UTF16\r\n");
         return 1;
     }
 

@@ -29,6 +29,8 @@
 
         void UintToStringA(int n, char *pStr, int digits);
 
+        int StringCompareA(char *Str1, char *Str2);
+
         // Creates a back buffer
         StringBufferA CreateBufferA(int size);
 
