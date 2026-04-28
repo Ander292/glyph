@@ -167,7 +167,7 @@ void FileReadPortionS8(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrAr
 }
 
 void FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
-    StringBuffer PrimaryBuffer = CreateBuffer((PortionSize + 1) * 2);
+    StringBuffer PrimaryBuffer = CreateBuffer(PortionSize + 1);
 
     DWORD ReadFeedback;
     int LastLineIndex = 0;
@@ -179,7 +179,7 @@ void FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrA
         ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
 
         PrimaryBuffer.Memory[ReadFeedback] = '\0';
-        //PrimaryBuffer.Length = ReadFeedback;
+        PrimaryBuffer.Length = ReadFeedback / 2;
 
         SeparateIntoLines(StrArray, &PrimaryBuffer, &LastLineIndex, &Continuation);
     }while(ReadFeedback >= PortionSize);
