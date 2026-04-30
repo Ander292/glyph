@@ -112,9 +112,10 @@ void ScrollScreenEx(){
     int ConY = Inf.ConsoleRows;
 
     char BufferA[16];
-    wsprintfA(BufferA, ESC_SEQ "%dM", ConY);
-    PrintA(BufferA);
+    //wsprintfA(BufferA, ESC_SEQ "%dM", ConY);
+    //PrintA(BufferA);
     //SetCursorPossition(Inf.CursorX, Inf.CursorY);
+    PrintA(ESC_CLEAR_SCREEN);
 }
 
 void ErrorExit(wchar *ErrorStr){
@@ -192,7 +193,9 @@ void EditorOpen(char *fNameANSI){
     }
 
     StringCopy(FileName, fName);
-    FileReadPortionS(hFile, 256, &(Inf.RowArrayOrigin), &Inf.FileMode);
+    uint64_t fSize;
+    GetFileSizeEx(hFile, (LARGE_INTEGER *)&fSize);
+    FileReadPortionS(hFile, fSize, &(Inf.RowArrayOrigin), &Inf.FileMode);
     TranslateStringArray();
     
     CloseHandle(hFile);
@@ -616,26 +619,29 @@ void DrawRows(StringBufferA *BufferA){
     if(Inf.CursorY < (int)(Inf.RowOffset))
         Inf.RowOffset = Inf.CursorY;
 
-    for(int i = 0; (i + Inf.RowOffset) < Inf.RowArray.NumberOfElements && i < (Inf.ConsoleRows); i++) {
+    for(int i = 0; i < (Inf.ConsoleRows); i++) {
         int RowNumber = i + Inf.RowOffset;
 
-        UintToStringA((RowNumber + 1) % 1000, Str, 3);
+        PrintToBufferA(BufferA, ESC_CLEAR_LINE);
+        if((i + Inf.RowOffset) < Inf.RowArray.NumberOfElements){
 
-        PrintToBufferA(BufferA, Str);
-        PrintToBufferA(BufferA, "|");
+            UintToStringA((RowNumber + 1) % 1000, Str, 3);
 
-        StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
-        int StringSize = StringLength(temp->Memory) - 1;
+            PrintToBufferA(BufferA, Str);
+            PrintToBufferA(BufferA, "|");
 
-        StringBufferA TempBuffer = TranslateToUtf8Ex(temp->Memory, NULL);
+            StringBuffer *temp = StringBufferGetElemenetAt(&(Inf.RowArray), RowNumber);
+            int StringSize = StringLength(temp->Memory) - 1;
 
-        if(StringSize < Inf.ColumnOffset)
-            AppendBufferExA(BufferA, "<--", 3, 0);
-        else
-            AppendBufferExA(BufferA, TempBuffer.Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
+            StringBufferA TempBuffer = TranslateToUtf8Ex(temp->Memory, NULL);
 
-        DeleteBufferA(&TempBuffer);
+            if(StringSize < Inf.ColumnOffset)
+                AppendBufferExA(BufferA, "<--", 3, 0);
+            else
+                AppendBufferExA(BufferA, TempBuffer.Memory, (Inf.ConsoleColumns - 3), Inf.ColumnOffset);
 
+            DeleteBufferA(&TempBuffer);
+        }
         if(i < (Inf.ConsoleRows - 1)) PrintToBufferA(BufferA, "\r\n");
     }
 }
@@ -651,7 +657,7 @@ void RefreshScreen(){
     FormatHeader(&Buffer);
     DrawRows(&Buffer);
 
-    ScrollScreenEx();
+    //ScrollScreenEx();
     PrintA(Buffer.Memory);
 
     SetCursorPossition(Inf.CursorX + LINE_NUMBER_WIDTH - Inf.ColumnOffset + 1, Inf.CursorY + 2 - Inf.RowOffset);
@@ -985,7 +991,7 @@ wchar ProcessKeypress(){
 int main(int argc, char* argv[]){
 
     PrepareConsole();
-    ScrollScreenEx();
+    //ScrollScreenEx();
 
     if(argc > 1) {
         if(argc == 3) {

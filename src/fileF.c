@@ -50,7 +50,7 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
     
     wchar *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
 
-    int RemainingSize = PrimaryBuffer->Length;
+    int RemainingSize = PrimaryBuffer->Length - 1;
 
     #ifndef LINUX
         if(*PtrToCurrentPos == '\n') {
@@ -179,7 +179,7 @@ void FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrA
         ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
 
         PrimaryBuffer.Memory[ReadFeedback] = '\0';
-        PrimaryBuffer.Length = ReadFeedback / 2;
+        PrimaryBuffer.Length = (ReadFeedback + 1)/ 2 + 1; // +1 because I remove one later, dont ask
 
         SeparateIntoLines(StrArray, &PrimaryBuffer, &LastLineIndex, &Continuation);
     }while(ReadFeedback >= PortionSize);

@@ -132,5 +132,5 @@ if ( ( $mode -eq "full" ) -OR ( $mode -eq "run" ) ) {
     #$ProgramPath = Read-Host "Input file name to open"
     Write-Host "Running program..."
     #& "$OutputExe" $ProgramPath
-    & $OutputExe "C:\Users\Korisnik\test.txt"#"assets/test.txt"
+    & $OutputExe "Lana.txt"
 }

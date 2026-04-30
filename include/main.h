@@ -70,6 +70,9 @@
         #define ESC_HIDE_CURSOR ESC("?25l")
         #define ESC_SHOW_CURSOR ESC("?25h")
 
+        #define ESC_CLEAR_SCREEN ESC("2J")
+        #define ESC_CLEAR_LINE ESC("2K")
+
         #define MOVE_TO_AUX_BUFFER  ESC("?1049h")
         #define MOVE_TO_MAIN_BUFFER ESC("?1049l")
         #define ENABLE_MOUSE_TRACKING ESC("?1000h")
