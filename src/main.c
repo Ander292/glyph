@@ -273,25 +273,26 @@ wchar ReadCharacter(){
             RefreshInf.FullRender = TRUE;
             RefreshInf.ToFixCursor = TRUE;
             KEY_EVENT_RECORD KeyInfo = InpRec.Event.KeyEvent;
+            DWORD CtrlKeyStatus = KeyInfo.dwControlKeyState;
             if(KeyInfo.bKeyDown){
                 switch(KeyInfo.wVirtualKeyCode){
                     case VK_UP: 
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_UP;
                         else ArrowKeys = UP_ARROW;
                         break;
                     case VK_DOWN:
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)    
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))    
                             ArrowKeys = CTRL_DOWN;
                         else ArrowKeys = DOWN_ARROW;
                         break;
                     case VK_RIGHT:
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_RIGHT;
                         else ArrowKeys = RIGHT_ARROW; 
                         break;
                     case VK_LEFT: 
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_LEFT;
                         else ArrowKeys = LEFT_ARROW; 
                         break;
@@ -308,58 +309,58 @@ wchar ReadCharacter(){
                     case VK_INSERT: ArrowKeys = INSERT_KEY; break;
                     
                     case VK_DELETE: 
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_DELETE;
                         else ArrowKeys = DELETE_KEY;
                         break;
                     case VK_BACK: 
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_BACKSPACE;
                         else ArrowKeys = BACKSPACE;
                         break;
                     
                 
                     case 'Q':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_Q;
                         else goto default_jump;
                         break;
                     case 'C':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_C;
                         else goto default_jump;
                         break;
                     case 'S':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_S;
                         else goto default_jump;
                         break;
                     case 'D':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_DELETE;
                         else goto default_jump;
                         break;
                     case 'W':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED)
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus))
                             ArrowKeys = CTRL_W;
                         else goto default_jump;
                         break;
                     case 'N':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus)) {
                             // if(KeyInfo.wRepeatCount > 1) return 0;
                             ArrowKeys = CTRL_N;
                         }
                         else goto default_jump;
                         break;
                     case 'M':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus)) {
                             // if(KeyInfo.wRepeatCount > 1) return 0;
                             ArrowKeys = CTRL_M;
                         }
                         else goto default_jump;
                         break;
                     case 'U':
-                        if(KeyInfo.dwControlKeyState & LEFT_CTRL_PRESSED) {
+                        if(CTRL_IS_DOWN(CtrlKeyStatus) && !RALT_IS_DOWN(CtrlKeyStatus)) {
                             // if(KeyInfo.wRepeatCount > 1) return 0;
                             ArrowKeys = CTRL_U;
                         }

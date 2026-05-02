@@ -123,6 +123,8 @@
 
         // Returns the key code of key k + CTRL
         #define CTRL_KEY(k) ((k) & 0x1f)        
+        #define CTRL_IS_DOWN(k) ((k) & LEFT_CTRL_PRESSED)
+        #define RALT_IS_DOWN(k) ((k) & RIGHT_ALT_PRESSED)
 
     //-----Constants-----//
 
