@@ -129,7 +129,6 @@ int FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrAr
     int Result = SeparateIntoLines(StrArray, &PrimaryBuffer);
 
     if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
-    //StrArray->NumberOfElements++;
 
     DeleteBuffer(&PrimaryBuffer);
     return Result;
@@ -148,10 +147,12 @@ int FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArra
         SetFilePointerEx(hFile, (LARGE_INTEGER)0LL, NULL, FILE_BEGIN);
     }
 
-    if(*FileMode == MODE_UTF8)
-        FileReadPortionS8(hFile, PortionSize, StrArray);
-    else
-        FileReadPortionS16(hFile, PortionSize, StrArray);
+    int Result;
 
-    return 0;
+    if(*FileMode == MODE_UTF8)
+        Result = FileReadPortionS8(hFile, PortionSize, StrArray);
+    else
+        Result = FileReadPortionS16(hFile, PortionSize, StrArray);
+
+    return Result;
 }

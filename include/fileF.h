@@ -12,13 +12,6 @@
         #define MODE_UTF8 1
         #define MODE_UTF16 2
 
-    typedef struct {
-        //int BufferIndex;   // index in the StringBufferArray
-        int Offset;         // byte offset where the partial line ends
-        int Reserved;       // optional, for future use
-        uint8_t Shift;      //If the current line is finished
-    } LineContinuationInfo;
-
     // Reads PortionSize bytes from hFile
     // Copies those bytes into data pointer
     int FileReadPortionS(

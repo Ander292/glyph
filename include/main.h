@@ -28,9 +28,8 @@
         } EditorInfo;
 
         typedef struct{
-            uint8_t FullRender;
-            uint8_t ToFixCursor;
-            uint8_t HeaderOnly;
+            uint32_t FullRender;
+            uint32_t ToFixCursor;
         } RefreshInfo;
 
         typedef struct{

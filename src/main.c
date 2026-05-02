@@ -100,26 +100,12 @@ void ErrorExit(wchar *ErrorStr){
 
 //---Cursor---//
 
-// TODO: Maybe these should be macros???
-#if 0
-static inline void DisplayConsoleCursor(){
-    PrintA(ESC_SHOW_CURSOR);
-}
-
-static inline void HideConsoleCursor(){
-    PrintA(ESC_HIDE_CURSOR);
-}
-
-static inline void ResetCursorPossition(){
-    PrintA(ESC("0;0H"));
-}
-#endif
-
 static inline void SetCursorPossition(int x, int y){
     char Buffer[16];
     int len = wsprintfA(Buffer, ESC_SEQ "%d;%dH", y, x);
     PrintAL(Buffer, len + 1);
 }
+
 
 //---I/O---//
 
@@ -991,12 +977,10 @@ int main(int argc, char* argv[]){
         SyncEditorMessage();
         GetConsoleSystemInfo();
 
-        if(RefreshInf.FullRender) {
+
+        if(RefreshInf.FullRender){
             RefreshScreen();
             RefreshInf.FullRender = FALSE;
-        } else if(RefreshInf.HeaderOnly){
-            RefreshHeader();
-            RefreshInf.HeaderOnly = FALSE;
         }
 
         C = ProcessKeypress();
