@@ -95,6 +95,8 @@ void ErrorExit(wchar *ErrorStr){
     Print(ErrorStr);
     DisableRawMode();
 
+    system("pause");
+
     exit(1);
 }
 
@@ -216,6 +218,7 @@ uint8_t EditorSave(wchar *fName){
         BytesToWrite = EditorSave8(&TempBuffer8);
         DWORD StrlenResult = (DWORD)StringLengthA(TempBuffer8.Memory) - 1;
         if(BytesToWrite != StrlenResult){
+            ErrorExit(L"First check failed!");
             return 2U;
         }
         WriteStr = TempBuffer8.Memory;
@@ -225,6 +228,9 @@ uint8_t EditorSave(wchar *fName){
         uint32_t CharCount = EditorSave16(&TempBuffer16);
         DWORD StrlenResult = (DWORD)StringLength(TempBuffer16.Memory) - 1;
         if(CharCount != StrlenResult){
+            wchar tmpBuffer[256];
+            wsprintfW(tmpBuffer, L"Check failed: OG:%d|F:%d\n%s", CharCount, StrlenResult, TempBuffer16.Memory);
+            ErrorExit(tmpBuffer);
             return 2U;
         }
         BytesToWrite = 2 * CharCount;
@@ -252,7 +258,7 @@ uint8_t EditorSave(wchar *fName){
         DeleteBuffer(&TempBuffer16);
     }
 
-    if(BytesWritten != BytesToWrite) return 1U;
+    if(BytesWritten != BytesToWrite) ErrorExit(L"Third check failed!");return 1U;
     Inf.EditorDirty = 0;
     return 0U;
 }

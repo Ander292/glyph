@@ -11,7 +11,8 @@
             "program": "${workspaceFolder}/build/glyph/glyph.exe",
             "args": [
                 //"C:\\Users\\Korisnik\\test.txt"
-                "Lana.txt"
+                //"Lana.txt"
+                "C:\\Users\\maksi\\Desktop\\test\\config\\conf.ini"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
