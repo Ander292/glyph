@@ -21,7 +21,7 @@
 
     // Reads PortionSize bytes from hFile
     // Copies those bytes into data pointer
-    void FileReadPortionS(
+    int FileReadPortionS(
         HANDLE hFile, 
         DWORD PortionSize, 
         StringBufferArray *StrArray,

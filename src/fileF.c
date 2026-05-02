@@ -46,7 +46,7 @@ void ReturnFileName(wchar *FullPath, wchar *OutFileName){
     MemoryCopy(OutFileName, FullPath + i + 1, FullPathLength - i - 1);
 }
 
-void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer, int *LastLineIndex, LineContinuationInfo *Continuation){
+int SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer){
     
     wchar *PtrToCurrentPos = PrimaryBuffer->Memory; // Current possition inside the main buffer
 
@@ -59,41 +59,7 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
         }
     #endif
 
-    int LineNumber = *LastLineIndex;
-
-    if(Continuation->Shift == 1){
-        StringBuffer *target = StringBufferGetElemenetAt(StrArray, LineNumber);
-        int CurrentLineLength = StringLength(target->Memory) - 1;
-        int Offset = Continuation->Offset;
-
-        uint8_t FoundNewline = 0;
-        int CopyLength = LineLengthEx(PtrToCurrentPos, RemainingSize, &FoundNewline);
-
-        while(CurrentLineLength + CopyLength + 1 > target->Length)
-            DoubleSize(target);
-
-        MemoryCopy(target->Memory + CurrentLineLength, PtrToCurrentPos, CopyLength);
-
-        CurrentLineLength += CopyLength;
-        target->Memory[CurrentLineLength] = '\0';
-
-        PtrToCurrentPos += CopyLength;
-        RemainingSize -= CopyLength;
-
-        if(RemainingSize > 0 && *PtrToCurrentPos == '\r') { PtrToCurrentPos++; RemainingSize--; }
-        if(RemainingSize > 0 && *PtrToCurrentPos == '\n') { PtrToCurrentPos++; RemainingSize--; }
-
-        if(FoundNewline){
-            LineNumber++;
-            Continuation->Shift = 0;
-        }else{
-            Continuation->Shift = 1;
-            //Continuation->BufferIndex = LineNumber;
-            Continuation->Offset = CurrentLineLength;
-            *LastLineIndex = LineNumber;
-            return;
-        }
-    }
+    int LineNumber = 0;
 
     while(RemainingSize > 0){
         uint8_t FoundNewline = 0;
@@ -113,11 +79,11 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
         PtrToCurrentPos += CopyLength;
         RemainingSize -= CopyLength;
 
-        if(RemainingSize > 0 && *PtrToCurrentPos == '\r' 
+        if(RemainingSize > 0 && *PtrToCurrentPos == '\r'
             && *(PtrToCurrentPos + 1) == '\n' && *(PtrToCurrentPos + 2) == '\000'){
                     LineNumber++;
                     StrArray->NumberOfElements++;
-                    RemainingSize-=2;
+                    RemainingSize -= 2;
                     continue;
                 }
         if(RemainingSize > 0 && *PtrToCurrentPos == '\r') { PtrToCurrentPos++; RemainingSize--; }
@@ -125,72 +91,52 @@ void SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer,
         // while(RemainingSize > 0 && (*PtrToCurrentPos == '\r' || *PtrToCurrentPos == '\n')) 
         //     { PtrToCurrentPos++; RemainingSize--; }
 
-        if(!FoundNewline){
-            *LastLineIndex = LineNumber;
-            Continuation->Shift = 1;
-            Continuation->Offset = CopyLength;
-            break;
-        }
-
         LineNumber++;
     }
-
-    *LastLineIndex = LineNumber;
-
+    return LineNumber;
 }
 
-void FileReadPortionS8(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
+int FileReadPortionS8(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
     StringBufferA PrimaryBuffer = CreateBufferA(PortionSize + 1);
 
     DWORD ReadFeedback;
-    int LastLineIndex = 0;
 
-    LineContinuationInfo Continuation = { -1, 0, 0 };
+    ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
 
-    do{
-        ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
-
-        PrimaryBuffer.Memory[ReadFeedback] = '\0';
-        PrimaryBuffer.Length = ReadFeedback;
-
-        
-        StringBuffer DestBuffer = TranslateToUtf16Ex(PrimaryBuffer.Memory, NULL);
-        SeparateIntoLines(StrArray, &DestBuffer, &LastLineIndex, &Continuation);
-        DeleteBuffer(&DestBuffer);
-    }while(ReadFeedback >= PortionSize);
+    PrimaryBuffer.Memory[ReadFeedback] = '\0';
+    PrimaryBuffer.Length = ReadFeedback;
+    
+    StringBuffer DestBuffer = TranslateToUtf16Ex(PrimaryBuffer.Memory, NULL);
+    int Result = SeparateIntoLines(StrArray, &DestBuffer);
+    DeleteBuffer(&DestBuffer);
 
     if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
-    //StrArray->NumberOfElements++;
-
 
     DeleteBufferA(&PrimaryBuffer);
+    return Result;
 }
 
-void FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
+int FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray){
     StringBuffer PrimaryBuffer = CreateBuffer(PortionSize + 1);
 
     DWORD ReadFeedback;
-    int LastLineIndex = 0;
-
-    LineContinuationInfo Continuation = { -1, 0, 0 };
     
+    ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
 
-    do{
-        ReadFile(hFile, PrimaryBuffer.Memory, PortionSize, &ReadFeedback, NULL);
+    PrimaryBuffer.Memory[ReadFeedback] = '\0';
+    PrimaryBuffer.Length = (ReadFeedback + 1)/ 2 + 1; // +1 because I remove one later, dont ask
 
-        PrimaryBuffer.Memory[ReadFeedback] = '\0';
-        PrimaryBuffer.Length = (ReadFeedback + 1)/ 2 + 1; // +1 because I remove one later, dont ask
-
-        SeparateIntoLines(StrArray, &PrimaryBuffer, &LastLineIndex, &Continuation);
-    }while(ReadFeedback >= PortionSize);
+    int Result = SeparateIntoLines(StrArray, &PrimaryBuffer);
 
     if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
     //StrArray->NumberOfElements++;
 
     DeleteBuffer(&PrimaryBuffer);
+    return Result;
 }
 
-void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray, uint8_t *FileMode){
+int FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArray, uint8_t *FileMode){
+    //DWORD Result;
     // BOM check
     wchar BOM = 0xFEFF;
     wchar Check;
@@ -206,4 +152,6 @@ void FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArr
         FileReadPortionS8(hFile, PortionSize, StrArray);
     else
         FileReadPortionS16(hFile, PortionSize, StrArray);
+
+    return 0;
 }
