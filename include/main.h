@@ -110,19 +110,18 @@
 
             #define SetCursorPossitionM(X, Y) \
                 SetConsoleCursorPosition(hStdout, (COORD){X, Y})
-#else
-
 #endif
         #elif defined LINUX
 
         #endif
-
-        #define ClearLine Print("\x1b[K")
-
-        #define ClearScreenAfterCursor Print("\x1b[2J")
-
-        #define ClearScreen Print("\x1b[1J")
         
+        #define ClearLine Print(ESC("K"))
+        #define ClearScreenAfterCursor Print(ESC("2J"))
+        #define ClearScreen Print(ESC("1J"))
+        #define DisplayConsoleCursor() PrintA(ESC_SHOW_CURSOR)
+        #define HideConsoleCursor() PrintA(ESC_HIDE_CURSOR)
+        #define ResetCursorPossition() PrintA(ESC("0;0H"))
+
         // Returns the key code of key k + CTRL
         #define CTRL_KEY(k) ((k) & 0x1f)        
 
@@ -180,7 +179,7 @@
 
         void TranslateStringArray();
         void PushEditorMessage(wchar *Str);
-        static inline void ResetCursorPossition();
+        //static inline void ResetCursorPossition();
         static inline void SetCursorPossition(int x, int y);
 
 #define MAIN_H

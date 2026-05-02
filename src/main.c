@@ -59,11 +59,7 @@ void PrepareConsole(){
 void DisableRawMode(){
     DWORD ConsoleMode = OldConsoleMode;
 
-    //GetConsoleMode(hStdin, &ConsoleMode);
-    //ConsoleMode |= (ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT | ENABLE_PROCESSED_OUTPUT);
-
     SetConsoleMode(hStdin, ConsoleMode);
-
     PrintA(DISABLE_MOUSE_TRACKING);
 }
 
@@ -80,33 +76,6 @@ void SwitchMouseMode(){
     }
 }
 
-void ScrollScreen(){
-    SMALL_RECT ScrollRect = {
-        .Left = 0,
-        .Top = 0,
-        .Right = ScreenBufferInfo.dwSize.X,
-        .Bottom = ScreenBufferInfo.dwSize.Y
-    };
-    COORD ScrollTarget = {
-        .X = 0,
-        .Y = (short) (0 - ScrollRect.Bottom)
-
-    };
-    CHAR_INFO CharInfo = {
-        .Char.UnicodeChar= L' ',
-        .Attributes = ScreenBufferInfo.wAttributes
-    };
-
-    ScrollConsoleScreenBufferA(hStdout, &ScrollRect, NULL, ScrollTarget, &CharInfo);
-
-
-
-    ScreenBufferInfo.dwCursorPosition.X = 0;
-    ScreenBufferInfo.dwCursorPosition.Y = 0;
-
-    SetConsoleCursorPosition(hStdout, ScreenBufferInfo.dwCursorPosition);
-}
-
 void ScrollScreenEx(){
     ResetCursorPossition();
     int ConY = Inf.ConsoleRows;
@@ -119,7 +88,7 @@ void ScrollScreenEx(){
 }
 
 void ErrorExit(wchar *ErrorStr){
-    ScrollScreenEx();
+    //ScrollScreenEx();
 
     if(hFile) CloseHandle(hFile);
     PrintA(MOVE_TO_MAIN_BUFFER);
@@ -132,7 +101,7 @@ void ErrorExit(wchar *ErrorStr){
 //---Cursor---//
 
 // TODO: Maybe these should be macros???
-
+#if 0
 static inline void DisplayConsoleCursor(){
     PrintA(ESC_SHOW_CURSOR);
 }
@@ -141,16 +110,16 @@ static inline void HideConsoleCursor(){
     PrintA(ESC_HIDE_CURSOR);
 }
 
+static inline void ResetCursorPossition(){
+    PrintA(ESC("0;0H"));
+}
+#endif
+
 static inline void SetCursorPossition(int x, int y){
     char Buffer[16];
     int len = wsprintfA(Buffer, ESC_SEQ "%d;%dH", y, x);
     PrintAL(Buffer, len + 1);
 }
-
-static inline void ResetCursorPossition(){
-    PrintA(ESC("0;0H"));
-}
-
 
 //---I/O---//
 
@@ -871,7 +840,7 @@ wchar ProcessKeypress(){
                     goto repeat;
                 }
             }
-            ResetCursorPossition;
+            ResetCursorPossition();
             Running = 0;
         } return 0;
 
@@ -972,7 +941,6 @@ wchar ProcessKeypress(){
             InsertCharacter(L' ');
             while((Inf.CursorX) % TAB_SPACE_COUNT != 0) {
                 InsertCharacter(L' ');
-
             }
         } return 0;
         
