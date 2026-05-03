@@ -12,7 +12,7 @@
             "args": [
                 //"C:\\Users\\Korisnik\\test.txt"
                 //"Lana.txt"
-                "C:\\Users\\maksi\\Desktop\\test\\config\\conf.ini"
+                "C:\\Users\\Korisnik\\Desktop\\Test\\config\\conf.ini"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

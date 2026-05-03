@@ -258,7 +258,7 @@ uint8_t EditorSave(wchar *fName){
         DeleteBuffer(&TempBuffer16);
     }
 
-    if(BytesWritten != BytesToWrite) ErrorExit(L"Third check failed!");return 1U;
+    if(BytesWritten != BytesToWrite) { ErrorExit(L"Third check failed!"); return 1U; }
     Inf.EditorDirty = 0;
     return 0U;
 }
