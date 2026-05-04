@@ -12,7 +12,7 @@
             "args": [
                 //"C:\\Users\\Korisnik\\test.txt"
                 //"Lana.txt"
-                "C:\\Users\\Korisnik\\Desktop\\Test\\config\\conf.ini"
+                "D:\\Documents\\Fakultet\\Principi\\Bitwise\\zad.txt"
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

@@ -65,7 +65,7 @@ int SeparateIntoLines(StringBufferArray *StrArray, StringBuffer *PrimaryBuffer){
         uint8_t FoundNewline = 0;
         int CopyLength = LineLengthEx(PtrToCurrentPos, RemainingSize, &FoundNewline);
 
-        if(LineNumber >= StrArray->MaxNumberOfElements) 
+        if(LineNumber + 1>= StrArray->MaxNumberOfElements) 
             DoubleArrayCapacity(StrArray);
 
         StringBuffer *target = StringBufferGetElemenetAt(StrArray, LineNumber);
@@ -129,7 +129,6 @@ int FileReadPortionS16(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrAr
     int Result = SeparateIntoLines(StrArray, &PrimaryBuffer);
 
     if(StrArray->NumberOfElements == 0) StrArray->NumberOfElements = 1;
-
     DeleteBuffer(&PrimaryBuffer);
     return Result;
 }
@@ -153,6 +152,8 @@ int FileReadPortionS(HANDLE hFile, DWORD PortionSize, StringBufferArray *StrArra
         Result = FileReadPortionS8(hFile, PortionSize, StrArray);
     else
         Result = FileReadPortionS16(hFile, PortionSize, StrArray);
+
+    if(StrArray->MaxNumberOfElements <= StrArray->NumberOfElements) DoubleArrayCapacity(StrArray);
 
     return Result;
 }
