@@ -28,6 +28,43 @@ string stringCreate(int size){
     return Result;
 }
 
+void stringFree(string *str){
+    free(str->byteCount);
+    free(str->data);
+    str->len = 0;
+    str->maxSize = -1;
+    str->byteLen = -1;
+}
+
+string *stringCreateHeap(int size){
+    string *Result = malloc(sizeof(string));
+
+    Result->len = 0;
+    Result->byteLen = 0;
+    Result->maxSize = size;
+
+    Result->byteCount = malloc(size);
+    Result->data = malloc(size * 4);
+
+    if(!Result->byteCount){
+        die("Error allocating %zu bytes", size);
+    }
+    if(!Result->data){
+        die("Error allocating %zu bytes", size * 4);
+    }
+
+    *Result->byteCount = 0;
+    *Result->data = 0;
+
+    return Result;
+}
+
+void stringFreeHeap(string *str){
+    free(str->byteCount);
+    free(str->data);
+    free(str);
+}
+
 void doubleSize(string *str){
     str->maxSize <<= 2;
     str->byteCount = realloc(str->byteCount, str->maxSize);
@@ -46,6 +83,7 @@ void stringAppendEnd(string *str, const char *c, int size){
     int pos = 0;
     while(pos < size){
         int byteCount = charGetByteCount(c[pos]);
+        if(byteCount == 0) break;
         str->byteCount[str->len]= byteCount;
         
         
@@ -62,9 +100,118 @@ void stringAppendEnd(string *str, const char *c, int size){
     if(pos > size * 4) die("Fatal error. Pos: %d > Size: %d", pos, size);
 }
 
+int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset){
+    int Result = 0;
+    if(startOffset > str->len) return -1;
+
+    int byteCountToReachSubstring = 0;
+    for(int i; i < startOffset; i++){
+        byteCountToReachSubstring += str->byteCount[i];
+    }
+    *outStartOffset = byteCountToReachSubstring;
+
+    for(int i = startOffset; i < str->len - endOffset; i++){
+        Result += str->byteCount[i];
+    }
+
+    return Result;
+}
+
 void clearBuffer(string *str){
     *str->byteCount = 0;
     *str->data = 0;
     str->len = 0;
     str->byteLen = 0;    
+}
+
+static inline list_node *nodeCreate(){
+    list_node *Result = malloc(sizeof(list_node));
+    memset(Result, 0, sizeof(list_node));
+    return Result;
+}
+
+/* String List */
+void listAppendEnd(string_list *list, string *str){
+    list->size++;
+
+    list_node *p = nodeCreate();
+    p->str = str;
+    p->next = NULL;
+    p->prev = NULL;
+
+    if(list->head == NULL || list->tail == NULL) {
+        list->head = p;
+        list->tail = p;
+    }
+    else{
+        list_node *q = list->tail;
+        q->next = p;
+        p->prev = q;
+        list->tail = p;
+    }
+}
+
+void listInsertAtPossition(string_list *list, string *str, int index){
+    int oldSize = list->size;
+    list_node *p = nodeCreate();
+    p->str = str;
+
+    if(index >= oldSize){
+        int loopCount = index - oldSize;
+        for(int i = 0; i < loopCount; i++){
+            listAppendEnd(list, stringCreateHeap(64));
+        }
+        listAppendEnd(list, str);
+    }
+    else{
+        list_node *q = list->head;
+        for(int i = 0;(i < index); q = q->next, i++){
+            // if(q->next == NULL){
+            //     listAppendEnd(list, stringCreateHeap(64));
+            //     list->size++;
+            // }
+        }
+
+        list_node *temp = q->prev; // Inserting before
+        if(temp == NULL){
+            p->next = list->head;
+            list->head->prev = p;
+            list->head = p;
+        }else{
+            temp->next = p;
+            p->prev = temp;
+
+            p->next = q;
+            q->prev = p;
+        }
+    }
+}
+
+string *getStringAtIndex(string_list *list, int index){
+    if(index < 0 || index >= list->size) return NULL;
+    list_node *q = list->head;
+    for(int i = 0;(i < index) && (q != NULL); q = q->next, i++);
+
+    return q->str;
+}
+
+void printList(string_list *list){
+    for(list_node *p = list->head; p != NULL; p = p->next){
+        printf("%s\n", p->str->data);
+    }
+}
+
+void freeList(string_list *list){
+    list_node *p = list->head;
+
+    while(p != NULL){
+        list_node *q = p->next;
+        stringFreeHeap(p->str);
+        free(p);
+        p = q;
+    }
+
+    list->head = NULL;
+    list->tail = NULL;
+    list->size = -1;
 }

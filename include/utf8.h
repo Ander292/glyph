@@ -13,7 +13,31 @@ string stringCreate(int size);
 void doubleSize(string *str);
 void stringAppendEnd(string *str, const char *c, int size);
 void clearBuffer(string *str);
+string *stringCreateHeap(int size);
+
+int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
 
 #define PrintBuffer(buffer) writeOutput((buffer).data, (buffer).byteLen)
 #define WriteToBuffer(buffer, str) stringAppendEnd((buffer), (str), strlen(str))
+
+/* String list */
+
+typedef struct list_node{
+    string *str;
+    struct list_node *next;
+    struct list_node *prev;
+} list_node;
+
+typedef struct string_list{
+    list_node *head;
+    list_node *tail;
+    int size;
+} string_list;
+
+#define createList() (string_list){0}
+void listAppendEnd(string_list *list, string *str);
+void listInsertAtPossition(string_list *list, string *str, int index);
+string *getStringAtIndex(string_list *list, int index);
+void printList(string_list *list);
+
 #endif

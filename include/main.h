@@ -12,11 +12,7 @@
 #define FLAG_SHOWNUMBERS    (1)
 #define FLAG_SHOWHEADER     (2)
 
-#if 0
-#define ESCAPE_UPARROW      (1)
-#define ESCAPE_DOWNARROW    (2)
-#define ESCAPE_RIGHTARROW   (4)
-#define ESCAPE_LEFTARROW    (8)
-#endif
+#define MIN_VAL(a, b) (a < b ? a : b)
+#define MAX_VAL(a, b) (a > b ? a : b)
 
 #endif
