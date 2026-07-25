@@ -10,6 +10,7 @@ static console_info ConInfo;
 static struct{
     uint32 Flags;
     int CursorX, CursorY; /* The possition of the cursor inside the internal buffer */
+    int offX, offY;
     string_list Rows;
 } E;
 
@@ -77,23 +78,39 @@ int processInput(character_input ci){
     /* Fixing the internal buffer cursor possition */
     if(E.CursorX < 0) E.CursorX = 0;
     if(E.CursorY < 0) E.CursorY = 0;
-    if(E.CursorX > ConInfo.Cols) E.CursorX = ConInfo.Cols;
-    if(E.CursorY > MIN_VAL(ConInfo.Rows, E.Rows.size)) E.CursorY = MIN_VAL(ConInfo.Rows, E.Rows.size);
+    //if(E.CursorX > ConInfo.Cols) E.CursorX = ConInfo.Cols;
+    string *str = getStringAtIndex(&E.Rows, E.CursorY);
+    int currentWidth = 0;
+    if(str != NULL) currentWidth = str->len;
+    if(E.CursorX > MIN_VAL(ConInfo.Cols, currentWidth)) E.CursorX = MIN_VAL(ConInfo.Cols, currentWidth);
+    if(E.CursorY > E.Rows.size) E.CursorY = E.Rows.size;
 }
 
 /* Setting cursor possition (zero based) */
 void setCursorPossition(int x, int y){
     char c[16];
 
+    int maxRows = ConInfo.Rows;
+    int maxCols = ConInfo.Cols;
     /* Calculating the real possition on the screen */
-    if(HAS_FLAG(FLAG_SHOWHEADER)) y += 1;
-    if(HAS_FLAG(FLAG_SHOWNUMBERS)) x += 4;
-    else x += 1;
+    if(HAS_FLAG(FLAG_SHOWHEADER)) {
+        y += 1;
+        maxRows -= 1;
+    }
+    if(HAS_FLAG(FLAG_SHOWNUMBERS)) {
+        x += 4;
+        maxCols -= 4;
+    }
+    else {
+        x += 1;
+        maxCols -= 1;
+    }
+    x++; y++;
 
-    if(x >= ConInfo.Cols - 1) x = ConInfo.Cols - 1;
-    if(y >= ConInfo.Rows - 1) y = ConInfo.Rows - 1;
+    if(x >= maxCols) x = maxCols;
+    if(y >= maxRows) y = maxRows;
 
-    sprintf(c, ESC_SEQ "%d;%dH", (y + 1) % ConInfo.Rows, (x + 1) % ConInfo.Cols);
+    sprintf(c, ESC_SEQ "%d;%dH", (y) % ConInfo.Rows, (x) % ConInfo.Cols);
     Print(c);
 }
 
@@ -106,21 +123,23 @@ void drawRows(string *buffer){
     if(HAS_FLAG(FLAG_SHOWNUMBERS)) maxCols -= 3;
 
     /* Calculating verticall offset */
-    int startIndex = MAX_VAL(E.CursorY - maxRows, 0);
+    int verticallOffset = MAX_VAL(E.CursorY - maxRows, 0);
     int horizontalOffset = MAX_VAL(E.CursorX - maxCols, 0);
+    E.offX = horizontalOffset;
+    E.offY = verticallOffset;
 
-    int targetRows = MIN_VAL(E.Rows.size - startIndex, maxRows);
+    int targetRows = MIN_VAL(E.Rows.size - verticallOffset, maxRows);
     for(int i = 0; i < targetRows; i++){
         WriteToBuffer(buffer, ESC_CLEAR_LINE);
 
         if(HAS_FLAG(FLAG_SHOWNUMBERS)){
-            sprintf(rowNum, "%3d|", (i + startIndex + 1) % 1000);
+            sprintf(rowNum, "%3d|", (i + verticallOffset + 1) % 1000);
             WriteToBuffer(buffer, rowNum);
         }else{
             WriteToBuffer(buffer, "~");
         }
 
-        string *row = getStringAtIndex(&E.Rows, i + startIndex);
+        string *row = getStringAtIndex(&E.Rows, i + verticallOffset);
         if(row == NULL) die("Row was null, im out");
 
         /* Deciding how much to write */
@@ -206,6 +225,7 @@ int main(int argc, char *argv[], char *envp[]){
 
 
     while(E.Flags & FLAG_RUNNING){
+        ConInfo = getConsoleSystemInfo();
         /* Rendering to the terminal */
         editorRefreshScreen();
 
