@@ -89,6 +89,7 @@ int processInput(character_input ci){
 /* Setting cursor possition (zero based) */
 void setCursorPossition(int x, int y){
     char c[16];
+    x++; y++;
 
     int maxRows = ConInfo.Rows;
     int maxCols = ConInfo.Cols;
@@ -105,7 +106,6 @@ void setCursorPossition(int x, int y){
         x += 1;
         maxCols -= 1;
     }
-    x++; y++;
 
     if(x >= maxCols) x = maxCols;
     if(y >= maxRows) y = maxRows;
@@ -157,6 +157,7 @@ void drawRows(string *buffer){
 }
 
 void formatHeader(string *buffer){
+#if 0
     int offsetLeft = 2;
     int width = ConInfo.Cols;
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
@@ -164,6 +165,11 @@ void formatHeader(string *buffer){
     for(int i = 0; i < width - offsetLeft; i++) WriteToBuffer(buffer, " ");
     WriteToBuffer(buffer, ESC_RESET_TEXT_ATTRIBUTES);
     WriteToBuffer(buffer, "\r\n");
+#else
+    char bufferS[256];
+    sprintf(bufferS, ESC_CLEAR_LINE "LineC: %d; curX: %d, curY: %d\r\n", E.Rows.size, E.CursorX, E.CursorY);
+    WriteToBuffer(buffer, bufferS);
+#endif
 }
 
 void editorRefreshScreen(){
@@ -211,6 +217,10 @@ int main(int argc, char *argv[], char *envp[]){
     listAppendEnd(&E.Rows, tempBuffer1);
     listAppendEnd(&E.Rows, tempBuffer2);
     listInsertAtPossition(&E.Rows, tempBuffer3, 5);
+    listAppendEnd(&E.Rows, tempBuffer2);
+    listAppendEnd(&E.Rows, tempBuffer2);
+    listAppendEnd(&E.Rows, tempBuffer2);
+    listAppendEnd(&E.Rows, tempBuffer2);
     listAppendEnd(&E.Rows, tempBuffer2);
     listAppendEnd(&E.Rows, tempBuffer2);
     listAppendEnd(&E.Rows, tempBuffer2);
