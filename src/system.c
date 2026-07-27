@@ -44,8 +44,8 @@ console_info getConsoleSystemInfo(){
     console_info Result;
     CONSOLE_SCREEN_BUFFER_INFO si;
     GetConsoleScreenBufferInfo(hStdout, &si);
-    Result.Rows = si.dwSize.Y + 1;
-    Result.Cols = si.dwSize.X - 1;
+    Result.Rows = si.dwSize.Y;
+    Result.Cols = si.dwSize.X;
 
     Result.CurrentTime = time(NULL);
     return Result;

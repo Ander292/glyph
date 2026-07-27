@@ -12,6 +12,7 @@ static struct{
     int CursorX, CursorY; /* The possition of the cursor inside the internal buffer */
     int offX, offY;
     string_list Rows;
+    int TextOffsetTop, TextOffsetLeft;
 } E;
 
 string OutputBuffer;
@@ -75,15 +76,41 @@ int processInput(character_input ci){
             break;
     }
 
-    /* Fixing the internal buffer cursor possition */
-    if(E.CursorX < 0) E.CursorX = 0;
-    if(E.CursorY < 0) E.CursorY = 0;
-    //if(E.CursorX > ConInfo.Cols) E.CursorX = ConInfo.Cols;
+
+    /* Fixing the internal cursor possition and the offsets */
     string *str = getStringAtIndex(&E.Rows, E.CursorY);
     int currentWidth = 0;
     if(str != NULL) currentWidth = str->len;
-    if(E.CursorX > MIN_VAL(ConInfo.Cols, currentWidth)) E.CursorX = MIN_VAL(ConInfo.Cols, currentWidth);
-    if(E.CursorY > E.Rows.size) E.CursorY = E.Rows.size;
+    int destWidth = MIN_VAL(ConInfo.Cols, currentWidth);
+
+    // Vertical offset
+    if((E.CursorY - E.offY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows.size){
+        E.offY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
+    }else if((E.CursorY - E.offY < 0)){
+        E.offY = MAX_VAL(0, E.offY - (E.offY - E.CursorY));
+    }
+
+    // Horizontal offset
+    if(E.CursorX - E.offX > ConInfo.Cols - 1 - E.TextOffsetLeft){
+        E.offX = MAX_VAL(0, E.CursorX - (ConInfo.Cols - E.TextOffsetLeft) + 1);
+    }else if((E.CursorX - E.offX < 0)){
+        E.offX = MAX_VAL(0, E.offX - (E.offX - E.CursorX));
+    }
+
+    if(E.offY < 0) E.offY = 0;
+
+    if(E.CursorX < 0){
+        E.CursorX = 0;
+    }else if(E.CursorX > currentWidth){
+        E.CursorX = currentWidth;
+    }
+    if(E.CursorY < 0){
+        E.CursorY = 0;
+    }else if(E.CursorY > E.Rows.size - 1){
+        E.CursorY = E.Rows.size - 1;
+    }
+    
+
 }
 
 /* Setting cursor possition (zero based) */
@@ -93,6 +120,8 @@ void setCursorPossition(int x, int y){
 
     int maxRows = ConInfo.Rows;
     int maxCols = ConInfo.Cols;
+
+#if 0
     /* Calculating the real possition on the screen */
     if(HAS_FLAG(FLAG_SHOWHEADER)) {
         y += 1;
@@ -101,33 +130,43 @@ void setCursorPossition(int x, int y){
     if(HAS_FLAG(FLAG_SHOWNUMBERS)) {
         x += 4;
         maxCols -= 4;
-    }
-    else {
+    }else {
         x += 1;
         maxCols -= 1;
     }
+#else
+    x += E.TextOffsetLeft;
+    //maxCols -= E.TextOffsetLeft;
+    y += E.TextOffsetTop;
+    //maxRows -= E.TextOffsetTop;
+#endif
 
-    if(x >= maxCols) x = maxCols;
-    if(y >= maxRows) y = maxRows;
 
-    sprintf(c, ESC_SEQ "%d;%dH", (y) % ConInfo.Rows, (x) % ConInfo.Cols);
+    if(x > maxCols) x = maxCols;
+    if(y > maxRows) y = maxRows;
+
+    sprintf(c, ESC_SEQ "%d;%dH", (y), (x));
     Print(c);
 }
 
 void drawRows(string *buffer){
     char rowNum[5];
-    int maxRows = ConInfo.Rows - 1;
+    int maxRows = ConInfo.Rows;
     if(HAS_FLAG(FLAG_SHOWHEADER)) maxRows -= 1;
 
     int maxCols = ConInfo.Cols - 1;
     if(HAS_FLAG(FLAG_SHOWNUMBERS)) maxCols -= 3;
 
     /* Calculating verticall offset */
+#if 0
     int verticallOffset = MAX_VAL(E.CursorY - maxRows, 0);
     int horizontalOffset = MAX_VAL(E.CursorX - maxCols, 0);
     E.offX = horizontalOffset;
     E.offY = verticallOffset;
-
+#else
+    int horizontalOffset = E.offX;
+    int verticallOffset = E.offY;
+#endif
     int targetRows = MIN_VAL(E.Rows.size - verticallOffset, maxRows);
     for(int i = 0; i < targetRows; i++){
         WriteToBuffer(buffer, ESC_CLEAR_LINE);
@@ -167,7 +206,8 @@ void formatHeader(string *buffer){
     WriteToBuffer(buffer, "\r\n");
 #else
     char bufferS[256];
-    sprintf(bufferS, ESC_CLEAR_LINE "LineC: %d; curX: %d, curY: %d\r\n", E.Rows.size, E.CursorX, E.CursorY);
+    sprintf(bufferS, ESC_CLEAR_LINE "LineC: %d; curX: %d, curY: %d (%d), offX: %d, offY: %d, conSX: %d, conSY: %d\r\n", 
+        E.Rows.size, E.CursorX, E.CursorY, E.CursorY + 1, E.offX, E.offY, ConInfo.Cols, ConInfo.Rows);
     WriteToBuffer(buffer, bufferS);
 #endif
 }
@@ -186,7 +226,7 @@ void editorRefreshScreen(){
     PrintBuffer(OutputBuffer);
     clearBuffer(&OutputBuffer);
 
-    setCursorPossition(E.CursorX, E.CursorY);
+    setCursorPossition(E.CursorX - E.offX, E.CursorY - E.offY);
     Print(ESC_SHOW_CURSOR);
 }
 
@@ -201,7 +241,9 @@ int main(int argc, char *argv[], char *envp[]){
     OutputBuffer = stringCreate(64);
 
     string *tempBuffer = stringCreateHeap(64);
-    stringAppendEnd(tempBuffer, "random ass", sizeof("random ass") - 1);
+    stringAppendEnd(tempBuffer, 
+        "random ass‚sdfogj sdfiopghio dspuh, okfj,hio pjdf,hio fj,ohi j iodiopiofdiop f,dh, oidfhifdjh iofdhodfhojdfo jdfoj,hod.odfj.h oifdho ifdoh diopfhj oidfhi fjdhiopjdf oihjdf dfoph dfjh dfopf", 
+        sizeof("random ass‚sdfogj sdfiopghio dspuh, okfj,hio pjdf,hio fj,ohi j iodiopiofdiop f,dh, oidfhifdjh iofdhodfhojdfo jdfoj,hod.odfj.h oifdho ifdoh diopfhj oidfhi fjdhiopjdf oihjdf dfoph dfjh dfopf") - 1);
 
     string *tempBuffer1 = stringCreateHeap(64);
     stringAppendEnd(tempBuffer1, "random ass2", sizeof("random ass2") - 1);
@@ -236,6 +278,16 @@ int main(int argc, char *argv[], char *envp[]){
 
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
+        if(HAS_FLAG(FLAG_SHOWNUMBERS)){
+            E.TextOffsetLeft = 4;
+        }else{
+            E.TextOffsetLeft = 1;
+        }
+        if(HAS_FLAG(FLAG_SHOWHEADER)){
+            E.TextOffsetTop = 1;
+        }else{
+            E.TextOffsetTop = 0;
+        }
         /* Rendering to the terminal */
         editorRefreshScreen();
 
