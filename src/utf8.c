@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Allocates the memory for the string */
+/* Allocates the memory for the string. Size must be > 0 or undefined behavior!!!*/
 string stringCreate(int size){
     string Result;
     Result.len = 0;
@@ -31,6 +31,9 @@ string stringCreate(int size){
 void stringFree(string *str){
     free(str->byteCount);
     free(str->data);
+    str->byteCount = NULL;
+    str->data = NULL;
+
     str->len = 0;
     str->maxSize = -1;
     str->byteLen = -1;
@@ -38,7 +41,9 @@ void stringFree(string *str){
 
 string *stringCreateHeap(int size){
     string *Result = malloc(sizeof(string));
-
+    if(!Result){
+        die("Error allocating %zu bytes", sizeof(string));
+    }
     Result->len = 0;
     Result->byteLen = 0;
     Result->maxSize = size;
@@ -72,7 +77,7 @@ void doubleSize(string *str){
         die("Error reallocating %zu bytes", str->maxSize);
     }
     str->data = realloc(str->data, str->maxSize * 4);
-    if(!str->byteCount){
+    if(!str->data){
         die("Error reallocating %zu bytes", str->maxSize * 4);
     }
 }
@@ -105,15 +110,17 @@ int stringCharToByteCount(string *str, int startOffset, int endOffset, int charC
     if(startOffset > str->len) return -1;
 
     int byteCountToReachSubstring = 0;
-    for(int i; i < startOffset; i++){
+    for(int i = 0; i < startOffset; i++){
         byteCountToReachSubstring += str->byteCount[i];
     }
     *outStartOffset = byteCountToReachSubstring;
 
-    for(int i = startOffset; i < str->len - endOffset; i++){
+    for(int i = startOffset; (i < str->len - endOffset) && (i < charCount + startOffset); i++){
         Result += str->byteCount[i];
     }
 
+    // The loop counting bytes should by capped by charCount not this!!!
+    //if(Result > charCount) Result = charCount;
     return Result;
 }
 
@@ -122,6 +129,12 @@ void clearBuffer(string *str){
     *str->data = 0;
     str->len = 0;
     str->byteLen = 0;    
+}
+
+string *bufferCreateFromString(const char *c, int size){
+    string *Result = stringCreateHeap(MAX_VAL(64, powerOfTwoRoundUp(size)));
+    stringAppendEnd(Result, c, size);
+    return Result;
 }
 
 static inline list_node *nodeCreate(){
@@ -152,6 +165,7 @@ void listAppendEnd(string_list *list, string *str){
 }
 
 void listInsertAtPossition(string_list *list, string *str, int index){
+    if(index < 0) return;
     int oldSize = list->size;
     list_node *p = nodeCreate();
     p->str = str;
@@ -164,6 +178,7 @@ void listInsertAtPossition(string_list *list, string *str, int index){
         listAppendEnd(list, str);
     }
     else{
+        list->size++;
         list_node *q = list->head;
         for(int i = 0;(i < index); q = q->next, i++){
             // if(q->next == NULL){
@@ -192,6 +207,7 @@ string *getStringAtIndex(string_list *list, int index){
     list_node *q = list->head;
     for(int i = 0;(i < index) && (q != NULL); q = q->next, i++);
 
+    if(q == NULL) die("(getStringAtIndex) q was NULL");
     return q->str;
 }
 
@@ -214,4 +230,9 @@ void freeList(string_list *list){
     list->head = NULL;
     list->tail = NULL;
     list->size = -1;
+}
+
+void listCreateLineAtIndex(string_list *list, int index, const char *str, int size){
+    string *line = bufferCreateFromString(str, size);
+    listInsertAtPossition(list, line, index);
 }

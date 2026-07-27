@@ -45,26 +45,37 @@ int processInput(character_input ci){
                     E.CursorX--;
                     break;
                 case '5': // Pageup (followed by ~ but not checked)
-                    E.CursorY -= (ConInfo.Rows - 2);
+                    //E.CursorY -= (ConInfo.Rows - 2);
+                    E.CursorY -= (ConInfo.Rows - E.TextOffsetTop);
+                    E.offY -= (ConInfo.Rows - E.TextOffsetTop);
                     break;
-                case '6': // Pagedown
-                    E.CursorY += (ConInfo.Rows - 2);
+                case '6': // Pagedown (followed by ~ but not checked)
+                    //E.CursorY += (ConInfo.Rows - 2);
+                    E.CursorY += (ConInfo.Rows - E.TextOffsetTop);
+                    E.offY += (ConInfo.Rows - E.TextOffsetTop);
+                    // E.CursorY = E.offY + ConInfo.Rows - 1;
+                    // if(E.CursorY > E.Rows.size - 1) E.CursorY = E.Rows.size - 1;
                     break;
-                case 'O':
+                case 'O': // For the home and end escape sequences. They are diferent for different systems
                     if(ci.arr[3] == 'H') goto HOME;
                     else if(ci.arr[3] == 'F') goto END;
                     break;
-                case '1': // Home key
+                /* Home key. Goes to X index 0 - the begining to the line */
+                case '1':
                 case '7':
                 case 'H':
                     HOME:
                     E.CursorX = 0;
                     break;
-                case '4': // End key
+                /* End key. Goes to the end of the line (depending on its size) */
+                case '4':
                 case '8':
                 case 'F':
                     END:
-                    E.CursorX = ConInfo.Cols;
+                    string *str = getStringAtIndex(&E.Rows, E.CursorY);
+                    if(str != NULL){
+                        E.CursorX = str->len;
+                    }
                     break;
                 case '3': // Delete key
                     break;
@@ -83,6 +94,12 @@ int processInput(character_input ci){
     if(str != NULL) currentWidth = str->len;
     int destWidth = MIN_VAL(ConInfo.Cols, currentWidth);
 
+    if(E.CursorX < 0){
+        E.CursorX = 0;
+    }else if(E.CursorX > currentWidth){
+        E.CursorX = currentWidth;
+    }
+
     // Vertical offset
     if((E.CursorY - E.offY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows.size){
         E.offY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
@@ -97,20 +114,20 @@ int processInput(character_input ci){
         E.offX = MAX_VAL(0, E.offX - (E.offX - E.CursorX));
     }
 
+    // Verticall offset clamping
     if(E.offY < 0) E.offY = 0;
+#if 0
+    if(E.offY > E.Rows.size - (ConInfo.Rows - E.TextOffsetTop)) 
+        E.offY = E.Rows.size - (ConInfo.Rows - E.TextOffsetTop);
+#else
+    if(E.offY > E.Rows.size - 1) E.offY = E.Rows.size - 1;
+#endif
 
-    if(E.CursorX < 0){
-        E.CursorX = 0;
-    }else if(E.CursorX > currentWidth){
-        E.CursorX = currentWidth;
-    }
     if(E.CursorY < 0){
         E.CursorY = 0;
     }else if(E.CursorY > E.Rows.size - 1){
         E.CursorY = E.Rows.size - 1;
     }
-    
-
 }
 
 /* Setting cursor possition (zero based) */
@@ -168,27 +185,28 @@ void drawRows(string *buffer){
     int verticallOffset = E.offY;
 #endif
     int targetRows = MIN_VAL(E.Rows.size - verticallOffset, maxRows);
-    for(int i = 0; i < targetRows; i++){
+    for(int i = 0; i < maxRows; i++){
         WriteToBuffer(buffer, ESC_CLEAR_LINE);
+        if(i < targetRows){
+            if(HAS_FLAG(FLAG_SHOWNUMBERS)){
+                sprintf(rowNum, "%3d|", (i + verticallOffset + 1) % 1000);
+                WriteToBuffer(buffer, rowNum);
+            }else{
+                WriteToBuffer(buffer, "~");
+            }
 
-        if(HAS_FLAG(FLAG_SHOWNUMBERS)){
-            sprintf(rowNum, "%3d|", (i + verticallOffset + 1) % 1000);
-            WriteToBuffer(buffer, rowNum);
-        }else{
-            WriteToBuffer(buffer, "~");
-        }
+            string *row = getStringAtIndex(&E.Rows, i + verticallOffset);
+            if(row == NULL) die("Row was null, im out");
 
-        string *row = getStringAtIndex(&E.Rows, i + verticallOffset);
-        if(row == NULL) die("Row was null, im out");
-
-        /* Deciding how much to write */
-        int startOffset;
-        int byteCount = stringCharToByteCount(row, horizontalOffset, 0, maxCols, &startOffset);
-        if(byteCount == -1){
-            WriteToBuffer(buffer, "<--");
-        }else{
-            stringAppendEnd(buffer, row->data + startOffset, byteCount);
-        }
+            /* Deciding how much to write */
+            int startOffset;
+            int byteCount = stringCharToByteCount(row, horizontalOffset, 0, maxCols, &startOffset);
+            if(byteCount == -1){
+                WriteToBuffer(buffer, "<--");
+            }else{
+                stringAppendEnd(buffer, row->data + startOffset, byteCount);
+            }
+        }        
 
         if(i < maxRows - 1)
             WriteToBuffer(buffer, "\r\n");
@@ -242,8 +260,8 @@ int main(int argc, char *argv[], char *envp[]){
 
     string *tempBuffer = stringCreateHeap(64);
     stringAppendEnd(tempBuffer, 
-        "random ass‚sdfogj sdfiopghio dspuh, okfj,hio pjdf,hio fj,ohi j iodiopiofdiop f,dh, oidfhifdjh iofdhodfhojdfo jdfoj,hod.odfj.h oifdho ifdoh diopfhj oidfhi fjdhiopjdf oihjdf dfoph dfjh dfopf", 
-        sizeof("random ass‚sdfogj sdfiopghio dspuh, okfj,hio pjdf,hio fj,ohi j iodiopiofdiop f,dh, oidfhifdjh iofdhodfhojdfo jdfoj,hod.odfj.h oifdho ifdoh diopfhj oidfhi fjdhiopjdf oihjdf dfoph dfjh dfopf") - 1);
+        "I'm 67 monster imposter. Please kick me. 67 monster imposter. six seven monster imposter. Testing if letters are trully broken or its me", 
+        sizeof("I'm 67 monster imposter. Please kick me. 67 monster imposter. six seven monster imposter. Testing if letters are trully broken or its me") - 1);
 
     string *tempBuffer1 = stringCreateHeap(64);
     stringAppendEnd(tempBuffer1, "random ass2", sizeof("random ass2") - 1);
@@ -275,7 +293,7 @@ int main(int argc, char *argv[], char *envp[]){
     listAppendEnd(&E.Rows, tempBuffer2);
     listAppendEnd(&E.Rows, tempBuffer2);
 
-
+#if 1
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
         if(HAS_FLAG(FLAG_SHOWNUMBERS)){
@@ -295,6 +313,11 @@ int main(int argc, char *argv[], char *envp[]){
         character_input ci = pollInput();
         if(ci.byteCount != 0) processInput(ci);
     }
-
+#else
+    for(int i = 0; i < 1000; i++){
+        printf("%d:%d\n", i, powerOfTwoRoundUp(i));
+    }
+    getchar();
+#endif
     return 0;
 }
