@@ -27,7 +27,7 @@ void die(const char *string, ...);
 character_input pollInput();
 uint32 writeOutput(char *src, uint32 size);
 
-#define TIMEOUT_MS 100
+#define TIMEOUT_MS 10
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 #define WINDOWS

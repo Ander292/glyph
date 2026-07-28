@@ -1,6 +1,8 @@
 #ifndef UTF8_H
 #define UTF8_H
 
+#include "system.h"
+
 typedef struct string{
     char *data;         /* The string itself */
     char *byteCount;    /* The sizes in bytes of each character */
@@ -16,6 +18,9 @@ void clearBuffer(string *str);
 string *stringCreateHeap(int size);
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
+
+void shiftStringRight(char *str, int len);
+void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode);
 
 #define PrintBuffer(buffer) writeOutput((buffer).data, (buffer).byteLen)
 #define WriteToBuffer(buffer, str) stringAppendEnd((buffer), (str), strlen(str))

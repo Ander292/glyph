@@ -4,20 +4,28 @@
 #include "utf8.h"
 
 #include <stdio.h>
+#include <stdarg.h>
 
 static console_info ConInfo;
 
 static struct{
     uint32 Flags;
+
     int CursorX, CursorY; /* The possition of the cursor inside the internal buffer */
-    int offX, offY;
-    string_list Rows;
+    int OffsetX, OffsetY;
+
+    string_list *Rows;
+    string_list MainBuffer;
+    string_list AltBuffers[ALT_BUFFER_COUNT];
+
     int TextOffsetTop, TextOffsetLeft;
+
+    editor_message Message;
 } E;
 
 string OutputBuffer;
 
-int processInput(character_input ci){
+static int processInput(character_input ci){
     switch(ci.arr[0]){
         case CTRL_KEY('q'):
             UNSET_FLAG(FLAG_RUNNING);
@@ -27,6 +35,10 @@ int processInput(character_input ci){
             break;
         case CTRL_KEY('g'):
             TOGGLE_FLAG(FLAG_SHOWHEADER);
+            break;
+        case CTRL_KEY('p'):
+            TOGGLE_FLAG(FLAG_ALTVIEW);
+            SET_ALT_BUFFERID(0);
             break;
         case '\b': // Backspace (or ctrl + h)
             break;
@@ -47,14 +59,14 @@ int processInput(character_input ci){
                 case '5': // Pageup (followed by ~ but not checked)
                     //E.CursorY -= (ConInfo.Rows - 2);
                     E.CursorY -= (ConInfo.Rows - E.TextOffsetTop);
-                    E.offY -= (ConInfo.Rows - E.TextOffsetTop);
+                    E.OffsetY -= (ConInfo.Rows - E.TextOffsetTop);
                     break;
                 case '6': // Pagedown (followed by ~ but not checked)
                     //E.CursorY += (ConInfo.Rows - 2);
                     E.CursorY += (ConInfo.Rows - E.TextOffsetTop);
-                    E.offY += (ConInfo.Rows - E.TextOffsetTop);
-                    // E.CursorY = E.offY + ConInfo.Rows - 1;
-                    // if(E.CursorY > E.Rows.size - 1) E.CursorY = E.Rows.size - 1;
+                    E.OffsetY += (ConInfo.Rows - E.TextOffsetTop);
+                    // E.CursorY = E.OffsetY + ConInfo.Rows - 1;
+                    // if(E.CursorY > E.Rows->size - 1) E.CursorY = E.Rows->size - 1;
                     break;
                 case 'O': // For the home and end escape sequences. They are diferent for different systems
                     if(ci.arr[3] == 'H') goto HOME;
@@ -72,7 +84,7 @@ int processInput(character_input ci){
                 case '8':
                 case 'F':
                     END:
-                    string *str = getStringAtIndex(&E.Rows, E.CursorY);
+                    string *str = getStringAtIndex(E.Rows, E.CursorY);
                     if(str != NULL){
                         E.CursorX = str->len;
                     }
@@ -89,7 +101,7 @@ int processInput(character_input ci){
 
 
     /* Fixing the internal cursor possition and the offsets */
-    string *str = getStringAtIndex(&E.Rows, E.CursorY);
+    string *str = getStringAtIndex(E.Rows, E.CursorY);
     int currentWidth = 0;
     if(str != NULL) currentWidth = str->len;
     int destWidth = MIN_VAL(ConInfo.Cols, currentWidth);
@@ -101,63 +113,45 @@ int processInput(character_input ci){
     }
 
     // Vertical offset
-    if((E.CursorY - E.offY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows.size){
-        E.offY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
-    }else if((E.CursorY - E.offY < 0)){
-        E.offY = MAX_VAL(0, E.offY - (E.offY - E.CursorY));
+    if((E.CursorY - E.OffsetY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows->size){
+        E.OffsetY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
+    }else if((E.CursorY - E.OffsetY < 0)){
+        E.OffsetY = MAX_VAL(0, E.OffsetY - (E.OffsetY - E.CursorY));
     }
 
     // Horizontal offset
-    if(E.CursorX - E.offX > ConInfo.Cols - 1 - E.TextOffsetLeft){
-        E.offX = MAX_VAL(0, E.CursorX - (ConInfo.Cols - E.TextOffsetLeft) + 1);
-    }else if((E.CursorX - E.offX < 0)){
-        E.offX = MAX_VAL(0, E.offX - (E.offX - E.CursorX));
+    if(E.CursorX - E.OffsetX > ConInfo.Cols - 1 - E.TextOffsetLeft){
+        E.OffsetX = MAX_VAL(0, E.CursorX - (ConInfo.Cols - E.TextOffsetLeft) + 1);
+    }else if((E.CursorX - E.OffsetX < 0)){
+        E.OffsetX = MAX_VAL(0, E.OffsetX - (E.OffsetX - E.CursorX));
     }
 
     // Verticall offset clamping
-    if(E.offY < 0) E.offY = 0;
+    if(E.OffsetY < 0) E.OffsetY = 0;
 #if 0
-    if(E.offY > E.Rows.size - (ConInfo.Rows - E.TextOffsetTop)) 
-        E.offY = E.Rows.size - (ConInfo.Rows - E.TextOffsetTop);
+    if(E.OffsetY > E.Rows->size - (ConInfo.Rows - E.TextOffsetTop)) 
+        E.OffsetY = E.Rows->size - (ConInfo.Rows - E.TextOffsetTop);
 #else
-    if(E.offY > E.Rows.size - 1) E.offY = E.Rows.size - 1;
+    if(E.OffsetY > E.Rows->size - 1) E.OffsetY = E.Rows->size - 1;
 #endif
 
     if(E.CursorY < 0){
         E.CursorY = 0;
-    }else if(E.CursorY > E.Rows.size - 1){
-        E.CursorY = E.Rows.size - 1;
+    }else if(E.CursorY > E.Rows->size - 1){
+        E.CursorY = E.Rows->size - 1;
     }
 }
 
 /* Setting cursor possition (zero based) */
-void setCursorPossition(int x, int y){
+static void setCursorPossition(int x, int y){
     char c[16];
     x++; y++;
 
     int maxRows = ConInfo.Rows;
     int maxCols = ConInfo.Cols;
 
-#if 0
-    /* Calculating the real possition on the screen */
-    if(HAS_FLAG(FLAG_SHOWHEADER)) {
-        y += 1;
-        maxRows -= 1;
-    }
-    if(HAS_FLAG(FLAG_SHOWNUMBERS)) {
-        x += 4;
-        maxCols -= 4;
-    }else {
-        x += 1;
-        maxCols -= 1;
-    }
-#else
     x += E.TextOffsetLeft;
-    //maxCols -= E.TextOffsetLeft;
     y += E.TextOffsetTop;
-    //maxRows -= E.TextOffsetTop;
-#endif
-
 
     if(x > maxCols) x = maxCols;
     if(y > maxRows) y = maxRows;
@@ -166,7 +160,19 @@ void setCursorPossition(int x, int y){
     Print(c);
 }
 
-void drawRows(string *buffer){
+/* Rendering */
+
+static inline void messageCreate(editor_message *dest, time_t duration, const char *text, ...){
+    va_list args;
+    va_start(args, text);
+    vsnprintf(dest->Data, sizeof(dest->Data), text, args);
+    va_end(args);
+    //strcpy(dest->Data, text);
+    dest->PostTime = ConInfo.CurrentTime;
+    dest->Duration = duration;
+}
+
+static void drawRows(string *buffer){
     char rowNum[5];
     int maxRows = ConInfo.Rows;
     if(HAS_FLAG(FLAG_SHOWHEADER)) maxRows -= 1;
@@ -178,13 +184,13 @@ void drawRows(string *buffer){
 #if 0
     int verticallOffset = MAX_VAL(E.CursorY - maxRows, 0);
     int horizontalOffset = MAX_VAL(E.CursorX - maxCols, 0);
-    E.offX = horizontalOffset;
-    E.offY = verticallOffset;
+    E.OffsetX = horizontalOffset;
+    E.OffsetY = verticallOffset;
 #else
-    int horizontalOffset = E.offX;
-    int verticallOffset = E.offY;
+    int horizontalOffset = E.OffsetX;
+    int verticallOffset = E.OffsetY;
 #endif
-    int targetRows = MIN_VAL(E.Rows.size - verticallOffset, maxRows);
+    int targetRows = MIN_VAL(E.Rows->size - verticallOffset, maxRows);
     for(int i = 0; i < maxRows; i++){
         WriteToBuffer(buffer, ESC_CLEAR_LINE);
         if(i < targetRows){
@@ -195,7 +201,7 @@ void drawRows(string *buffer){
                 WriteToBuffer(buffer, "~");
             }
 
-            string *row = getStringAtIndex(&E.Rows, i + verticallOffset);
+            string *row = getStringAtIndex(E.Rows, i + verticallOffset);
             if(row == NULL) die("Row was null, im out");
 
             /* Deciding how much to write */
@@ -213,24 +219,37 @@ void drawRows(string *buffer){
     }
 }
 
-void formatHeader(string *buffer){
-#if 0
+static void formatHeader(string *buffer){
+    // TODO: Show only part of the header in case the width is too small?
+#if 1
     int offsetLeft = 2;
-    int width = ConInfo.Cols;
+    int width = ConInfo.Cols - offsetLeft;
+    char dest[2*width];
+
+    WriteToBuffer(buffer, ESC_CLEAR_LINE);
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
-    WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR);
-    for(int i = 0; i < width - offsetLeft; i++) WriteToBuffer(buffer, " ");
+
+    WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
+    int feedback = sprintf(dest, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
+        "placeholder", E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+
+    WriteToBuffer(buffer, "    ");
+    
+    WriteToBuffer(buffer, dest);
+
+    for(int i = 0; i < (width - feedback) - 4; i++) WriteToBuffer(buffer, " ");
+
     WriteToBuffer(buffer, ESC_RESET_TEXT_ATTRIBUTES);
     WriteToBuffer(buffer, "\r\n");
 #else
     char bufferS[256];
-    sprintf(bufferS, ESC_CLEAR_LINE "LineC: %d; curX: %d, curY: %d (%d), offX: %d, offY: %d, conSX: %d, conSY: %d\r\n", 
-        E.Rows.size, E.CursorX, E.CursorY, E.CursorY + 1, E.offX, E.offY, ConInfo.Cols, ConInfo.Rows);
+    sprintf(bufferS, ESC_CLEAR_LINE "LineC: %d; curX: %d, curY: %d (%d), OffsetX: %d, OffsetY: %d, conSX: %d, conSY: %d, BufferId: (%d)%d\r\n", 
+        E.Rows->size, E.CursorX, E.CursorY, E.CursorY + 1, E.OffsetX, E.OffsetY, ConInfo.Cols, ConInfo.Rows, HAS_FLAG(FLAG_ALTVIEW) != 0, GET_ALT_BUFFERID());
     WriteToBuffer(buffer, bufferS);
 #endif
 }
 
-void editorRefreshScreen(){
+static void editorRefreshScreen(){
     /* Reseting cursor */
     Print(ESC_HIDE_CURSOR);
     Print(ESC_RESET_CURSOR_POSSITION);
@@ -244,7 +263,7 @@ void editorRefreshScreen(){
     PrintBuffer(OutputBuffer);
     clearBuffer(&OutputBuffer);
 
-    setCursorPossition(E.CursorX - E.offX, E.CursorY - E.offY);
+    setCursorPossition(E.CursorX - E.OffsetX, E.CursorY - E.OffsetY);
     Print(ESC_SHOW_CURSOR);
 }
 
@@ -257,7 +276,10 @@ int main(int argc, char *argv[], char *envp[]){
     ConInfo = getConsoleSystemInfo();
 
     OutputBuffer = stringCreate(64);
+    postEditorMessage(5, "Ctrl+q to quit");
 
+#if 1
+/* Test code */
     string *tempBuffer = stringCreateHeap(64);
     stringAppendEnd(tempBuffer, 
         "I'm 67 monster imposter. Please kick me. 67 monster imposter. six seven monster imposter. Testing if letters are trully broken or its me", 
@@ -272,30 +294,57 @@ int main(int argc, char *argv[], char *envp[]){
     string *tempBuffer3 = stringCreateHeap(64);
     stringAppendEnd(tempBuffer3, "random ass5", sizeof("random ass5") - 1);
 
-    E.Rows = createList();
-    listAppendEnd(&E.Rows, tempBuffer);
-    listAppendEnd(&E.Rows, tempBuffer1);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listInsertAtPossition(&E.Rows, tempBuffer3, 5);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
-    listAppendEnd(&E.Rows, tempBuffer2);
+    E.MainBuffer = createList();
+    E.AltBuffers[0] = createList();
+    E.Rows = &E.MainBuffer;
 
-#if 1
+    listAppendEnd(E.Rows, tempBuffer);
+    listAppendEnd(E.Rows, tempBuffer1);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listInsertAtPossition(E.Rows, tempBuffer3, 5);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+
+    E.Rows = E.AltBuffers + 0;
+    listAppendEnd(E.Rows, tempBuffer);
+    listAppendEnd(E.Rows, tempBuffer1);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listInsertAtPossition(E.Rows, tempBuffer3, 5);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    listAppendEnd(E.Rows, tempBuffer2);
+    /* End of test code */
+#endif
+
+#if 0
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
+        
+        /* Message expiring */
+        if(ConInfo.CurrentTime - E.Message.PostTime > E.Message.Duration){
+            *E.Message.Data = 0;
+        }
+
+        /* Offsets from top and left side */
         if(HAS_FLAG(FLAG_SHOWNUMBERS)){
             E.TextOffsetLeft = 4;
         }else{
@@ -306,6 +355,14 @@ int main(int argc, char *argv[], char *envp[]){
         }else{
             E.TextOffsetTop = 0;
         }
+
+        /* Switching buffers */
+        if(HAS_FLAG(FLAG_ALTVIEW)){
+            E.Rows = (E.AltBuffers + GET_ALT_BUFFERID());
+        }else{
+            E.Rows = &E.MainBuffer;
+        }
+
         /* Rendering to the terminal */
         editorRefreshScreen();
 
@@ -314,9 +371,25 @@ int main(int argc, char *argv[], char *envp[]){
         if(ci.byteCount != 0) processInput(ci);
     }
 #else
-    for(int i = 0; i < 1000; i++){
-        printf("%d:%d\n", i, powerOfTwoRoundUp(i));
-    }
+    char str[256] = "Random ass string of random ass length to shift from random ass possition.";
+    int len = strlen(str);
+    
+    shiftStringRight(str, len);
+    len++;
+    puts(str);
+    
+    shiftStringRight(str, len);
+    len++;
+    puts(str);
+
+    shiftStringRight(str, len);
+    len++;
+    puts(str);
+
+    shiftStringRight(str, len);
+    len++;
+    puts(str);
+    
     getchar();
 #endif
     return 0;

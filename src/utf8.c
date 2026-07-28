@@ -1,6 +1,5 @@
 #include "utf8.h"
-#include "system.h"
-#include "main.h"
+//#include "main.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -105,7 +104,7 @@ void stringAppendEnd(string *str, const char *c, int size){
     if(pos > size * 4) die("Fatal error. Pos: %d > Size: %d", pos, size);
 }
 
-int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset){
+int stringCharToByteCount(string *str, int startOffset, int endOffset, int maxCharCount, int *outStartOffset){
     int Result = 0;
     if(startOffset > str->len) return -1;
 
@@ -115,12 +114,12 @@ int stringCharToByteCount(string *str, int startOffset, int endOffset, int charC
     }
     *outStartOffset = byteCountToReachSubstring;
 
-    for(int i = startOffset; (i < str->len - endOffset) && (i < charCount + startOffset); i++){
+    for(int i = startOffset; (i < str->len - endOffset) && (i < maxCharCount + startOffset); i++){
         Result += str->byteCount[i];
     }
 
-    // The loop counting bytes should by capped by charCount not this!!!
-    //if(Result > charCount) Result = charCount;
+    // The loop counting bytes should by capped by maxCharCount not this!!!
+    //if(Result > maxCharCount) Result = maxCharCount;
     return Result;
 }
 
@@ -135,6 +134,34 @@ string *bufferCreateFromString(const char *c, int size){
     string *Result = stringCreateHeap(MAX_VAL(64, powerOfTwoRoundUp(size)));
     stringAppendEnd(Result, c, size);
     return Result;
+}
+
+void shiftStringRight(char *str, int len){
+    for(int i = len + 1; i > 0; i--){
+        str[i] = str[i-1];
+    }
+    *str = '~';
+}
+
+void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode){
+    if(insertMode){
+        // TODO: Make it shift the string to conserve the char after it
+    }
+
+    int byteCount = str->byteCount[pos];
+    int startOffset; // The offset from str->data at which the selected character starts
+
+    
+    stringCharToByteCount(str, pos, 0, 0, &startOffset);
+    
+    if(ci.byteCount != byteCount){
+        shiftStringRight(str->data + startOffset, str->byteLen - startOffset);
+    }
+
+
+
+    str->len++;
+    str->byteLen += byteCount;
 }
 
 static inline list_node *nodeCreate(){
