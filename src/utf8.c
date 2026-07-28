@@ -105,6 +105,7 @@ void stringAppendEnd(string *str, const char *c, int size){
 }
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int maxCharCount, int *outStartOffset){
+    if(maxCharCount == 0) maxCharCount = INT_MAX;
     int Result = 0;
     if(startOffset > str->len) return -1;
 
@@ -136,32 +137,90 @@ string *bufferCreateFromString(const char *c, int size){
     return Result;
 }
 
-void shiftStringRight(char *str, int len){
-    for(int i = len + 1; i > 0; i--){
+static inline void shiftStringRight(char *str, int len){
+    for(int i = len - 1; i > 0; i--){
         str[i] = str[i-1];
     }
     *str = '~';
 }
 
-void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode){
-    if(insertMode){
-        // TODO: Make it shift the string to conserve the char after it
+static inline void shiftStringLeft(char *str, int len){
+    for(int i = 0; i < len - 1; i++){
+        str[i] = str[i+1];
     }
+    str[len-1] = '~';
+}
+
+#if 0
+void shiftStringUtf8Right(string *str, int startPossition, int lengthInChars, int shiftCountInChars){
+    int endOffsetInChars = str->len - lengthInChars;
+    int startPossitionInBytes;
+    int lengthInBytes = stringCharToByteCount(str, startPossition, endOffsetInChars, 0, &startPossitionInBytes);
+    
+    for(int i = 0; i < shiftCountInChars; i++){
+        
+        int dataShiftCount = str->byteCount[lengthInChars];
+        shiftStringRight(str->byteCount + startPossition, lengthInChars);
+    }
+}
+#endif
+
+void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode){
+    if(str->maxSize <= str->len + 1) doubleSize(str);
+
+    int shiftCount = 0;
+
 
     int byteCount = str->byteCount[pos];
     int startOffset; // The offset from str->data at which the selected character starts
-
+    shiftCount += byteCount;
     
     stringCharToByteCount(str, pos, 0, 0, &startOffset);
     
-    if(ci.byteCount != byteCount){
-        shiftStringRight(str->data + startOffset, str->byteLen - startOffset);
+    if(insertMode){
+        shiftStringRight(str->byteCount + pos, str->len - pos + 1);
+            
+        for(int j = 0; j < ci.byteCount; j++){
+            shiftStringRight(str->data + startOffset, str->byteLen - startOffset + 1);    
+        }
+
+        
+        for(int i = 0; i < ci.byteCount; i++){
+            str->data[startOffset + i] = ci.arr[i];
+        }
+        str->len++;
+        str->byteLen += ci.byteCount;
+    }
+    else{
+        int byteDiff = ci.byteCount - byteCount;
+        if(byteDiff < 0){
+            byteDiff *= -1;
+            for(int i = 0; i < byteDiff; i++){
+                shiftStringLeft(str->data + startOffset, str->byteLen - startOffset + 1);
+            }
+            
+            for(int i = 0; i < ci.byteCount; i++){
+                str->data[startOffset + i] = ci.arr[i];
+            }
+
+            str->byteLen = str->byteLen - byteCount + ci.byteCount;
+        }else if(byteDiff > 0){
+            for(int i = 0; i < byteDiff; i++){
+                shiftStringRight(str->data + startOffset, str->byteLen - startOffset + 1);
+            }
+
+            for(int i = 0; i < ci.byteCount; i++){
+                str->data[startOffset + i] = ci.arr[i];
+            }
+            str->byteLen = str->byteLen - byteCount + ci.byteCount;
+        }else{
+            for(int i = 0; i < ci.byteCount; i++){
+                str->data[startOffset + i] = ci.arr[i];
+            }
+        }
     }
 
-
-
-    str->len++;
-    str->byteLen += byteCount;
+    str->byteCount[pos] = ci.byteCount;
 }
 
 static inline list_node *nodeCreate(){

@@ -19,7 +19,9 @@ string *stringCreateHeap(int size);
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
 
-void shiftStringRight(char *str, int len);
+// void shiftStringRight(char *str, int len);
+// void shiftStringLeft(char *str, int len);
+//void shiftStringUtf8Right(string *str, int pos, int shiftCountInChars);
 void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode);
 
 #define PrintBuffer(buffer) writeOutput((buffer).data, (buffer).byteLen)

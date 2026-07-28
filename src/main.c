@@ -371,24 +371,18 @@ int main(int argc, char *argv[], char *envp[]){
         if(ci.byteCount != 0) processInput(ci);
     }
 #else
-    char str[256] = "Random ass string of random ass length to shift from random ass possition.";
-    int len = strlen(str);
-    
-    shiftStringRight(str, len);
-    len++;
-    puts(str);
-    
-    shiftStringRight(str, len);
-    len++;
-    puts(str);
+    string *str = stringCreateHeap(64);
+    stringAppendEnd(str, "wawa1234", 8);
+    character_input ci = {0};
+    char big[3] = "š";
+    ci.arr[0] = big[0];
+    ci.arr[1] = big[1];
+    ci.byteCount = 2;
+    insertCharAtPossition(str, ci, 2, 1);
+    insertCharAtPossition(str, ci, 2, 1);
+    insertCharAtPossition(str, ci, 0, 1);
 
-    shiftStringRight(str, len);
-    len++;
-    puts(str);
-
-    shiftStringRight(str, len);
-    len++;
-    puts(str);
+    puts(str->data);
     
     getchar();
 #endif
