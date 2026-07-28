@@ -23,6 +23,9 @@ int stringCharToByteCount(string *str, int startOffset, int endOffset, int charC
 // void shiftStringLeft(char *str, int len);
 //void shiftStringUtf8Right(string *str, int pos, int shiftCountInChars);
 void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode);
+void deleteCharFromPossition(string *str, int pos);
+
+void terminateStringOnPos(string *str, int pos);
 
 #define PrintBuffer(buffer) writeOutput((buffer).data, (buffer).byteLen)
 #define WriteToBuffer(buffer, str) stringAppendEnd((buffer), (str), strlen(str))
@@ -46,5 +49,6 @@ void listAppendEnd(string_list *list, string *str);
 void listInsertAtPossition(string_list *list, string *str, int index);
 string *getStringAtIndex(string_list *list, int index);
 void printList(string_list *list);
+void listDeleteRow(string_list *list, int index);
 
 #endif

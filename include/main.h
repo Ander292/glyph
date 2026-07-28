@@ -7,19 +7,21 @@ typedef struct editor_message{
     time_t Duration;
 } editor_message;
 
+#define FILE_PATH_LENGTH 512
 
 #define GLOBAL_STRUCT_NAME E
 
 #define postEditorMessage(duration, text, ...) messageCreate(&GLOBAL_STRUCT_NAME.Message, duration, text, ##__VA_ARGS__)
-
+#define clearEditorMessage() messageCreate(&GLOBAL_STRUCT_NAME.Message, 0, "")
 /**
  * FLAGS structure (bit by bit):
  * 
- * Rxxxxxxx xxxxxxxx Aaaaaaaa xxxxxIHN
- * ┃                 ┃             ┃┃┃
- * ┃                 ┃             ┃┃┗> SHOWNUMBERS flag
- * ┃                 ┃             ┃┗━> SHOWHEADER flag
- * ┃                 ┃             ┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
+ * Rxxxxxxx xxxxxxxx Aaaaaaaa xxxxDIHN
+ * ┃                 ┃            ┃┃┃┃
+ * ┃                 ┃            ┃┃┃┗> SHOWNUMBERS flag
+ * ┃                 ┃            ┃┃┗━> SHOWHEADER flag
+ * ┃                 ┃            ┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
+ * ┃                 ┃            ┗━━━> DIRTY flag (set if the file has been edited since last save/load
  * ┃                 ┗━━━━━━━━━━━━━━━━> ALTVIEW flag (7 bytes to its right 
  * ┃                                    are used for alt buffer number. Extracted using GET_ALT_BUFFERID())
  * ┃                                    
@@ -40,6 +42,7 @@ typedef struct editor_message{
 #define FLAG_SHOWNUMBERS    (1)
 #define FLAG_SHOWHEADER     (2)
 #define FLAG_INSERT_MODE    (4)
+#define FLAG_DIRTY          (8)
 
 /* Multiple buffer flags */
 #define FLAG_ALTVIEW        (1 << 15)

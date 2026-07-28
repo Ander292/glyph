@@ -105,7 +105,7 @@ void stringAppendEnd(string *str, const char *c, int size){
 }
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int maxCharCount, int *outStartOffset){
-    if(maxCharCount == 0) maxCharCount = INT_MAX;
+    if(maxCharCount == 0) maxCharCount = INT_MAX / 2;
     int Result = 0;
     if(startOffset > str->len) return -1;
 
@@ -137,18 +137,40 @@ string *bufferCreateFromString(const char *c, int size){
     return Result;
 }
 
+void terminateStringOnPos(string *str, int pos){
+    int startOffsetInBytes;
+    int byteCount = stringCharToByteCount(str, pos, 0, 0, &startOffsetInBytes);
+
+    memset(str->data + startOffsetInBytes, 0, byteCount);
+    memset(str->byteCount + pos, 0, str->len - pos);
+
+    str->len = pos;
+    str->byteLen = byteCount;
+
+    // str->data[str->byteLen] = 0;
+    // str->byteCount[str->len] = 0;
+}
+
 static inline void shiftStringRight(char *str, int len){
+#if 0
     for(int i = len - 1; i > 0; i--){
         str[i] = str[i-1];
     }
     *str = '~';
+#else
+    memmove(str + 1, str, len - 1);
+#endif
 }
 
 static inline void shiftStringLeft(char *str, int len){
+#if 0
     for(int i = 0; i < len - 1; i++){
         str[i] = str[i+1];
     }
     str[len-1] = '~';
+#else
+    memmove(str, str + 1, len - 1);
+#endif
 }
 
 #if 0
@@ -165,62 +187,90 @@ void shiftStringUtf8Right(string *str, int startPossition, int lengthInChars, in
 }
 #endif
 
+void deleteCharFromPossition(string *str, int pos){
+    int posInBytes;
+    int byteCount = str->byteCount[pos];
+    stringCharToByteCount(str, pos, 0, 0, &posInBytes);
+
+    shiftStringLeft(str->byteCount + pos, str->len - pos);
+    str->len--;
+
+    for(int i = 0; i < byteCount; i++){
+        shiftStringLeft(str->data + posInBytes, str->byteLen - posInBytes);
+        str->byteLen--;
+    }
+
+    str->byteCount[str->len] = 0;
+    str->data[str->byteLen] = 0;
+}
+
+/* The cancer itself */
 void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode){
     if(str->maxSize <= str->len + 1) doubleSize(str);
 
     int shiftCount = 0;
 
-
-    int byteCount = str->byteCount[pos];
-    int startOffset; // The offset from str->data at which the selected character starts
-    shiftCount += byteCount;
-    
-    stringCharToByteCount(str, pos, 0, 0, &startOffset);
-    
-    if(insertMode){
-        shiftStringRight(str->byteCount + pos, str->len - pos + 1);
-            
-        for(int j = 0; j < ci.byteCount; j++){
-            shiftStringRight(str->data + startOffset, str->byteLen - startOffset + 1);    
+    if(pos == str->len){
+        stringAppendEnd(str, ci.arr, ci.byteCount);
+    }else if(pos > str->len){
+        for(int i = 0; i < pos - str->len; i++){
+            stringAppendEnd(str, " ", 1);
         }
-
+        stringAppendEnd(str, ci.arr, ci.byteCount);
+    }else{
+        int byteCount = str->byteCount[pos];
+        int startOffset; // The offset from str->data at which the selected character starts
+        shiftCount += byteCount;
         
-        for(int i = 0; i < ci.byteCount; i++){
-            str->data[startOffset + i] = ci.arr[i];
-        }
-        str->len++;
-        str->byteLen += ci.byteCount;
-    }
-    else{
-        int byteDiff = ci.byteCount - byteCount;
-        if(byteDiff < 0){
-            byteDiff *= -1;
-            for(int i = 0; i < byteDiff; i++){
-                shiftStringLeft(str->data + startOffset, str->byteLen - startOffset + 1);
-            }
-            
-            for(int i = 0; i < ci.byteCount; i++){
-                str->data[startOffset + i] = ci.arr[i];
-            }
-
-            str->byteLen = str->byteLen - byteCount + ci.byteCount;
-        }else if(byteDiff > 0){
-            for(int i = 0; i < byteDiff; i++){
+        stringCharToByteCount(str, pos, 0, 0, &startOffset);
+        
+        if(insertMode){
+            shiftStringRight(str->byteCount + pos, str->len - pos + 1);
+                
+            for(int j = 0; j < ci.byteCount; j++){
                 shiftStringRight(str->data + startOffset, str->byteLen - startOffset + 1);
             }
-
+    
             for(int i = 0; i < ci.byteCount; i++){
                 str->data[startOffset + i] = ci.arr[i];
             }
-            str->byteLen = str->byteLen - byteCount + ci.byteCount;
-        }else{
-            for(int i = 0; i < ci.byteCount; i++){
-                str->data[startOffset + i] = ci.arr[i];
+            str->len++;
+            str->byteLen += ci.byteCount;
+        }
+        else{
+            int byteDiff = ci.byteCount - byteCount;
+            if(byteDiff < 0){
+                byteDiff *= -1;
+                for(int i = 0; i < byteDiff; i++){
+                    shiftStringLeft(str->data + startOffset, str->byteLen - startOffset + 1);
+                }
+                
+                for(int i = 0; i < ci.byteCount; i++){
+                    str->data[startOffset + i] = ci.arr[i];
+                }
+    
+                str->byteLen = str->byteLen - byteCount + ci.byteCount;
+            }else if(byteDiff > 0){
+                for(int i = 0; i < byteDiff; i++){
+                    shiftStringRight(str->data + startOffset, str->byteLen - startOffset + 1);
+                }
+    
+                for(int i = 0; i < ci.byteCount; i++){
+                    str->data[startOffset + i] = ci.arr[i];
+                }
+                str->byteLen = str->byteLen - byteCount + ci.byteCount;
+            }else{
+                for(int i = 0; i < ci.byteCount; i++){
+                    str->data[startOffset + i] = ci.arr[i];
+                }
             }
         }
+    
+        str->byteCount[pos] = ci.byteCount;
+        str->byteCount[str->len] = 0;
+        str->data[str->byteLen] = 0;
     }
 
-    str->byteCount[pos] = ci.byteCount;
 }
 
 static inline list_node *nodeCreate(){
@@ -318,7 +368,30 @@ void freeList(string_list *list){
     list->size = -1;
 }
 
+void clearList(string_list *list){
+    for(list_node *p = list->head; p != NULL; p = p->next){
+        clearBuffer(p->str);
+    }
+}
+
 void listCreateLineAtIndex(string_list *list, int index, const char *str, int size){
     string *line = bufferCreateFromString(str, size);
     listInsertAtPossition(list, line, index);
+}
+
+void listDeleteRow(string_list *list, int index){
+    if(index < 0 || index >= list->size) return;
+    list_node *q = list->head;
+    for(int i = 0;(i < index) && (q != NULL); q = q->next, i++);
+
+    list_node *prevN = q->prev;
+    list_node *nextN = q->next;
+
+    if(prevN == NULL) list->head = nextN;
+    else prevN->next = nextN;
+    if(nextN == NULL) list->tail = prevN;
+    else nextN->prev = prevN;
+
+    stringFreeHeap(q->str);
+    free(q);
 }

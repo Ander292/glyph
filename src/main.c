@@ -14,6 +14,7 @@ static struct{
     int CursorX, CursorY; /* The possition of the cursor inside the internal buffer */
     int OffsetX, OffsetY;
 
+    char File[FILE_PATH_LENGTH];
     string_list *Rows;
     string_list MainBuffer;
     string_list AltBuffers[ALT_BUFFER_COUNT];
@@ -25,11 +26,57 @@ static struct{
 
 string OutputBuffer;
 
+static void editorRefreshScreen();
+
+static inline void insertCharAtPosList(character_input ci, int Row, int Col){
+    string *RowString = getStringAtIndex(E.Rows, Row);
+    insertCharAtPossition(RowString, ci, Col, HAS_FLAG(FLAG_INSERT_MODE));
+}
+
+static inline void deleteCharFromPosList(string_list *list, int Row, int Col){
+    string *str = getStringAtIndex(list, Row);
+    deleteCharFromPossition(str, Col);
+}
+
+static inline void messageCreate(editor_message *dest, time_t duration, const char *text, ...){
+    va_list args;
+    va_start(args, text);
+    vsnprintf(dest->Data, sizeof(dest->Data), text, args);
+    va_end(args);
+    //strcpy(dest->Data, text);
+    dest->PostTime = ConInfo.CurrentTime;
+    dest->Duration = duration;
+}
+
+static void fileSave(char *path){
+    return;
+}
+
 static int processInput(character_input ci){
     switch(ci.arr[0]){
-        case CTRL_KEY('q'):
+        case CTRL_KEY('q'):{
+            if(HAS_FLAG(FLAG_DIRTY)){
+                postEditorMessage(20, "File not saved. Are u sure u want to quit? (yes, no, save)");
+                while(1){
+                    editorRefreshScreen();
+                    character_input ci = pollInput();
+                    switch(ci.arr[0] & 0xdf){
+                        case 'Y':
+                            UNSET_FLAG(FLAG_RUNNING);
+                            goto END_WHILE;
+                        case 'N':
+                            clearEditorMessage();
+                            return 0;
+                        case 'S':
+                            fileSave(E.File);
+                            goto END_WHILE;
+                    }
+                }
+                END_WHILE:
+            }
             UNSET_FLAG(FLAG_RUNNING);
             break;
+        }
         case CTRL_KEY('n'):
             TOGGLE_FLAG(FLAG_SHOWNUMBERS);
             break;
@@ -40,9 +87,55 @@ static int processInput(character_input ci){
             TOGGLE_FLAG(FLAG_ALTVIEW);
             SET_ALT_BUFFERID(0);
             break;
-        case '\b': // Backspace (or ctrl + h)
+        case CTRL_KEY('s'):
+            postEditorMessage(5, "Saving not implemented yet");
             break;
-        case '\x1b':
+        case '\b': // Backspace (or ctrl + h)
+        case 127:  // Delete key in ascii but its backspace for some reason
+        {
+            SET_FLAG(FLAG_DIRTY);
+            if(E.CursorX == 0){
+                string *rowNext = getStringAtIndex(E.Rows, E.CursorY);
+                if(E.CursorY != 0){
+                    string *rowPrev = getStringAtIndex(E.Rows, E.CursorY-1);
+                    E.CursorX = rowPrev->len;
+                    stringAppendEnd(rowPrev, rowNext->data, rowNext->byteLen);
+                    listDeleteRow(E.Rows, E.CursorY);
+                    E.CursorY--;
+                }
+            }else{
+                deleteCharFromPosList(E.Rows, E.CursorY, E.CursorX - 1);
+                E.CursorX--;
+            }
+            break;
+        }
+        case '\r':{
+            string *row = getStringAtIndex(E.Rows, E.CursorY);
+            string *str = stringCreateHeap(64);
+            listInsertAtPossition(E.Rows, str, E.CursorY + 1);
+            
+            if(E.CursorX != row->len){
+                int startOffset;
+                int bytesToCopy = stringCharToByteCount(row, E.CursorX, 0, 0, &startOffset);
+                stringAppendEnd(str, row->data + startOffset, bytesToCopy);
+                character_input ci = {0};
+                ci.arr[0] = 0;
+                ci.byteCount = 1;
+                //insertCharAtPossition(row, ci, E.CursorX, 0);
+                terminateStringOnPos(row, E.CursorX);
+            }
+
+            E.CursorY++;
+            E.CursorX = 0;
+            break;
+        }
+        case '\n':
+            break;
+        // case 127: // Delete key
+        //     postEditorMessage(5, "Delete key ):");
+        //     SET_FLAG(FLAG_DIRTY);
+        //     break;
+        case '\x1b':{
             switch(ci.arr[2]){
                 case 'A': // Up arrow
                     E.CursorY--;
@@ -68,6 +161,9 @@ static int processInput(character_input ci){
                     // E.CursorY = E.OffsetY + ConInfo.Rows - 1;
                     // if(E.CursorY > E.Rows->size - 1) E.CursorY = E.Rows->size - 1;
                     break;
+                case '2': // Insert key (followed by ~ but not checked)
+                    TOGGLE_FLAG(FLAG_INSERT_MODE);
+                    break;
                 case 'O': // For the home and end escape sequences. They are diferent for different systems
                     if(ci.arr[3] == 'H') goto HOME;
                     else if(ci.arr[3] == 'F') goto END;
@@ -90,13 +186,31 @@ static int processInput(character_input ci){
                     }
                     break;
                 case '3': // Delete key
+                    //postEditorMessage(5, "Delete key <3");
+                    SET_FLAG(FLAG_DIRTY);
+                    string *currentRow = getStringAtIndex(E.Rows, E.CursorY);
+                    if(E.CursorX == currentRow->len){
+                        if(E.CursorY + 1< E.Rows->size){
+                            string *nextRow = getStringAtIndex(E.Rows, E.CursorY + 1);
+    
+                            stringAppendEnd(currentRow, nextRow->data, nextRow->byteLen);
+                            listDeleteRow(E.Rows, E.CursorY + 1);
+                        }
+                    }else{
+                        deleteCharFromPosList(E.Rows, E.CursorY, E.CursorX);
+                    }
                     break;
                 
             }
             break;
-        default:
-            stringAppendEnd(&OutputBuffer, ci.arr, ci.byteCount);
-            break;
+        }
+        default:{
+            SET_FLAG(FLAG_DIRTY);
+            //stringAppendEnd(&OutputBuffer, ci.arr, ci.byteCount);
+            insertCharAtPosList(ci, E.CursorY, E.CursorX);
+            E.CursorX++;
+            return 0;
+        }
     }
 
 
@@ -162,16 +276,6 @@ static void setCursorPossition(int x, int y){
 
 /* Rendering */
 
-static inline void messageCreate(editor_message *dest, time_t duration, const char *text, ...){
-    va_list args;
-    va_start(args, text);
-    vsnprintf(dest->Data, sizeof(dest->Data), text, args);
-    va_end(args);
-    //strcpy(dest->Data, text);
-    dest->PostTime = ConInfo.CurrentTime;
-    dest->Duration = duration;
-}
-
 static void drawRows(string *buffer){
     char rowNum[5];
     int maxRows = ConInfo.Rows;
@@ -230,8 +334,8 @@ static void formatHeader(string *buffer){
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
 
     WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
-    int feedback = sprintf(dest, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
-        "placeholder", E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+    int feedback = sprintf(dest, "|| F: %s %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
+        "placeholder", (HAS_FLAG(FLAG_DIRTY) ? "(modified)" : ""), E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
 
     WriteToBuffer(buffer, "    ");
     
@@ -269,7 +373,7 @@ static void editorRefreshScreen(){
 
 int main(int argc, char *argv[], char *envp[]){
     prepareConsole();
-    SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS);
+    SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE);
     E.CursorX = 0;
     E.CursorY = 0;
 
@@ -335,7 +439,7 @@ int main(int argc, char *argv[], char *envp[]){
     /* End of test code */
 #endif
 
-#if 0
+#if 1
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
         
@@ -381,7 +485,8 @@ int main(int argc, char *argv[], char *envp[]){
     insertCharAtPossition(str, ci, 2, 1);
     insertCharAtPossition(str, ci, 2, 1);
     insertCharAtPossition(str, ci, 0, 1);
-
+    puts(str->data);
+    deleteCharFromPossition(str, 3);
     puts(str->data);
     
     getchar();
