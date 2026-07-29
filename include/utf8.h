@@ -53,4 +53,6 @@ string *getStringAtIndex(string_list *list, int index);
 void printList(string_list *list);
 void listDeleteRow(string_list *list, int index);
 
+static inline int findOffsetOfFirstOccurence();
+
 #endif

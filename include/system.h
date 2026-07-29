@@ -12,7 +12,7 @@ typedef struct console_info{
 } console_info;
 
 typedef struct character_input{
-    char arr[4];
+    char arr[8];
     int byteCount;
 } character_input;
 

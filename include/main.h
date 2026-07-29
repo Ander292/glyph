@@ -1,6 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#define TAB_SPACE_SIZE 4
+
 typedef struct editor_message{
     char Data[256];
     time_t PostTime;
@@ -34,6 +36,7 @@ typedef struct editor_message{
 #define HAS_FLAG(f)         ((GLOBAL_FLAGS) & (f))
 #define SET_FLAG(f)         ((GLOBAL_FLAGS) = (GLOBAL_FLAGS) | (f))
 #define UNSET_FLAG(f)       ((GLOBAL_FLAGS) = (GLOBAL_FLAGS) & ~(f))
+#define CLEAR_FLAG UNSET_FLAG
 #define TOGGLE_FLAG(f)      ((GLOBAL_FLAGS) = (GLOBAL_FLAGS) ^ (f))
 #define GET_ALT_BUFFERID()  (((GLOBAL_FLAGS) >> ALTVIEW_SHIFT) & ALTVIEW_MASK)
 #define SET_ALT_BUFFERID(f) (((GLOBAL_FLAGS) & (ALTVIEW_MASK << ALTVIEW_SHIFT)) | (f))

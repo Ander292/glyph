@@ -28,6 +28,134 @@ string OutputBuffer;
 
 static void editorRefreshScreen();
 
+static int countToNotChar(string *str, int startPos, uint32 character){
+    int Result = 0;
+    character_input ci = {0};
+    ci.byteCount = charGetByteCount(((char *)&character)[0]);
+    ci.arr[0] = ((char *)&character)[0];
+    ci.arr[1] = ((char *)&character)[1];
+    ci.arr[2] = ((char *)&character)[2];
+    ci.arr[3] = ((char *)&character)[3];
+
+    int startOffsetInBytes;
+    stringCharToByteCount(str, startPos, 0, 0, &startOffsetInBytes);
+
+    int bytesPassed = 0;
+    for(int i = startPos; i < str->len; i++){
+        int startOffset;
+        int byteCount = str->byteCount[i];
+        
+        if(byteCount == ci.byteCount){
+            for(int j = 0; j < ci.byteCount; j++){
+                if(ci.arr[j] != (str->data + startOffsetInBytes + bytesPassed)[j]) goto CHECK_SUCCESS;
+            }
+            goto CHECK_FAILED;
+        }
+        CHECK_FAILED:
+        Result++;
+        bytesPassed += byteCount;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
+static int countBackToNotChar(string *str, int startPos, uint32 character){
+    int Result = 0;
+    character_input ci = {0};
+    ci.byteCount = charGetByteCount(((char *)&character)[0]);
+    ci.arr[0] = ((char *)&character)[0];
+    ci.arr[1] = ((char *)&character)[1];
+    ci.arr[2] = ((char *)&character)[2];
+    ci.arr[3] = ((char *)&character)[3];
+
+    int startOffsetInBytes;
+    stringCharToByteCount(str, startPos, 0, 0, &startOffsetInBytes);
+
+    int bytesPassed = 0;
+    for(int i = startPos - 1; i >= 0; i--){
+        int startOffset;
+        int byteCount = str->byteCount[i];
+        
+        if(byteCount == ci.byteCount){
+            for(int j = 0; j < ci.byteCount; j++){
+                if(ci.arr[j] != (str->data + startOffsetInBytes - bytesPassed - ci.byteCount)[j]) goto CHECK_SUCCESS;
+            }
+            goto CHECK_FAILED;
+        }
+        CHECK_FAILED:
+        Result++;
+        bytesPassed += byteCount;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
+static int countBackToChar(string *str, int startPos, uint32 character){
+    int Result = 0;
+    character_input ci = {0};
+    ci.byteCount = charGetByteCount(((char *)&character)[0]);
+    ci.arr[0] = ((char *)&character)[0];
+    ci.arr[1] = ((char *)&character)[1];
+    ci.arr[2] = ((char *)&character)[2];
+    ci.arr[3] = ((char *)&character)[3];
+
+    int startOffsetInBytes;
+    stringCharToByteCount(str, startPos, 0, 0, &startOffsetInBytes);
+
+    int bytesPassed = 0;
+    for(int i = startPos - 1; i >= 0; i--){
+        int startOffset;
+        int byteCount = str->byteCount[i];
+        
+        if(byteCount == ci.byteCount){
+            for(int j = 0; j < ci.byteCount; j++){
+                if(ci.arr[j] != (str->data + startOffsetInBytes - bytesPassed - ci.byteCount)[j]) goto CHECK_FAILED;
+            }
+            goto CHECK_SUCCESS;
+        }
+        CHECK_FAILED:
+        Result++;
+        bytesPassed += byteCount;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
+static int countToChar(string *str, int startPos, uint32 character){
+    int Result = 0;
+    character_input ci = {0};
+    ci.byteCount = charGetByteCount(((char *)&character)[0]);
+    ci.arr[0] = ((char *)&character)[0];
+    ci.arr[1] = ((char *)&character)[1];
+    ci.arr[2] = ((char *)&character)[2];
+    ci.arr[3] = ((char *)&character)[3];
+
+    int startOffsetInBytes;
+    stringCharToByteCount(str, startPos, 0, 0, &startOffsetInBytes);
+
+    int bytesPassed = 0;
+    for(int i = startPos; i < str->len; i++){
+        int startOffset;
+        int byteCount = str->byteCount[i];
+        
+        if(byteCount == ci.byteCount){
+            for(int j = 0; j < ci.byteCount; j++){
+                if(ci.arr[j] != (str->data + startOffsetInBytes + bytesPassed)[j]) goto CHECK_FAILED;
+            }
+            goto CHECK_SUCCESS;
+        }
+        CHECK_FAILED:
+        Result++;
+        bytesPassed += byteCount;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
 static inline void insertCharAtPosList(character_input ci, int Row, int Col){
     string *RowString = getStringAtIndex(E.Rows, Row);
     insertCharAtPossition(RowString, ci, Col, HAS_FLAG(FLAG_INSERT_MODE));
@@ -162,7 +290,6 @@ static int processInput(character_input ci){
         case '\b': // Backspace (or ctrl + h)
         case 127:  // Delete key in ascii but its backspace for some reason
         {
-            SET_FLAG(FLAG_DIRTY);
             if(E.CursorX == 0){
                 string *rowNext = getStringAtIndex(E.Rows, E.CursorY);
                 if(E.CursorY != 0){
@@ -171,14 +298,17 @@ static int processInput(character_input ci){
                     stringAppendEnd(rowPrev, rowNext->data, rowNext->byteLen);
                     listDeleteRow(E.Rows, E.CursorY);
                     E.CursorY--;
+                    SET_FLAG(FLAG_DIRTY);
                 }
             }else{
                 deleteCharFromPosList(E.Rows, E.CursorY, E.CursorX - 1);
                 E.CursorX--;
+                SET_FLAG(FLAG_DIRTY);
             }
             break;
         }
         case '\r':{
+            SET_FLAG(FLAG_DIRTY);
             string *row = getStringAtIndex(E.Rows, E.CursorY);
             string *str = stringCreateHeap(64);
             listInsertAtPossition(E.Rows, str, E.CursorY + 1);
@@ -198,6 +328,16 @@ static int processInput(character_input ci){
             E.CursorX = 0;
             break;
         }
+        case '\t':
+            E.CursorX++;
+            character_input tabs = {0};
+            tabs.arr[0] = ' ';
+            tabs.byteCount = 4;
+            insertCharAtPosList(tabs, E.CursorY, E.CursorX);
+            for(;E.CursorX % TAB_SPACE_SIZE; E.CursorX++){
+                insertCharAtPosList(tabs, E.CursorY, E.CursorX);
+            }
+            break;
         case '\n':
             break;
         // case 127: // Delete key
@@ -207,15 +347,23 @@ static int processInput(character_input ci){
         case '\x1b':{
             switch(ci.arr[2]){
                 case 'A': // Up arrow
+                case 'a':
+                    UP_ARROW:
                     E.CursorY--;
                     break;
                 case 'B': // Down arrow
+                case 'b':
+                    DOWN_ARROW:
                     E.CursorY++;
                     break;
                 case 'C': // Right arrow
+                case 'c':
+                    RIGHT_ARROW:
                     E.CursorX++;
                     break;
                 case 'D': // Left arrow
+                case 'd':
+                    LEFT_ARROW:
                     E.CursorX--;
                     break;
                 case '5': // Pageup (followed by ~ but not checked)
@@ -239,6 +387,43 @@ static int processInput(character_input ci){
                     break;
                 /* Home key. Goes to X index 0 - the begining to the line */
                 case '1':
+                    if(ci.byteCount == 6){
+                        if(ci.arr[3] == ';'){
+                            switch(ci.arr[4]){
+                                case '5':{ // Ctrl modifier
+                                    switch(ci.arr[5]){
+                                        case 'A': // up arrow
+                                        case 'B': // down arrow
+                                        case 'C':{ // right arrow
+                                            string *current = getStringAtIndex(E.Rows, E.CursorY);
+                                            int startOffset;
+                                            int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
+                                            char *start = current->data + startOffset;
+                                            if(*start == ' '){
+                                                E.CursorX += countToNotChar(current, E.CursorX, ' ');
+                                            }else{
+                                                E.CursorX += countToChar(current, E.CursorX, ' ');
+                                            }
+                                            break;
+                                        }
+                                        case 'D':{ // left arrow
+                                            string *current = getStringAtIndex(E.Rows, E.CursorY);
+                                            int startOffset;
+                                            int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
+                                            char *start = current->data + startOffset;
+                                            if(*start == ' ' && ((start - 1 < current->data) || start[-1] == ' ')){
+                                                E.CursorX -= countBackToNotChar(current, E.CursorX, ' ');
+                                            }else{
+                                                E.CursorX -= countBackToChar(current, E.CursorX, ' ');
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    break;
                 case '7':
                 case 'H':
                     HOME:
@@ -256,7 +441,7 @@ static int processInput(character_input ci){
                     break;
                 case '3': // Delete key
                     //postEditorMessage(5, "Delete key <3");
-                    SET_FLAG(FLAG_DIRTY);
+                    //SET_FLAG(FLAG_DIRTY);
                     string *currentRow = getStringAtIndex(E.Rows, E.CursorY);
                     if(E.CursorX == currentRow->len){
                         if(E.CursorY + 1< E.Rows->size){
@@ -264,9 +449,11 @@ static int processInput(character_input ci){
     
                             stringAppendEnd(currentRow, nextRow->data, nextRow->byteLen);
                             listDeleteRow(E.Rows, E.CursorY + 1);
+                            SET_FLAG(FLAG_DIRTY);
                         }
                     }else{
                         deleteCharFromPosList(E.Rows, E.CursorY, E.CursorX);
+                        SET_FLAG(FLAG_DIRTY);
                     }
                     break;
                 
@@ -274,14 +461,15 @@ static int processInput(character_input ci){
             break;
         }
         default:{
-            SET_FLAG(FLAG_DIRTY);
             //stringAppendEnd(&OutputBuffer, ci.arr, ci.byteCount);
-            insertCharAtPosList(ci, E.CursorY, E.CursorX);
-            E.CursorX++;
+            if(ci.arr[0] != 0 && ci.arr[0] != ESC_SEQ[0]){
+                SET_FLAG(FLAG_DIRTY);
+                insertCharAtPosList(ci, E.CursorY, E.CursorX);
+                E.CursorX++;
+            }
             return 0;
         }
     }
-
 
     FixCursorPossition();
 }
@@ -335,6 +523,7 @@ void editorLoadFile(char *path){
     E.CursorX = 0;
     E.CursorY = 0;
     FixCursorPossition();
+    CLEAR_FLAG(FLAG_DIRTY);
 }
 
 /* Rendering */
@@ -395,11 +584,11 @@ static void formatHeader(string *buffer){
 
     WriteToBuffer(buffer, ESC_CLEAR_LINE);
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
-
-    WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
+    
     int feedback = sprintf(dest, "|| F: %s %3s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
         E.File, (HAS_FLAG(FLAG_DIRTY) ? "(m)" : ""), E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
-
+        
+    WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
     WriteToBuffer(buffer, "    ");
     
     WriteToBuffer(buffer, dest);
@@ -444,63 +633,6 @@ int main(int argc, char *argv[], char *envp[]){
 
     OutputBuffer = stringCreate(64);
     postEditorMessage(5, "Ctrl+q to quit");
-
-#if 0
-/* Test code */
-    string *tempBuffer = stringCreateHeap(64);
-    stringAppendEnd(tempBuffer, 
-        "I'm 67 monster imposter. Please kick me. 67 monster imposter. six seven monster imposter. Testing if letters are trully broken or its me", 
-        sizeof("I'm 67 monster imposter. Please kick me. 67 monster imposter. six seven monster imposter. Testing if letters are trully broken or its me") - 1);
-
-    string *tempBuffer1 = stringCreateHeap(64);
-    stringAppendEnd(tempBuffer1, "random ass2", sizeof("random ass2") - 1);
-
-    string *tempBuffer2 = stringCreateHeap(64);
-    stringAppendEnd(tempBuffer2, "random ass3", sizeof("random ass3") - 1);
-
-    string *tempBuffer3 = stringCreateHeap(64);
-    stringAppendEnd(tempBuffer3, "random ass5", sizeof("random ass5") - 1);
-
-    E.MainBuffer = createList();
-    E.AltBuffers[0] = createList();
-    E.Rows = &E.MainBuffer;
-
-    listAppendEnd(E.Rows, tempBuffer);
-    listAppendEnd(E.Rows, tempBuffer1);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listInsertAtPossition(E.Rows, tempBuffer3, 5);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-
-    E.Rows = E.AltBuffers + 0;
-    listAppendEnd(E.Rows, tempBuffer);
-    listAppendEnd(E.Rows, tempBuffer1);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listInsertAtPossition(E.Rows, tempBuffer3, 5);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    listAppendEnd(E.Rows, tempBuffer2);
-    /* End of test code */
-#endif
 
     E.MainBuffer = createList();
     E.AltBuffers[0] = createList();

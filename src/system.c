@@ -18,6 +18,8 @@ void disableRawMode(){
     SetConsoleMode(hStdout, ConsoleMode);
 
     Print(ESC_MOVE_TO_MAIN_BUFFER);
+    Print(ESC_ENABLE_CURSOR_BLINKING);
+    Print(ESC_RESET_CURSOR_ATTRIBUTES);
 }
 
 void enableRawMode(){
@@ -38,6 +40,8 @@ void enableRawMode(){
 
     ConsoleMode = ConsoleMode & ~(ENABLE_WRAP_AT_EOL_OUTPUT);
     SetConsoleMode(hStdout, ConsoleMode);
+    Print(ESC_DISABLE_CURSOR_BLINKING);
+    Print(ESC_FORCE_STATIC_CURSOR);
 }
 
 console_info getConsoleSystemInfo(){
@@ -56,12 +60,12 @@ void prepareConsole(){
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     hStderr = GetStdHandle(STD_ERROR_HANDLE);
     enableRawMode();
+    Print(ESC_MOVE_TO_AUX_BUFFER);
 
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
     FlushConsoleInputBuffer(hStdin);
     atexit(disableRawMode);
-    Print(ESC_MOVE_TO_AUX_BUFFER);
 }
 
 LPSTR WIN32_FormatError(DWORD dwError){
@@ -165,7 +169,11 @@ character_input pollInput(){
                 if(!ReadFile(hStdin, Result.arr + i, 1, &Feedback, NULL)){
                     WIN32_ErrorExit("Error reading stdin");
                 }
-                if(Result.arr[i] <= '9' && Result.arr[i] >= '0' || Result.arr[i] == 'O') byteCount = 4;
+                if(((Result.arr[i] >= 'a' && Result.arr[i] <= 'z') || 
+                    (Result.arr[i] >= 'A' && Result.arr[i] <= 'Z')) && byteCount < 2) byteCount = 2; 
+                if((Result.arr[i] <= '9' && Result.arr[i] >= '0' 
+                    || Result.arr[i] == 'O') && byteCount < 4) byteCount = 4;
+                if(Result.arr[i] == ';') byteCount = 6;
             }
 
             Result.byteCount = byteCount;
