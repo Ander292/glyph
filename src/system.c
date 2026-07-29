@@ -189,6 +189,45 @@ uint32 writeOutput(char *src, uint32 size){
     return Feedback;
 }
 
+// TODO: Better error handling for these functions!!!
+
+uint32 fileWrite(char *destPath, char *string, uint32 size){
+    HANDLE hOutFile = CreateFileA(destPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 
+        FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hOutFile == INVALID_HANDLE_VALUE){
+        WIN32_ErrorExit("CreateFile failed for path: %s", destPath);
+    }
+    DWORD Feedback;
+    WriteFile(hOutFile, string, size, &Feedback, NULL);
+
+    CloseHandle(hOutFile);
+
+    return Feedback;
+}
+
+uint32 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
+    HANDLE hInFile = CreateFileA(filePath, GENERIC_READ, 0, NULL, OPEN_ALWAYS, 
+        FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hInFile == INVALID_HANDLE_VALUE){
+        WIN32_ErrorExit("CreateFile failed for path: %s", filePath);
+    }
+    DWORD Feedback;
+    if(!ReadFile(hInFile, destBuffer, maxBufferSize, &Feedback, NULL)){
+        WIN32_ErrorExit("Read file failed (requested %u, read %u bytes)", maxBufferSize, Feedback);
+    }
+
+    CloseHandle(hInFile);
+    return Feedback;
+}
+
+int64 getFileSize(char *filePath){
+    WIN32_FILE_ATTRIBUTE_DATA fi;
+    if(!GetFileAttributesExA(filePath, GetFileExInfoStandard, &fi)){
+        return 0;
+    }
+    return (int64)((uint64)fi.nFileSizeLow | ((uint64)fi.nFileSizeHigh << 32));
+}
+
 #elif defined LINUX
 
 struct termios orig_termios;
@@ -246,7 +285,7 @@ void die(const char *format, ...){
 
     char *errStr = strerror(errno);
 
-    printf("%s : (%u) %s\n", str, errno, errStr);
+    printf(ESC_CLEAR_SCREEN "%s : (%u) %s\n", str, errno, errStr);
 
     getchar();
     exit(1);

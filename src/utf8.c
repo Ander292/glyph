@@ -145,7 +145,7 @@ void terminateStringOnPos(string *str, int pos){
     memset(str->byteCount + pos, 0, str->len - pos);
 
     str->len = pos;
-    str->byteLen = byteCount;
+    str->byteLen = startOffsetInBytes;
 
     // str->data[str->byteLen] = 0;
     // str->byteCount[str->len] = 0;
@@ -391,6 +391,8 @@ void listDeleteRow(string_list *list, int index){
     else prevN->next = nextN;
     if(nextN == NULL) list->tail = prevN;
     else nextN->prev = prevN;
+
+    list->size--;
 
     stringFreeHeap(q->str);
     free(q);

@@ -48,9 +48,77 @@ static inline void messageCreate(editor_message *dest, time_t duration, const ch
     dest->Duration = duration;
 }
 
-static void fileSave(char *path){
-    return;
+#define ROWS_TO_SAVE (&E.MainBuffer)
+int editorSave(char *path){
+    string Final = stringCreate(1024);
+    uint32 SizeCount = 0;
+    for(int i = 0; i < ROWS_TO_SAVE->size; i++){
+        string *row = getStringAtIndex(ROWS_TO_SAVE, i);
+        SizeCount += row->byteLen;
+        stringAppendEnd(&Final, row->data, row->byteLen);
+        if(i < ROWS_TO_SAVE->size - 1){
+            stringAppendEnd(&Final, "\r\n", 2);
+            SizeCount += 2;
+        }
+    }
+
+    uint32 Result = fileWrite(path, Final.data, Final.byteLen);
+    
+    if(Result != SizeCount){
+        postEditorMessage(5, "Error saving file. Expected: %u, Wrote: %u", SizeCount, Result);
+    }else{
+        postEditorMessage(5, "File properly saved (Wrote %u bytes)", Result);
+        UNSET_FLAG(FLAG_DIRTY);
+    }
+
+    stringFree(&Final);
+
+    return Result != SizeCount;
 }
+
+void FixCursorPossition(){
+    /* Fixing the internal cursor possition and the offsets */
+    string *str = getStringAtIndex(E.Rows, E.CursorY);
+    int currentWidth = 0;
+    if(str != NULL) currentWidth = str->len;
+    int destWidth = MIN_VAL(ConInfo.Cols, currentWidth);
+
+    if(E.CursorX < 0){
+        E.CursorX = 0;
+    }else if(E.CursorX > currentWidth){
+        E.CursorX = currentWidth;
+    }
+
+    // Vertical offset
+    if((E.CursorY - E.OffsetY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows->size){
+        E.OffsetY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
+    }else if((E.CursorY - E.OffsetY < 0)){
+        E.OffsetY = MAX_VAL(0, E.OffsetY - (E.OffsetY - E.CursorY));
+    }
+
+    // Horizontal offset
+    if(E.CursorX - E.OffsetX > ConInfo.Cols - 1 - E.TextOffsetLeft){
+        E.OffsetX = MAX_VAL(0, E.CursorX - (ConInfo.Cols - E.TextOffsetLeft) + 1);
+    }else if((E.CursorX - E.OffsetX < 0)){
+        E.OffsetX = MAX_VAL(0, E.OffsetX - (E.OffsetX - E.CursorX));
+    }
+
+    // Verticall offset clamping
+    if(E.OffsetY < 0) E.OffsetY = 0;
+#if 0
+    if(E.OffsetY > E.Rows->size - (ConInfo.Rows - E.TextOffsetTop)) 
+        E.OffsetY = E.Rows->size - (ConInfo.Rows - E.TextOffsetTop);
+#else
+    if(E.OffsetY > E.Rows->size - 1) E.OffsetY = E.Rows->size - 1;
+#endif
+
+    if(E.CursorY < 0){
+        E.CursorY = 0;
+    }else if(E.CursorY > E.Rows->size - 1){
+        E.CursorY = E.Rows->size - 1;
+    }
+}
+
 
 static int processInput(character_input ci){
     switch(ci.arr[0]){
@@ -68,7 +136,7 @@ static int processInput(character_input ci){
                             clearEditorMessage();
                             return 0;
                         case 'S':
-                            fileSave(E.File);
+                            if(editorSave(E.File)) break;
                             goto END_WHILE;
                     }
                 }
@@ -88,7 +156,8 @@ static int processInput(character_input ci){
             SET_ALT_BUFFERID(0);
             break;
         case CTRL_KEY('s'):
-            postEditorMessage(5, "Saving not implemented yet");
+            //postEditorMessage(5, "Saving not implemented yet");
+            editorSave(E.File);
             break;
         case '\b': // Backspace (or ctrl + h)
         case 127:  // Delete key in ascii but its backspace for some reason
@@ -214,47 +283,9 @@ static int processInput(character_input ci){
     }
 
 
-    /* Fixing the internal cursor possition and the offsets */
-    string *str = getStringAtIndex(E.Rows, E.CursorY);
-    int currentWidth = 0;
-    if(str != NULL) currentWidth = str->len;
-    int destWidth = MIN_VAL(ConInfo.Cols, currentWidth);
-
-    if(E.CursorX < 0){
-        E.CursorX = 0;
-    }else if(E.CursorX > currentWidth){
-        E.CursorX = currentWidth;
-    }
-
-    // Vertical offset
-    if((E.CursorY - E.OffsetY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows->size){
-        E.OffsetY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
-    }else if((E.CursorY - E.OffsetY < 0)){
-        E.OffsetY = MAX_VAL(0, E.OffsetY - (E.OffsetY - E.CursorY));
-    }
-
-    // Horizontal offset
-    if(E.CursorX - E.OffsetX > ConInfo.Cols - 1 - E.TextOffsetLeft){
-        E.OffsetX = MAX_VAL(0, E.CursorX - (ConInfo.Cols - E.TextOffsetLeft) + 1);
-    }else if((E.CursorX - E.OffsetX < 0)){
-        E.OffsetX = MAX_VAL(0, E.OffsetX - (E.OffsetX - E.CursorX));
-    }
-
-    // Verticall offset clamping
-    if(E.OffsetY < 0) E.OffsetY = 0;
-#if 0
-    if(E.OffsetY > E.Rows->size - (ConInfo.Rows - E.TextOffsetTop)) 
-        E.OffsetY = E.Rows->size - (ConInfo.Rows - E.TextOffsetTop);
-#else
-    if(E.OffsetY > E.Rows->size - 1) E.OffsetY = E.Rows->size - 1;
-#endif
-
-    if(E.CursorY < 0){
-        E.CursorY = 0;
-    }else if(E.CursorY > E.Rows->size - 1){
-        E.CursorY = E.Rows->size - 1;
-    }
+    FixCursorPossition();
 }
+
 
 /* Setting cursor possition (zero based) */
 static void setCursorPossition(int x, int y){
@@ -272,6 +303,38 @@ static void setCursorPossition(int x, int y){
 
     sprintf(c, ESC_SEQ "%d;%dH", (y), (x));
     Print(c);
+}
+
+void stringIntoInput(const char *str, int len){
+    string *inputString = bufferCreateFromString(str, len);
+    int bytesPassed = 0;
+    for(int i = 0; i < inputString->len; i++){
+        character_input ci = {0};
+        ci.byteCount = inputString->byteCount[i];
+        memcpy(ci.arr, inputString->data + bytesPassed, ci.byteCount);
+        bytesPassed += ci.byteCount;
+
+        processInput(ci);
+    }
+}
+
+void editorLoadFile(char *path){
+    int64 fileSize = getFileSize(path);
+    if(fileSize == 0) die("Error reading file: %s", path);
+
+    char *tempBuffer = malloc(fileSize + 1);
+    tempBuffer[fileSize] = 0;
+
+    uint32 Feedback = fileRead(path, tempBuffer, fileSize);
+    if(Feedback != fileSize) 
+        postEditorMessage(5, "Possible load error (Exp: %u | Rec: %u)", fileSize, Feedback);
+
+    stringIntoInput(tempBuffer, Feedback);
+
+    free(tempBuffer);
+    E.CursorX = 0;
+    E.CursorY = 0;
+    FixCursorPossition();
 }
 
 /* Rendering */
@@ -334,8 +397,8 @@ static void formatHeader(string *buffer){
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
 
     WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
-    int feedback = sprintf(dest, "|| F: %s %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
-        "placeholder", (HAS_FLAG(FLAG_DIRTY) ? "(modified)" : ""), E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+    int feedback = sprintf(dest, "|| F: %s %3s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
+        E.File, (HAS_FLAG(FLAG_DIRTY) ? "(m)" : ""), E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
 
     WriteToBuffer(buffer, "    ");
     
@@ -382,7 +445,7 @@ int main(int argc, char *argv[], char *envp[]){
     OutputBuffer = stringCreate(64);
     postEditorMessage(5, "Ctrl+q to quit");
 
-#if 1
+#if 0
 /* Test code */
     string *tempBuffer = stringCreateHeap(64);
     stringAppendEnd(tempBuffer, 
@@ -439,13 +502,31 @@ int main(int argc, char *argv[], char *envp[]){
     /* End of test code */
 #endif
 
+    E.MainBuffer = createList();
+    E.AltBuffers[0] = createList();
+    E.Rows = &E.MainBuffer;
+    string *temp = stringCreateHeap(64);
+    listAppendEnd(E.Rows, temp);
+
+    if(argc != 2){
+        die("Argc was not 2: %d", argc);
+    }
+
+    strcpy(E.File, argv[1]);
+    editorLoadFile(E.File);
+    //E.File = argv[1];
+
 #if 1
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
         
         /* Message expiring */
-        if(ConInfo.CurrentTime - E.Message.PostTime > E.Message.Duration){
-            *E.Message.Data = 0;
+        if(E.Message.Duration != 0){
+            if(ConInfo.CurrentTime - E.Message.PostTime > E.Message.Duration){
+                *E.Message.Data = 0;
+                E.Message.Duration = 0;
+                E.Message.PostTime = 0;
+            }
         }
 
         /* Offsets from top and left side */

@@ -37,4 +37,7 @@
 #define ESC_MOVE_CURSOR_DOWN ESC("1B")
 #define ESC_MOVE_CURSOR_UP ESC("1A")
 
+/* Cursor */
+#define ESC_DISABLE_CURSOR_BLINKING ("?12l")
+
 #endif

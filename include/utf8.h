@@ -16,6 +16,8 @@ void doubleSize(string *str);
 void stringAppendEnd(string *str, const char *c, int size);
 void clearBuffer(string *str);
 string *stringCreateHeap(int size);
+string *bufferCreateFromString(const char *c, int size);
+void stringFree(string *str);
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
 
