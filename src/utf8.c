@@ -138,7 +138,7 @@ string *bufferCreateFromString(const char *c, int size){
 }
 
 void terminateStringOnPos(string *str, int pos){
-    int startOffsetInBytes;
+    int startOffsetInBytes = 0;
     int byteCount = stringCharToByteCount(str, pos, 0, 0, &startOffsetInBytes);
 
     memset(str->data + startOffsetInBytes, 0, byteCount);
@@ -188,7 +188,7 @@ void shiftStringUtf8Right(string *str, int startPossition, int lengthInChars, in
 #endif
 
 void deleteCharFromPossition(string *str, int pos){
-    int posInBytes;
+    int posInBytes = 0;
     int byteCount = str->byteCount[pos];
     stringCharToByteCount(str, pos, 0, 0, &posInBytes);
 
@@ -347,6 +347,24 @@ string *getStringAtIndex(string_list *list, int index){
     return q->str;
 }
 
+static list_node *getNodeAtIndex(string_list *list, int index){
+    if(index < 0 || index >= list->size) return NULL;
+    list_node *q = list->head;
+    for(int i = 0;(i < index) && (q != NULL); q = q->next, i++);
+
+    if(q == NULL) die("(getStringAtIndex) q was NULL");
+    return q;
+}
+
+void swapStringsForIndexes(string_list *list, int ind1, int ind2){
+    list_node *first = getNodeAtIndex(list, ind1);
+    list_node *second = getNodeAtIndex(list, ind2);
+
+    string *temp = first->str;
+    first->str = second->str;
+    second->str = temp;
+}
+
 void printList(string_list *list){
     for(list_node *p = list->head; p != NULL; p = p->next){
         printf("%s\n", p->str->data);
@@ -396,4 +414,13 @@ void listDeleteRow(string_list *list, int index){
 
     stringFreeHeap(q->str);
     free(q);
+}
+
+string_list createListWithRows(int initRowCount){
+    string_list Result = createList();
+    for(int i = 0; i < initRowCount; i++){
+        listAppendEnd(&Result, stringCreateHeap(64));
+    }
+
+    return Result;
 }

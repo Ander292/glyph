@@ -52,7 +52,7 @@ void listInsertAtPossition(string_list *list, string *str, int index);
 string *getStringAtIndex(string_list *list, int index);
 void printList(string_list *list);
 void listDeleteRow(string_list *list, int index);
-
-static inline int findOffsetOfFirstOccurence();
+void swapStringsForIndexes(string_list *list, int ind1, int ind2);
+string_list createListWithRows(int initRowCount);
 
 #endif

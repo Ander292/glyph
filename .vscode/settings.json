@@ -7,12 +7,12 @@
         "reloadButton": "↻",
         "loadNpmCommands": false,
         "commands": [
-            // {
-            //     "name": "$(debug-restart) Update",
-            //     "color": "orange",
-            //     "singleInstance": true,
-            //     "command": "./compile.ps1 -mode update", // This is executed in the terminal.
-            // },
+            {
+                "name": "$(debug-restart) Update",
+                "color": "orange",
+                "singleInstance": true,
+                "command": "./compile.ps1 -mode update", // This is executed in the terminal.
+            },
             {
                 "name": "$(tools) Build",
                 "color": "lime",

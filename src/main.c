@@ -176,8 +176,8 @@ static inline void messageCreate(editor_message *dest, time_t duration, const ch
     dest->Duration = duration;
 }
 
-#define ROWS_TO_SAVE (&E.MainBuffer)
-int editorSave(char *path){
+int editorSave(char *path, string_list *src){
+#define ROWS_TO_SAVE (src)
     string Final = stringCreate(1024);
     uint32 SizeCount = 0;
     for(int i = 0; i < ROWS_TO_SAVE->size; i++){
@@ -185,7 +185,11 @@ int editorSave(char *path){
         SizeCount += row->byteLen;
         stringAppendEnd(&Final, row->data, row->byteLen);
         if(i < ROWS_TO_SAVE->size - 1){
-            stringAppendEnd(&Final, "\r\n", 2);
+            if(HAS_FLAG(FLAG_NEWLINE_ENTER)){
+                stringAppendEnd(&Final, "\n", 1);
+            }else{
+                stringAppendEnd(&Final, "\r\n", 2);
+            }
             SizeCount += 2;
         }
     }
@@ -202,6 +206,7 @@ int editorSave(char *path){
     stringFree(&Final);
 
     return Result != SizeCount;
+#undef ROWS_TO_SAVE
 }
 
 void FixCursorPossition(){
@@ -252,7 +257,7 @@ static int processInput(character_input ci){
     switch(ci.arr[0]){
         case CTRL_KEY('q'):{
             if(HAS_FLAG(FLAG_DIRTY)){
-                postEditorMessage(20, "File not saved. Are u sure u want to quit? (yes, no, save)");
+                postEditorMessage(20, "Unsaved changes. Quit? (Yes, No, Save)");
                 while(1){
                     editorRefreshScreen();
                     character_input ci = pollInput();
@@ -264,7 +269,7 @@ static int processInput(character_input ci){
                             clearEditorMessage();
                             return 0;
                         case 'S':
-                            if(editorSave(E.File)) break;
+                            if(editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS)) break;
                             goto END_WHILE;
                     }
                 }
@@ -283,11 +288,29 @@ static int processInput(character_input ci){
             TOGGLE_FLAG(FLAG_ALTVIEW);
             SET_ALT_BUFFERID(0);
             break;
+        case CTRL_KEY('w'):
+        case '\b': // Backspace (or ctrl + h)
+            string *current = getStringAtIndex(E.Rows, E.CursorY);
+            int startOffset;
+            int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
+            char *start = current->data + startOffset;
+            int removeCountLeft;
+            if((*start == ' ' || *start == 0) && ((start - 1 < current->data) || start[-1] == ' ')){
+                removeCountLeft = countBackToNotChar(current, E.CursorX, ' ');
+            }else{
+                removeCountLeft = countBackToChar(current, E.CursorX, ' ');
+            }
+            if(removeCountLeft != 0){
+                SET_FLAG(FLAG_DIRTY);
+                for(int i = 0; i < removeCountLeft; i++){
+                    deleteCharFromPossition(current, E.CursorX - removeCountLeft);
+                }
+            }
+            break;
         case CTRL_KEY('s'):
             //postEditorMessage(5, "Saving not implemented yet");
-            editorSave(E.File);
+            editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS);
             break;
-        case '\b': // Backspace (or ctrl + h)
         case 127:  // Delete key in ascii but its backspace for some reason
         {
             if(E.CursorX == 0){
@@ -307,7 +330,12 @@ static int processInput(character_input ci){
             }
             break;
         }
+        case '\n':
+            if(HAS_FLAG(FLAG_NEWLINE_ENTER)) goto NEWLINE;
+            break;
         case '\r':{
+            if(HAS_FLAG(FLAG_NEWLINE_ENTER)) break;
+            NEWLINE:
             SET_FLAG(FLAG_DIRTY);
             string *row = getStringAtIndex(E.Rows, E.CursorY);
             string *str = stringCreateHeap(64);
@@ -329,7 +357,7 @@ static int processInput(character_input ci){
             break;
         }
         case '\t':
-            E.CursorX++;
+            SET_FLAG(FLAG_DIRTY);
             character_input tabs = {0};
             tabs.arr[0] = ' ';
             tabs.byteCount = 1;
@@ -339,8 +367,6 @@ static int processInput(character_input ci){
             for(;E.CursorX % TAB_SPACE_SIZE; E.CursorX++){
                 insertCharAtPosList(tabs, E.CursorY, oldCursorX);
             }
-            break;
-        case '\n':
             break;
         // case 127: // Delete key
         //     postEditorMessage(5, "Delete key ):");
@@ -395,7 +421,11 @@ static int processInput(character_input ci){
                                 case '5':{ // Ctrl modifier
                                     switch(ci.arr[5]){
                                         case 'A': // up arrow
+                                            E.OffsetY--;
+                                            break;
                                         case 'B': // down arrow
+                                            E.OffsetY++;
+                                            break;
                                         case 'C':{ // right arrow
                                             string *current = getStringAtIndex(E.Rows, E.CursorY);
                                             int startOffset;
@@ -421,6 +451,43 @@ static int processInput(character_input ci){
                                             break;
                                         }
                                     }
+                                    break;
+                                }
+                                case '3':{ // Alt keys
+                                    switch(ci.arr[5]){
+                                        case 'A': // Up arrow
+                                            if(E.CursorY > 0 && E.Rows->size > 1) {
+                                                //string *currentLine = getStringAtIndex(E.Rows, E.CursorY);
+                                                //string *prevLine = getStringAtIndex(E.Rows, E.CursorY - 1);
+                                                swapStringsForIndexes(E.Rows, E.CursorY, E.CursorY - 1);
+                                                E.CursorY--;
+                                            }
+                                            break;
+                                        case 'B': // down arrow
+                                            if(E.CursorY + 1 < E.Rows->size && E.Rows->size > 1){
+                                                swapStringsForIndexes(E.Rows, E.CursorY, E.CursorY + 1);
+                                                E.CursorY++;
+                                            }
+                                            break;
+                                        case 'C': { // Right arrow
+                                            if(HAS_FLAG(FLAG_ALTVIEW)){
+                                                uint8 currentBufferId = GET_ALT_BUFFERID();
+
+                                                SET_ALT_BUFFERID(((currentBufferId + 1U) % ALT_BUFFER_COUNT));
+                                            }
+                                            break;
+                                        }
+                                        case 'D': { // Left arrow
+                                            if(HAS_FLAG(FLAG_ALTVIEW)){
+                                                uint8 currentBufferId = GET_ALT_BUFFERID();
+                                                currentBufferId -= 1U;
+                                                if(currentBufferId > ALT_BUFFER_COUNT) currentBufferId = ALT_BUFFER_COUNT - 1;
+                                                SET_ALT_BUFFERID(currentBufferId);
+                                            }
+                                            break;  
+                                        } 
+                                    }
+                                    break;
                                 }
                             }
                         }
@@ -519,6 +586,16 @@ void editorLoadFile(char *path){
     if(Feedback != fileSize) 
         postEditorMessage(5, "Possible load error (Exp: %u | Rec: %u)", fileSize, Feedback);
 
+    for(uint32 i = 0; i < Feedback; i++){
+        if(tempBuffer[i] == '\n') {
+            SET_FLAG(FLAG_NEWLINE_ENTER);
+            break;
+        }
+        else if(tempBuffer[i] == '\r'){
+            CLEAR_FLAG(FLAG_NEWLINE_ENTER);
+            break;
+        }
+    }
     stringIntoInput(tempBuffer, Feedback);
 
     free(tempBuffer);
@@ -583,12 +660,21 @@ static void formatHeader(string *buffer){
     int offsetLeft = 2;
     int width = ConInfo.Cols - offsetLeft;
     char dest[2*width];
+    char fileNameStr[128];
 
+    int fNameLen;
+
+    if(HAS_FLAG(FLAG_ALTVIEW)){
+        fNameLen = snprintf(fileNameStr, 128, "%s (%3d)", "AltBuffer", GET_ALT_BUFFERID());
+    }else{
+        fNameLen = snprintf(fileNameStr, 128, "%s %3s", E.File, (HAS_FLAG(FLAG_DIRTY) ? "(m)" : ""));
+    }
+    
     WriteToBuffer(buffer, ESC_CLEAR_LINE);
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
     
-    int feedback = sprintf(dest, "|| F: %s %3s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
-        E.File, (HAS_FLAG(FLAG_DIRTY) ? "(m)" : ""), E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+    int feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
+        fileNameStr, E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
         
     WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
     WriteToBuffer(buffer, "    ");
@@ -636,11 +722,11 @@ int main(int argc, char *argv[], char *envp[]){
     OutputBuffer = stringCreate(64);
     postEditorMessage(5, "Ctrl+q to quit");
 
-    E.MainBuffer = createList();
-    E.AltBuffers[0] = createList();
+    E.MainBuffer = createListWithRows(1);
     E.Rows = &E.MainBuffer;
-    string *temp = stringCreateHeap(64);
-    listAppendEnd(E.Rows, temp);
+    for(int i = 0; i < ALT_BUFFER_COUNT; i++){
+        E.AltBuffers[i] = createListWithRows(1);
+    }
 
     if(argc != 2){
         die("Argc was not 2: %d", argc);
