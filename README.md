@@ -1,8 +1,6 @@
-# A command line text editor
+# A command line text editor (v2)
 
-A simple command line text editor made for windows. I decided to refrain from using most standard c libraries for file I/O. I used only windows, conio and stdint libraries. This program was written to be used for the new win11 windows terminal host and will not work (at least not properly) on the older conhost.exe that is the default for win10 and earlier. The new windows terminal host can be downloaded from microsoft store for win10.
-
-It now uses UTF-16 internally and translates when it writes to stdout or another file.
+A simple command line text editor made for windows/linux. libraries. Initially I made this for windows only but it is now cross platform. The editor fully supports UTF-8.
 
 ### How to use:
 
@@ -12,20 +10,12 @@ It is ran from the command line and requires a path to a file as argument. If th
 
 I did not use any sort of cmake or some other build program. I made a powershell script for it. Passing the "build" argument will build the file. The settings.json file is there for the [vscode actions buttons](https://marketplace.visualstudio.com/items?itemName=seunlanlege.action-buttons) plugin
 
-### Whats broken:
+For linux use the build.sh script with build argument
 
-1) ~~Ctrl + arrowKeys don't work properly.~~ (Fixed)
-2) ~~Sometimes it glitches on the end of the line for some reason.~~ (Fixed)
-3) ~~The header thing is broken as well. The exit message is not displayed properly sometimes~~ (for too small width)
-4) ~~Ctrl + Delete and Ctrl + Backspace cursor possition is glitched. A rework of the FixCursorPossition is needed...~~ Did a full rework of how offset functions and it now actually works
-5) ~~Ctrl + Delete and Ctrl + Backspace sometimes delete a character before/after the special characters such as {. , - :} and Ctrl + Delete doesnt work properly when done on position 1 (it deletes the character on pos 0)~~
-
-Currently nothing I'm aware of.
-
-Probably many other things too, because whenever I "fix" something it bugs out something else.
+I compiled this with gcc for linux and mingw gcc for windows. If you use another compiler then you will need to compile them without the script.
 
 ### But why???
 
-No idea. This started as an experiment about strings and string functions and ended up becoming a text editor. Its essentially just a glorified string and file I/O practice
+No idea. This started as an experiment about strings and string functions and ended up becoming a text editor. Its essentially just a glorified string and file I/O practice.
 
 ### I am not responsible for any mental or emotional damage caused by looking at this code or by using the program itself. You have been warned!
