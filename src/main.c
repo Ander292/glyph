@@ -289,8 +289,15 @@ static int processInput(character_input ci){
             TOGGLE_FLAG(FLAG_ALTVIEW);
             SET_ALT_BUFFERID(0);
             break;
+        case CTRL_KEY('u'):
+            // TODO: Switch between UTF16 and UTF8 output
+            break;
+        case CTRL_KEY('r'):
+            TOGGLE_FLAG(FLAG_READONLY);
+            break;
         case CTRL_KEY('w'):
         case '\b': // Backspace (or ctrl + h)
+            if(HAS_FLAG(FLAG_READONLY)) break;
             string *current = getStringAtIndex(E.Rows, E.CursorY);
             int startOffset;
             int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
@@ -314,6 +321,7 @@ static int processInput(character_input ci){
             break;
         case 127:  // Delete key in ascii but its backspace for some reason
         {
+            if(HAS_FLAG(FLAG_READONLY)) break;
             if(E.CursorX == 0){
                 string *rowNext = getStringAtIndex(E.Rows, E.CursorY);
                 if(E.CursorY != 0){
@@ -335,8 +343,8 @@ static int processInput(character_input ci){
             if(HAS_FLAG(FLAG_NEWLINE_ENTER)) goto NEWLINE;
             break;
         case '\r':{
-            //if(HAS_FLAG(FLAG_NEWLINE_ENTER)) break;
             NEWLINE:
+            if(HAS_FLAG(FLAG_READONLY)) break;
             SET_FLAG(FLAG_DIRTY);
             string *row = getStringAtIndex(E.Rows, E.CursorY);
             string *str = stringCreateHeap(64);
@@ -358,6 +366,7 @@ static int processInput(character_input ci){
             break;
         }
         case '\t':
+            if(HAS_FLAG(FLAG_READONLY)) break;
             SET_FLAG(FLAG_DIRTY);
             character_input tabs = {0};
             tabs.arr[0] = ' ';
@@ -512,6 +521,7 @@ static int processInput(character_input ci){
                 case '3': // Delete key
                     //postEditorMessage(5, "Delete key <3");
                     //SET_FLAG(FLAG_DIRTY);
+                    if(HAS_FLAG(FLAG_READONLY)) break;
                     string *currentRow = getStringAtIndex(E.Rows, E.CursorY);
                     if(E.CursorX == currentRow->len){
                         if(E.CursorY + 1< E.Rows->size){
@@ -531,6 +541,7 @@ static int processInput(character_input ci){
             break;
         }
         default:{
+            if(HAS_FLAG(FLAG_READONLY)) break;
             //stringAppendEnd(&OutputBuffer, ci.arr, ci.byteCount);
             if(ci.arr[0] != 0 && ci.arr[0] != ESC_SEQ[0]){
                 SET_FLAG(FLAG_DIRTY);
@@ -666,9 +677,9 @@ static void formatHeader(string *buffer){
     int fNameLen;
 
     if(HAS_FLAG(FLAG_ALTVIEW)){
-        fNameLen = snprintf(fileNameStr, 128, "%s (%3d)", "AltBuffer", GET_ALT_BUFFERID());
+        fNameLen = snprintf(fileNameStr, 128, "%s (%d) %3s", "AltBuffer", GET_ALT_BUFFERID(), (HAS_FLAG(FLAG_READONLY) ? "(r)" : ""));
     }else{
-        fNameLen = snprintf(fileNameStr, 128, "%s %3s", E.File, (HAS_FLAG(FLAG_DIRTY) ? "(m)" : ""));
+        fNameLen = snprintf(fileNameStr, 128, "%s %3s", E.File, (HAS_FLAG(FLAG_READONLY) ? ("(r)") : (HAS_FLAG(FLAG_DIRTY) ? "(m)" : "")));
     }
     
     WriteToBuffer(buffer, ESC_CLEAR_LINE);

@@ -19,12 +19,13 @@ typedef struct editor_message{
 /**
  * FLAGS structure (bit by bit):
  * 
- * Rxxxxxxx xxxxxxrn Aaaaaaaa xxxxDIHN
- * ┃              ┃┃ ┃            ┃┃┃┃
- * ┃              ┃┃ ┃            ┃┃┃┗> SHOWNUMBERS flag
- * ┃              ┃┃ ┃            ┃┃┗━> SHOWHEADER flag
- * ┃              ┃┃ ┃            ┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
- * ┃              ┃┃ ┃            ┗━━━> DIRTY flag (set if the file has been edited since last save/load
+ * Rxxxxxxx xxxxxxrn Aaaaaaaa xxxODIHN
+ * ┃              ┃┃ ┃           ┃┃┃┃┃
+ * ┃              ┃┃ ┃           ┃┃┃┃┗> SHOWNUMBERS flag
+ * ┃              ┃┃ ┃           ┃┃┃┗━> SHOWHEADER flag
+ * ┃              ┃┃ ┃           ┃┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
+ * ┃              ┃┃ ┃           ┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
+ * ┃              ┃┃ ┃           ┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
  * ┃              ┃┃ ┗━━━━━━━━━━━━━━━━> ALTVIEW flag (7 bytes to its right 
  * ┃              ┃┃                    are used for alt buffer number. Extracted using GET_ALT_BUFFERID())
  * ┃              ┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter used for reading linux files)
@@ -50,6 +51,7 @@ typedef struct editor_message{
 #define FLAG_SHOWHEADER     (2)
 #define FLAG_INSERT_MODE    (4)
 #define FLAG_DIRTY          (8)
+#define FLAG_READONLY       (16)
 
 #define FLAG_NEWLINE_ENTER  (1 << 16)
 
