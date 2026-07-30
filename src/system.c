@@ -242,9 +242,11 @@ struct termios orig_termios;
 
 void disableRawMode(){
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+    Print(ESC_MOVE_TO_MAIN_BUFFER);
+    Print(ESC_YESOVERFLOW);
 }
 
-void enableRawMode(){
+void enterRawMode(){
     tcgetattr(STDIN_FILENO, &orig_termios);
     atexit(disableRawMode);
     struct termios raw = orig_termios;
@@ -257,14 +259,18 @@ void enableRawMode(){
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
-void PrepareConsole(){
+void prepareConsole(){
     enterRawMode();
+    Print(ESC_MOVE_TO_AUX_BUFFER);
+    Print(ESC_NOOVERFLOW);
+    atexit(disableRawMode);
 }
 
-char pollInput(){
+character_input pollInput(){
+    character_input Result = {0};
+
     fd_set readfds; 
     struct timeval timeout;
-    char result = 0;
     
     FD_ZERO(&readfds);
     FD_SET(STDIN_FILENO, &readfds);
@@ -275,10 +281,80 @@ char pollInput(){
     int ready = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &timeout);
 
     if(ready > 0 && FD_ISSET(STDIN_FILENO, &readfds)){
-        read(STDIN_FILENO, &result, 1);
+        
+        if(read(STDIN_FILENO, Result.arr, 1) <= 0) die("Error reading stdin");
+
+        int byteCount = charGetByteCount(Result.arr[0]);
+
+        if(Result.arr[0] == '\x1b'){
+            byteCount = 3;
+        }
+        int Feedback;
+        for(int i = 1; i < byteCount; i++){
+            if((Feedback = read(STDIN_FILENO, Result.arr + i, 1)) <= 0){
+                die("Error reading stdin");
+            }
+            if(((Result.arr[i] >= 'a' && Result.arr[i] <= 'z') || 
+                (Result.arr[i] >= 'A' && Result.arr[i] <= 'Z')) && byteCount < 2) byteCount = 2; 
+            if((Result.arr[i] <= '9' && Result.arr[i] >= '0' 
+                || Result.arr[i] == 'O') && byteCount < 4) byteCount = 4;
+            if(Result.arr[i] == ';') byteCount = 6;
+        }
+        Result.byteCount = byteCount;
     }
 
-    return result;
+    return Result;
+}
+
+uint32 writeOutput(char *src, uint32 size){
+    return write(STDOUT_FILENO, src, size);
+}
+
+console_info getConsoleSystemInfo(){
+    console_info Result;
+
+    struct winsize ws;
+    if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0){
+        die("Couldn't get terminal size");
+    }else{
+        Result.Cols = ws.ws_col;
+        Result.Rows = ws.ws_row;
+    }
+
+    Result.CurrentTime = time(NULL);
+
+    return Result;
+}
+
+uint32 fileWrite(char *destPath, char *string, uint32 size){
+    int fd = open(destPath, O_CREAT | O_WRONLY, 0644);
+
+    if(fd < 0) die("Error crating file %s", destPath);
+
+    uint32 Feedback = write(fd, string, size);
+    if(Feedback == 0) die("Fatal error writing to fd %d", fd);
+    close(fd);
+
+    return Feedback;
+}
+
+uint32 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
+    int fd = open(filePath, O_RDONLY);
+    if(fd < 0) die("Error opening file %s", filePath);
+
+    uint32 Feedback = read(fd, destBuffer, maxBufferSize);
+    if(Feedback == 0) die("Fatal error reading fd %d", fd);
+    close(fd);
+    return Feedback;
+}
+
+int64 getFileSize(char *filePath){
+    struct stat st;
+    if(stat(filePath, &st) == 1) die("Error stating file %s", filePath);
+
+    int64 Result = st.st_size;
+
+    return Result;
 }
 
 #endif

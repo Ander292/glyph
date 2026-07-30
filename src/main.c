@@ -4,6 +4,7 @@
 #include "utf8.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
 static console_info ConInfo;
@@ -672,14 +673,14 @@ static void formatHeader(string *buffer){
     int offsetLeft = 2;
     int width = ConInfo.Cols - offsetLeft;
     char dest[2*width];
-    char fileNameStr[128];
+    char fileNameStr[512];
 
     int fNameLen;
 
     if(HAS_FLAG(FLAG_ALTVIEW)){
-        fNameLen = snprintf(fileNameStr, 128, "%s (%d) %3s", "AltBuffer", GET_ALT_BUFFERID(), (HAS_FLAG(FLAG_READONLY) ? "(r)" : ""));
+        fNameLen = snprintf(fileNameStr, 512, "%s (%d) %3s", "AltBuffer", GET_ALT_BUFFERID(), (HAS_FLAG(FLAG_READONLY) ? "(r)" : ""));
     }else{
-        fNameLen = snprintf(fileNameStr, 128, "%s %3s", E.File, (HAS_FLAG(FLAG_READONLY) ? ("(r)") : (HAS_FLAG(FLAG_DIRTY) ? "(m)" : "")));
+        fNameLen = snprintf(fileNameStr, 512, "%s %3s", E.File, (HAS_FLAG(FLAG_READONLY) ? ("(r)") : (HAS_FLAG(FLAG_DIRTY) ? "(m)" : "")));
     }
     
     WriteToBuffer(buffer, ESC_CLEAR_LINE);

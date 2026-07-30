@@ -1,6 +1,7 @@
 #ifndef UTF8_H
 #define UTF8_H
 
+#include <limits.h>
 #include "system.h"
 
 typedef struct string{

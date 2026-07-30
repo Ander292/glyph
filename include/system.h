@@ -5,6 +5,8 @@
 #include "types.h"
 #include <time.h>
 #include <string.h>
+#include <errno.h>
+#include <stdlib.h>
 
 typedef struct console_info{
     int Rows, Cols;
@@ -33,14 +35,18 @@ uint32 writeOutput(char *src, uint32 size);
 #define TIMEOUT_MS 10
 #define CTRL_KEY(k) ((k) & 0x1f)
 
-#define WINDOWS
+#define Print(str) writeOutput(str, strlen(str))
+#define LINUX
 
 #if defined WINDOWS
 #include <windows.h>
-#define Print(str) writeOutput(str, strlen(str))
 #elif defined LINUX
 #include <termios.h>
 #include <unistd.h>
+#include <sys/select.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
 
 #endif
 

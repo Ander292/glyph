@@ -20,7 +20,8 @@
 #define ESC_ENABLE_MOUSE_TRACKING ESC("?1000h")
 #define ESC_DISABLE_MOUSE_TRACKING ESC("?1000l")
 
-
+#define ESC_NOOVERFLOW ESC("?7l")
+#define ESC_YESOVERFLOW ESC("?7h")
 /* Text attributes */
 #define ESC_INVERTED_TEXT_COLOR ESC("7m")
 #define ESC_RESET_TEXT_ATTRIBUTES ESC("m")
