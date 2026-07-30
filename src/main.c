@@ -332,10 +332,12 @@ static int processInput(character_input ci){
             E.CursorX++;
             character_input tabs = {0};
             tabs.arr[0] = ' ';
-            tabs.byteCount = 4;
+            tabs.byteCount = 1;
             insertCharAtPosList(tabs, E.CursorY, E.CursorX);
+            E.CursorX++;
+            int oldCursorX = E.CursorX;
             for(;E.CursorX % TAB_SPACE_SIZE; E.CursorX++){
-                insertCharAtPosList(tabs, E.CursorY, E.CursorX);
+                insertCharAtPosList(tabs, E.CursorY, oldCursorX);
             }
             break;
         case '\n':
