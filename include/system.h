@@ -36,7 +36,7 @@ uint32 writeOutput(char *src, uint32 size);
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 #define Print(str) writeOutput(str, strlen(str))
-#define LINUX
+#define WINDOWS
 
 #if defined WINDOWS
 #include <windows.h>
