@@ -725,7 +725,7 @@ static void editorRefreshScreen(){
 
 int main(int argc, char *argv[], char *envp[]){
     prepareConsole();
-    SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE);
+    SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE | FLAG_RENDER);
     E.CursorX = 0;
     E.CursorY = 0;
 
@@ -746,9 +746,9 @@ int main(int argc, char *argv[], char *envp[]){
 
     strcpy(E.File, argv[1]);
     editorLoadFile(E.File);
-    //E.File = argv[1];
+    
 
-#if 1
+
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
         
@@ -781,28 +781,18 @@ int main(int argc, char *argv[], char *envp[]){
         }
 
         /* Rendering to the terminal */
-        editorRefreshScreen();
+        if(HAS_FLAG(FLAG_RENDER)){
+            editorRefreshScreen();
+            CLEAR_FLAG(FLAG_RENDER);
+        }
 
         /* Processing input: Reading from stdin, checking for special cases and adding to the main buffer */
         character_input ci = pollInput();
-        if(ci.byteCount != 0) processInput(ci);
+        if(ci.byteCount != 0) {
+            processInput(ci);
+            SET_FLAG(FLAG_RENDER);
+        }
     }
-#else
-    string *str = stringCreateHeap(64);
-    stringAppendEnd(str, "wawa1234", 8);
-    character_input ci = {0};
-    char big[3] = "š";
-    ci.arr[0] = big[0];
-    ci.arr[1] = big[1];
-    ci.byteCount = 2;
-    insertCharAtPossition(str, ci, 2, 1);
-    insertCharAtPossition(str, ci, 2, 1);
-    insertCharAtPossition(str, ci, 0, 1);
-    puts(str->data);
-    deleteCharFromPossition(str, 3);
-    puts(str->data);
-    
-    getchar();
-#endif
+
     return 0;
 }
