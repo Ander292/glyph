@@ -187,10 +187,11 @@ int editorSave(char *path, string_list *src){
         if(i < ROWS_TO_SAVE->size - 1){
             if(HAS_FLAG(FLAG_NEWLINE_ENTER)){
                 stringAppendEnd(&Final, "\n", 1);
+                SizeCount += 1;
             }else{
                 stringAppendEnd(&Final, "\r\n", 2);
+                SizeCount += 2;
             }
-            SizeCount += 2;
         }
     }
 
@@ -334,7 +335,7 @@ static int processInput(character_input ci){
             if(HAS_FLAG(FLAG_NEWLINE_ENTER)) goto NEWLINE;
             break;
         case '\r':{
-            if(HAS_FLAG(FLAG_NEWLINE_ENTER)) break;
+            //if(HAS_FLAG(FLAG_NEWLINE_ENTER)) break;
             NEWLINE:
             SET_FLAG(FLAG_DIRTY);
             string *row = getStringAtIndex(E.Rows, E.CursorY);
