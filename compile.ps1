@@ -1,7 +1,7 @@
 param (
     [string]$mode = "full"
 )
-# full, run, build
+# full, run, build, buildP
 
 $ProjectName = "glyph"
 
@@ -50,7 +50,7 @@ $IncludeFlags = @(
 $LibFlags = @(
 )
 
-$CompilationFlags = @(
+$CompilationFlagsOrd = @(
     #"-Wall"
     #"-pedantic"
     "-Wextra"
@@ -58,10 +58,32 @@ $CompilationFlags = @(
     #"-Wundef"
     #"-Wstrict-overflow=5"
     "-fdiagnostics-show-option"
-    "-g"
-    #"-O2"
+    #"-g"
+    "-O2"
     #"-fsanitize=address"
 )
+
+$CompilationFlagsProd = @(
+    #"-Wall"
+    #"-pedantic"
+    "-Wextra"
+    #"-Wconversion"
+    #"-Wundef"
+    #"-Wstrict-overflow=5"
+    "-fdiagnostics-show-option"
+    #"-g"
+    "-O2"
+    #"-fsanitize=address"
+)
+
+$CompilationFlags = @()
+
+if( ($mode -eq "build") -OR ($mode -eq "full") ){
+    $CompilationFlags = $CompilationFlagsOrd
+}
+elseif( ($mode -eq "buildP") ){
+    $CompilationFlags = $CompilationFlagsProd
+}
 
 # Extra flags for the linking stage
 $ExtraFlags = @(
@@ -69,7 +91,7 @@ $ExtraFlags = @(
     "-m64"
 )
 
-if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) ){
+if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
 
     # Compiling c code into obj files
     Write-Host "Compiling c files..."

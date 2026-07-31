@@ -68,12 +68,13 @@ void prepareConsole(){
     atexit(disableRawMode);
 }
 
-LPSTR WIN32_FormatError(DWORD dwError){
+static inline LPSTR WIN32_FormatError(DWORD dwError){
     LPSTR MessageBuffer;
     FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | 
         FORMAT_MESSAGE_FROM_SYSTEM | 
-        FORMAT_MESSAGE_IGNORE_INSERTS,
+        FORMAT_MESSAGE_IGNORE_INSERTS |
+        FORMAT_MESSAGE_MAX_WIDTH_MASK,
         NULL, dwError, 0, 
         (LPSTR)&MessageBuffer,
         0, NULL
@@ -199,29 +200,34 @@ uint32 writeOutput(char *src, uint32 size){
 
 // TODO: Better error handling for these functions!!!
 
-uint32 fileWrite(char *destPath, char *string, uint32 size){
+int64 fileWrite(char *destPath, char *string, uint32 size){
     HANDLE hOutFile = CreateFileA(destPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 
         FILE_ATTRIBUTE_NORMAL, NULL);
     if(hOutFile == INVALID_HANDLE_VALUE){
-        WIN32_ErrorExit("CreateFile failed for path: %s", destPath);
+        //WIN32_ErrorExit("CreateFile failed for path: %s", destPath);
+        return -1;
     }
     DWORD Feedback;
-    WriteFile(hOutFile, string, size, &Feedback, NULL);
+    if(!WriteFile(hOutFile, string, size, &Feedback, NULL)){
+        return -1;
+    }
 
     CloseHandle(hOutFile);
 
-    return Feedback;
+    return (int64)Feedback;
 }
 
-uint32 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
+int64 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
     HANDLE hInFile = CreateFileA(filePath, GENERIC_READ, 0, NULL, OPEN_ALWAYS, 
         FILE_ATTRIBUTE_NORMAL, NULL);
     if(hInFile == INVALID_HANDLE_VALUE){
-        WIN32_ErrorExit("CreateFile failed for path: %s", filePath);
+        //WIN32_ErrorExit("CreateFile failed for path: %s", filePath);
+        return -1;
     }
     DWORD Feedback;
     if(!ReadFile(hInFile, destBuffer, maxBufferSize, &Feedback, NULL)){
-        WIN32_ErrorExit("Read file failed (requested %u, read %u bytes)", maxBufferSize, Feedback);
+        //WIN32_ErrorExit("Read file failed (requested %u, read %u bytes)", maxBufferSize, Feedback);
+        return -1;
     }
 
     CloseHandle(hInFile);
@@ -231,7 +237,7 @@ uint32 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
 int64 getFileSize(char *filePath){
     WIN32_FILE_ATTRIBUTE_DATA fi;
     if(!GetFileAttributesExA(filePath, GetFileExInfoStandard, &fi)){
-        return 0;
+        return -1;
     }
     return (int64)((uint64)fi.nFileSizeLow | ((uint64)fi.nFileSizeHigh << 32));
 }
@@ -326,31 +332,31 @@ console_info getConsoleSystemInfo(){
     return Result;
 }
 
-uint32 fileWrite(char *destPath, char *string, uint32 size){
+int64 fileWrite(char *destPath, char *string, uint32 size){
     int fd = open(destPath, O_CREAT | O_WRONLY, 0644);
 
-    if(fd < 0) die("Error crating file %s", destPath);
+    if(fd < 0) return -1; //die("Error crating file %s", destPath);
 
     uint32 Feedback = write(fd, string, size);
-    if(Feedback == 0) die("Fatal error writing to fd %d", fd);
+    if(Feedback == 0) return -1; //die("Fatal error writing to fd %d", fd);
     close(fd);
 
     return Feedback;
 }
 
-uint32 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
+int64 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize){
     int fd = open(filePath, O_RDONLY);
-    if(fd < 0) die("Error opening file %s", filePath);
+    if(fd < 0) return -1; //die("Error opening file %s", filePath);
 
     uint32 Feedback = read(fd, destBuffer, maxBufferSize);
-    if(Feedback == 0) die("Fatal error reading fd %d", fd);
+    if(Feedback == 0) return -1; //die("Fatal error reading fd %d", fd);
     close(fd);
     return Feedback;
 }
 
 int64 getFileSize(char *filePath){
     struct stat st;
-    if(stat(filePath, &st) == 1) die("Error stating file %s", filePath);
+    if(stat(filePath, &st) == 1) return -1; //die("Error stating file %s", filePath);
 
     int64 Result = st.st_size;
 
@@ -358,6 +364,22 @@ int64 getFileSize(char *filePath){
 }
 
 #endif
+
+static inline uint32 getInputOutputErrorCode(){
+#if defined WINDOWS
+    return GetLastError();
+#elif defined LINUX
+    return errno;
+#endif
+}
+
+char *getInputOutputErrorString(){
+#if defined WINDOWS
+    return WIN32_FormatError((DWORD)getInputOutputErrorCode());
+#elif defined LINUX
+    return strerror(errno);
+#endif
+}
 
 void die(const char *format, ...){
     char str[256];

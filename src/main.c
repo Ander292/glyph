@@ -42,6 +42,7 @@ string OutputBuffer;
 static inline void updateStatus();
 static void editorRefreshScreen();
 string *editorPromtHeader(char *promt);
+int editorLoadFile(char *path);
 
 static int countToNotChar(string *str, int startPos, uint32 character){
     int Result = 0;
@@ -210,10 +211,10 @@ int editorSave(char *path, string_list *src){
         }
     }
 
-    uint32 Result = fileWrite(path, Final.data, Final.byteLen);
+    int64 Result = fileWrite(path, Final.data, Final.byteLen);
     
     if(Result != SizeCount){
-        postEditorMessage(5, "Error saving file. Expected: %u, Wrote: %u", SizeCount, Result);
+        postEditorMessage(5, "Error saving file. E: %u, W: %u", SizeCount, Result);
     }else{
         postEditorMessage(5, "File properly saved (Wrote %u bytes)", Result);
         UNSET_FLAG(FLAG_DIRTY);
@@ -300,6 +301,37 @@ static int processInput(character_input ci){
         case CTRL_KEY('n'):
             TOGGLE_FLAG(FLAG_SHOWNUMBERS);
             break;
+        case CTRL_KEY('o'):{ // File open
+            if(HAS_FLAG(FLAG_DIRTY) && E.File[0] != 0){
+                postEditorMessage(20, "Unsaved changes. Proceed? (Yes, No, Save)");
+                while(1){
+                    editorRefreshScreen();
+                    character_input ci = pollInput();
+                    switch(ci.arr[0] & 0xdf){
+                        case 'Y':
+                            goto END_WHILE2;
+                        case 'N':
+                            clearEditorMessage();
+                            return 0;
+                        case 'S':
+                            if(editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS)) break;
+                            goto END_WHILE2;
+                    }
+                }
+                END_WHILE2:
+            }
+            string *feedback = editorPromtHeader("Enter path:");
+            if(getFileSize(feedback->data) <= 0) {
+                postEditorMessage(10, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
+                break;
+            }
+            freeList(E.Rows);
+            *(E.Rows) = createListWithRows(1);
+            E.Cursor = (int_pair){0, 0};
+            editorLoadFile(feedback->data);
+            stringFreeHeap(feedback);
+            break;
+        }
         case CTRL_KEY('g'):
             TOGGLE_FLAG(FLAG_SHOWHEADER);
             break;
@@ -481,7 +513,7 @@ static int processInput(character_input ci){
                                             int startOffset;
                                             int byteCountTillEnd = stringCharToByteCount(current, E.Cursor.X, 0, 0, &startOffset);
                                             char *start = current->data + startOffset;
-                                            if(*start == ' ' && ((start - 1 < current->data) || start[-1] == ' ')){
+                                            if((start - 1 < current->data) || start[-1] == ' '){
                                                 E.Cursor.X -= countBackToNotChar(current, E.Cursor.X, ' ');
                                             }else{
                                                 E.Cursor.X -= countBackToChar(current, E.Cursor.X, ' ');
@@ -615,18 +647,29 @@ void stringIntoInput(const char *str, int len){
     }
 }
 
-void editorLoadFile(char *path){
+int editorLoadFile(char *path){
+    clearEditorMessage();
+    char buffer[256];
     int64 fileSize = getFileSize(path);
-    if(fileSize == 0) die("Error reading file: %s", path);
+    if(fileSize <= 0) {
+        postEditorMessage(10, "FileSize error: %s : %s", path, getInputOutputErrorString());
+        return 1;
+    }
 
     char *tempBuffer = malloc(fileSize + 1);
+    if(tempBuffer == NULL) die("malloc fault (%zu)", fileSize);
     tempBuffer[fileSize] = 0;
 
-    uint32 Feedback = fileRead(path, tempBuffer, fileSize);
+    int64 Feedback = fileRead(path, tempBuffer, fileSize);
+    if(Feedback <= 0){
+        postEditorMessage(10, "fileRead error: %s : %s", path, getInputOutputErrorString());
+        return 1;
+    }
+
     if(Feedback != fileSize) 
         postEditorMessage(5, "Possible load error (Exp: %u | Rec: %u)", fileSize, Feedback);
 
-    for(uint32 i = 0; i < Feedback; i++){
+    for(int64 i = 0; i < Feedback; i++){
         if(tempBuffer[i] == '\n') {
             SET_FLAG(FLAG_NEWLINE_ENTER);
             break;

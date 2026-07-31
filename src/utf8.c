@@ -130,8 +130,10 @@ character_input getCharAtPos(string *str, int index){
     for(int i = 0; i < index; i++){
         bytesPassed += str->byteCount[i];
     }
-    memcpy(Result.arr, str->data + bytesPassed, Result.byteCount);
     Result.byteCount = str->byteCount[index];
+    memcpy(Result.arr, str->data + bytesPassed, Result.byteCount);
+
+    return Result;
 }
 
 void clearBuffer(string *str){

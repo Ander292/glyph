@@ -27,7 +27,7 @@ character_input getCharAtPos(string *str, int index);
 
 // void shiftStringRight(char *str, int len);
 // void shiftStringLeft(char *str, int len);
-//void shiftStringUtf8Right(string *str, int pos, int shiftCountInChars);
+// void shiftStringUtf8Right(string *str, int pos, int shiftCountInChars);
 void insertCharAtPossition(string *str, character_input ci, int pos, int insertMode);
 void deleteCharFromPossition(string *str, int pos);
 
@@ -58,5 +58,6 @@ void printList(string_list *list);
 void listDeleteRow(string_list *list, int index);
 void swapStringsForIndexes(string_list *list, int ind1, int ind2);
 string_list createListWithRows(int initRowCount);
-
+void clearList(string_list *list);
+void freeList(string_list *list);
 #endif

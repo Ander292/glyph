@@ -23,10 +23,11 @@ void disableRawMode();
 void enableRawMode();
 console_info getConsoleSystemInfo();
 void prepareConsole();
-uint32 fileWrite(char *destPath, char *string, uint32 size);
-uint32 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize);
+int64 fileWrite(char *destPath, char *string, uint32 size);
+int64 fileRead(char *filePath, char *destBuffer, uint32 maxBufferSize);
 int64 getFileSize(char *filePath);
 void die(const char *string, ...);
+char *getInputOutputErrorString();
 
 /* Input-Output */
 character_input pollInput();
