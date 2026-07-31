@@ -9,12 +9,24 @@
 
 static console_info ConInfo;
 
+typedef struct int_pair{
+    int X, Y;
+} int_pair;
+
 static struct{
     uint32 Flags;
-
-    int CursorX, CursorY; /* The possition of the cursor inside the internal buffer */
+    
+#if 1
+    int_pair Cursor; /* The possition of the cursor inside the internal buffer */
+    int_pair oldCursor; /* The possitions in the main buffer, saved here during altbuffer switches */
+    int_pair Offset;
+    int_pair maxCursor;
+#else
+    int CursorX, CursorY; 
+    int oldCursorX, oldCursorY; 
     int OffsetX, OffsetY;
-
+    int maxCursorX, maxCursorY;
+#endif
     char File[FILE_PATH_LENGTH];
     string_list *Rows;
     string_list MainBuffer;
@@ -27,7 +39,9 @@ static struct{
 
 string OutputBuffer;
 
+static inline void updateStatus();
 static void editorRefreshScreen();
+string *editorPromtHeader(char *promt);
 
 static int countToNotChar(string *str, int startPos, uint32 character){
     int Result = 0;
@@ -213,45 +227,48 @@ int editorSave(char *path, string_list *src){
 
 void FixCursorPossition(){
     /* Fixing the internal cursor possition and the offsets */
-    string *str = getStringAtIndex(E.Rows, E.CursorY);
+    string *str = getStringAtIndex(E.Rows, E.Cursor.Y);
     int currentWidth = 0;
     if(str != NULL) currentWidth = str->len;
     int destWidth = MIN_VAL(ConInfo.Cols, currentWidth);
 
-    if(E.CursorX < 0){
-        E.CursorX = 0;
-    }else if(E.CursorX > currentWidth){
-        E.CursorX = currentWidth;
+    if(E.Cursor.X < 0){
+        E.Cursor.X = 0;
+    }else if(E.Cursor.X > currentWidth){
+        E.Cursor.X = currentWidth;
     }
 
     // Vertical offset
-    if((E.CursorY - E.OffsetY > ConInfo.Rows - 1 - E.TextOffsetTop) && E.CursorY < E.Rows->size){
-        E.OffsetY = MAX_VAL(0, (E.CursorY) - (ConInfo.Rows - E.TextOffsetTop) + 1);
-    }else if((E.CursorY - E.OffsetY < 0)){
-        E.OffsetY = MAX_VAL(0, E.OffsetY - (E.OffsetY - E.CursorY));
+    if((E.Cursor.Y - E.Offset.Y > ConInfo.Rows - 1 - E.TextOffsetTop) && E.Cursor.Y < E.Rows->size){
+        E.Offset.Y = MAX_VAL(0, (E.Cursor.Y) - (ConInfo.Rows - E.TextOffsetTop) + 1);
+    }else if((E.Cursor.Y - E.Offset.Y < 0)){
+        E.Offset.Y = MAX_VAL(0, E.Offset.Y - (E.Offset.Y - E.Cursor.Y));
     }
 
     // Horizontal offset
-    if(E.CursorX - E.OffsetX > ConInfo.Cols - 1 - E.TextOffsetLeft){
-        E.OffsetX = MAX_VAL(0, E.CursorX - (ConInfo.Cols - E.TextOffsetLeft) + 1);
-    }else if((E.CursorX - E.OffsetX < 0)){
-        E.OffsetX = MAX_VAL(0, E.OffsetX - (E.OffsetX - E.CursorX));
+    if(E.Cursor.X - E.Offset.X > ConInfo.Cols - 1 - E.TextOffsetLeft){
+        E.Offset.X = MAX_VAL(0, E.Cursor.X - (ConInfo.Cols - E.TextOffsetLeft) + 1);
+    }else if((E.Cursor.X - E.Offset.X < 0)){
+        E.Offset.X = MAX_VAL(0, E.Offset.X - (E.Offset.X - E.Cursor.X));
     }
 
     // Verticall offset clamping
-    if(E.OffsetY < 0) E.OffsetY = 0;
+    if(E.Offset.Y < 0) E.Offset.Y = 0;
 #if 0
-    if(E.OffsetY > E.Rows->size - (ConInfo.Rows - E.TextOffsetTop)) 
-        E.OffsetY = E.Rows->size - (ConInfo.Rows - E.TextOffsetTop);
+    if(E.Offset.Y > E.Rows->size - (ConInfo.Rows - E.TextOffsetTop)) 
+        E.Offset.Y = E.Rows->size - (ConInfo.Rows - E.TextOffsetTop);
 #else
-    if(E.OffsetY > E.Rows->size - 1) E.OffsetY = E.Rows->size - 1;
+    if(E.Offset.Y > E.Rows->size - 1) E.Offset.Y = E.Rows->size - 1;
 #endif
 
-    if(E.CursorY < 0){
-        E.CursorY = 0;
-    }else if(E.CursorY > E.Rows->size - 1){
-        E.CursorY = E.Rows->size - 1;
+    if(E.Cursor.Y < 0){
+        E.Cursor.Y = 0;
+    }else if(E.Cursor.Y > E.Rows->size - 1){
+        E.Cursor.Y = E.Rows->size - 1;
     }
+
+    if(!(E.maxCursor.X < 0) && (E.Cursor.X > E.maxCursor.X)) E.Cursor.X = E.maxCursor.X;
+    if(!(E.maxCursor.Y < 0) && (E.Cursor.Y > E.maxCursor.Y)) E.Cursor.Y = E.maxCursor.Y;
 }
 
 
@@ -287,8 +304,18 @@ static int processInput(character_input ci){
             TOGGLE_FLAG(FLAG_SHOWHEADER);
             break;
         case CTRL_KEY('p'):
+#if 0
             TOGGLE_FLAG(FLAG_ALTVIEW);
             SET_ALT_BUFFERID(0);
+#else
+            string *src = editorPromtHeader("Input string");
+            string *dest = getStringAtIndex(E.Rows, E.Cursor.Y);
+            for(int i = 0; i < src->len; i++){
+                character_input ci = getCharAtPos(src, i);
+                insertCharAtPossition(dest, ci, E.Cursor.X++, HAS_FLAG(FLAG_INSERT_MODE));
+            }
+            stringFreeHeap(src);
+#endif
             break;
         case CTRL_KEY('u'):
             // TODO: Switch between UTF16 and UTF8 output
@@ -299,20 +326,20 @@ static int processInput(character_input ci){
         case CTRL_KEY('w'):
         case '\b': // Backspace (or ctrl + h)
             if(HAS_FLAG(FLAG_READONLY)) break;
-            string *current = getStringAtIndex(E.Rows, E.CursorY);
+            string *current = getStringAtIndex(E.Rows, E.Cursor.Y);
             int startOffset;
-            int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
+            int byteCountTillEnd = stringCharToByteCount(current, E.Cursor.X, 0, 0, &startOffset);
             char *start = current->data + startOffset;
             int removeCountLeft;
             if((*start == ' ' || *start == 0) && ((start - 1 < current->data) || start[-1] == ' ')){
-                removeCountLeft = countBackToNotChar(current, E.CursorX, ' ');
+                removeCountLeft = countBackToNotChar(current, E.Cursor.X, ' ');
             }else{
-                removeCountLeft = countBackToChar(current, E.CursorX, ' ');
+                removeCountLeft = countBackToChar(current, E.Cursor.X, ' ');
             }
             if(removeCountLeft != 0){
                 SET_FLAG(FLAG_DIRTY);
                 for(int i = 0; i < removeCountLeft; i++){
-                    deleteCharFromPossition(current, E.CursorX - removeCountLeft);
+                    deleteCharFromPossition(current, E.Cursor.X - removeCountLeft);
                 }
             }
             break;
@@ -323,19 +350,19 @@ static int processInput(character_input ci){
         case 127:  // Delete key in ascii but its backspace for some reason
         {
             if(HAS_FLAG(FLAG_READONLY)) break;
-            if(E.CursorX == 0){
-                string *rowNext = getStringAtIndex(E.Rows, E.CursorY);
-                if(E.CursorY != 0){
-                    string *rowPrev = getStringAtIndex(E.Rows, E.CursorY-1);
-                    E.CursorX = rowPrev->len;
+            if(E.Cursor.X == 0){
+                string *rowNext = getStringAtIndex(E.Rows, E.Cursor.Y);
+                if(E.Cursor.Y != 0){
+                    string *rowPrev = getStringAtIndex(E.Rows, E.Cursor.Y-1);
+                    E.Cursor.X = rowPrev->len;
                     stringAppendEnd(rowPrev, rowNext->data, rowNext->byteLen);
-                    listDeleteRow(E.Rows, E.CursorY);
-                    E.CursorY--;
+                    listDeleteRow(E.Rows, E.Cursor.Y);
+                    E.Cursor.Y--;
                     SET_FLAG(FLAG_DIRTY);
                 }
             }else{
-                deleteCharFromPosList(E.Rows, E.CursorY, E.CursorX - 1);
-                E.CursorX--;
+                deleteCharFromPosList(E.Rows, E.Cursor.Y, E.Cursor.X - 1);
+                E.Cursor.X--;
                 SET_FLAG(FLAG_DIRTY);
             }
             break;
@@ -347,23 +374,23 @@ static int processInput(character_input ci){
             NEWLINE:
             if(HAS_FLAG(FLAG_READONLY)) break;
             SET_FLAG(FLAG_DIRTY);
-            string *row = getStringAtIndex(E.Rows, E.CursorY);
+            string *row = getStringAtIndex(E.Rows, E.Cursor.Y);
             string *str = stringCreateHeap(64);
-            listInsertAtPossition(E.Rows, str, E.CursorY + 1);
+            listInsertAtPossition(E.Rows, str, E.Cursor.Y + 1);
             
-            if(E.CursorX != row->len){
+            if(E.Cursor.X != row->len){
                 int startOffset;
-                int bytesToCopy = stringCharToByteCount(row, E.CursorX, 0, 0, &startOffset);
+                int bytesToCopy = stringCharToByteCount(row, E.Cursor.X, 0, 0, &startOffset);
                 stringAppendEnd(str, row->data + startOffset, bytesToCopy);
                 character_input ci = {0};
                 ci.arr[0] = 0;
                 ci.byteCount = 1;
-                //insertCharAtPossition(row, ci, E.CursorX, 0);
-                terminateStringOnPos(row, E.CursorX);
+                //insertCharAtPossition(row, ci, E.Cursor.X, 0);
+                terminateStringOnPos(row, E.Cursor.X);
             }
 
-            E.CursorY++;
-            E.CursorX = 0;
+            E.Cursor.Y++;
+            E.Cursor.X = 0;
             break;
         }
         case '\t':
@@ -372,11 +399,11 @@ static int processInput(character_input ci){
             character_input tabs = {0};
             tabs.arr[0] = ' ';
             tabs.byteCount = 1;
-            insertCharAtPosList(tabs, E.CursorY, E.CursorX);
-            E.CursorX++;
-            int oldCursorX = E.CursorX;
-            for(;E.CursorX % TAB_SPACE_SIZE; E.CursorX++){
-                insertCharAtPosList(tabs, E.CursorY, oldCursorX);
+            insertCharAtPosList(tabs, E.Cursor.Y, E.Cursor.X);
+            E.Cursor.X++;
+            int oldCursorX = E.Cursor.X;
+            for(;E.Cursor.X % TAB_SPACE_SIZE; E.Cursor.X++){
+                insertCharAtPosList(tabs, E.Cursor.Y, oldCursorX);
             }
             break;
         // case 127: // Delete key
@@ -388,34 +415,34 @@ static int processInput(character_input ci){
                 case 'A': // Up arrow
                 case 'a':
                     UP_ARROW:
-                    E.CursorY--;
+                    E.Cursor.Y--;
                     break;
                 case 'B': // Down arrow
                 case 'b':
                     DOWN_ARROW:
-                    E.CursorY++;
+                    E.Cursor.Y++;
                     break;
                 case 'C': // Right arrow
                 case 'c':
                     RIGHT_ARROW:
-                    E.CursorX++;
+                    E.Cursor.X++;
                     break;
                 case 'D': // Left arrow
                 case 'd':
                     LEFT_ARROW:
-                    E.CursorX--;
+                    E.Cursor.X--;
                     break;
                 case '5': // Pageup (followed by ~ but not checked)
-                    //E.CursorY -= (ConInfo.Rows - 2);
-                    E.CursorY -= (ConInfo.Rows - E.TextOffsetTop);
-                    E.OffsetY -= (ConInfo.Rows - E.TextOffsetTop);
+                    //E.Cursor.Y -= (ConInfo.Rows - 2);
+                    E.Cursor.Y -= (ConInfo.Rows - E.TextOffsetTop);
+                    E.Offset.Y -= (ConInfo.Rows - E.TextOffsetTop);
                     break;
                 case '6': // Pagedown (followed by ~ but not checked)
-                    //E.CursorY += (ConInfo.Rows - 2);
-                    E.CursorY += (ConInfo.Rows - E.TextOffsetTop);
-                    E.OffsetY += (ConInfo.Rows - E.TextOffsetTop);
-                    // E.CursorY = E.OffsetY + ConInfo.Rows - 1;
-                    // if(E.CursorY > E.Rows->size - 1) E.CursorY = E.Rows->size - 1;
+                    //E.Cursor.Y += (ConInfo.Rows - 2);
+                    E.Cursor.Y += (ConInfo.Rows - E.TextOffsetTop);
+                    E.Offset.Y += (ConInfo.Rows - E.TextOffsetTop);
+                    // E.Cursor.Y = E.Offset.Y + ConInfo.Rows - 1;
+                    // if(E.Cursor.Y > E.Rows->size - 1) E.Cursor.Y = E.Rows->size - 1;
                     break;
                 case '2': // Insert key (followed by ~ but not checked)
                     TOGGLE_FLAG(FLAG_INSERT_MODE);
@@ -432,32 +459,32 @@ static int processInput(character_input ci){
                                 case '5':{ // Ctrl modifier
                                     switch(ci.arr[5]){
                                         case 'A': // up arrow
-                                            E.OffsetY--;
+                                            E.Offset.Y--;
                                             break;
                                         case 'B': // down arrow
-                                            E.OffsetY++;
+                                            E.Offset.Y++;
                                             break;
                                         case 'C':{ // right arrow
-                                            string *current = getStringAtIndex(E.Rows, E.CursorY);
+                                            string *current = getStringAtIndex(E.Rows, E.Cursor.Y);
                                             int startOffset;
-                                            int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
+                                            int byteCountTillEnd = stringCharToByteCount(current, E.Cursor.X, 0, 0, &startOffset);
                                             char *start = current->data + startOffset;
                                             if(*start == ' '){
-                                                E.CursorX += countToNotChar(current, E.CursorX, ' ');
+                                                E.Cursor.X += countToNotChar(current, E.Cursor.X, ' ');
                                             }else{
-                                                E.CursorX += countToChar(current, E.CursorX, ' ');
+                                                E.Cursor.X += countToChar(current, E.Cursor.X, ' ');
                                             }
                                             break;
                                         }
                                         case 'D':{ // left arrow
-                                            string *current = getStringAtIndex(E.Rows, E.CursorY);
+                                            string *current = getStringAtIndex(E.Rows, E.Cursor.Y);
                                             int startOffset;
-                                            int byteCountTillEnd = stringCharToByteCount(current, E.CursorX, 0, 0, &startOffset);
+                                            int byteCountTillEnd = stringCharToByteCount(current, E.Cursor.X, 0, 0, &startOffset);
                                             char *start = current->data + startOffset;
                                             if(*start == ' ' && ((start - 1 < current->data) || start[-1] == ' ')){
-                                                E.CursorX -= countBackToNotChar(current, E.CursorX, ' ');
+                                                E.Cursor.X -= countBackToNotChar(current, E.Cursor.X, ' ');
                                             }else{
-                                                E.CursorX -= countBackToChar(current, E.CursorX, ' ');
+                                                E.Cursor.X -= countBackToChar(current, E.Cursor.X, ' ');
                                             }
                                             break;
                                         }
@@ -467,24 +494,24 @@ static int processInput(character_input ci){
                                 case '3':{ // Alt keys
                                     switch(ci.arr[5]){
                                         case 'A': // Up arrow
-                                            if(E.CursorY > 0 && E.Rows->size > 1) {
-                                                //string *currentLine = getStringAtIndex(E.Rows, E.CursorY);
-                                                //string *prevLine = getStringAtIndex(E.Rows, E.CursorY - 1);
-                                                swapStringsForIndexes(E.Rows, E.CursorY, E.CursorY - 1);
-                                                E.CursorY--;
+                                            if(E.Cursor.Y > 0 && E.Rows->size > 1) {
+                                                //string *currentLine = getStringAtIndex(E.Rows, E.Cursor.Y);
+                                                //string *prevLine = getStringAtIndex(E.Rows, E.Cursor.Y - 1);
+                                                swapStringsForIndexes(E.Rows, E.Cursor.Y, E.Cursor.Y - 1);
+                                                E.Cursor.Y--;
                                             }
                                             break;
                                         case 'B': // down arrow
-                                            if(E.CursorY + 1 < E.Rows->size && E.Rows->size > 1){
-                                                swapStringsForIndexes(E.Rows, E.CursorY, E.CursorY + 1);
-                                                E.CursorY++;
+                                            if(E.Cursor.Y + 1 < E.Rows->size && E.Rows->size > 1){
+                                                swapStringsForIndexes(E.Rows, E.Cursor.Y, E.Cursor.Y + 1);
+                                                E.Cursor.Y++;
                                             }
                                             break;
                                         case 'C': { // Right arrow
                                             if(HAS_FLAG(FLAG_ALTVIEW)){
                                                 uint8 currentBufferId = GET_ALT_BUFFERID();
 
-                                                SET_ALT_BUFFERID(((currentBufferId + 1U) % ALT_BUFFER_COUNT));
+                                                SET_ALT_BUFFERID(((currentBufferId + 1U) % (ALT_BUFFER_COUNT)));
                                             }
                                             break;
                                         }
@@ -507,33 +534,33 @@ static int processInput(character_input ci){
                 case '7':
                 case 'H':
                     HOME:
-                    E.CursorX = 0;
+                    E.Cursor.X = 0;
                     break;
                 /* End key. Goes to the end of the line (depending on its size) */
                 case '4':
                 case '8':
                 case 'F':
                     END:
-                    string *str = getStringAtIndex(E.Rows, E.CursorY);
+                    string *str = getStringAtIndex(E.Rows, E.Cursor.Y);
                     if(str != NULL){
-                        E.CursorX = str->len;
+                        E.Cursor.X = str->len;
                     }
                     break;
                 case '3': // Delete key
                     //postEditorMessage(5, "Delete key <3");
                     //SET_FLAG(FLAG_DIRTY);
                     if(HAS_FLAG(FLAG_READONLY)) break;
-                    string *currentRow = getStringAtIndex(E.Rows, E.CursorY);
-                    if(E.CursorX == currentRow->len){
-                        if(E.CursorY + 1< E.Rows->size){
-                            string *nextRow = getStringAtIndex(E.Rows, E.CursorY + 1);
+                    string *currentRow = getStringAtIndex(E.Rows, E.Cursor.Y);
+                    if(E.Cursor.X == currentRow->len){
+                        if(E.Cursor.Y + 1< E.Rows->size){
+                            string *nextRow = getStringAtIndex(E.Rows, E.Cursor.Y + 1);
     
                             stringAppendEnd(currentRow, nextRow->data, nextRow->byteLen);
-                            listDeleteRow(E.Rows, E.CursorY + 1);
+                            listDeleteRow(E.Rows, E.Cursor.Y + 1);
                             SET_FLAG(FLAG_DIRTY);
                         }
                     }else{
-                        deleteCharFromPosList(E.Rows, E.CursorY, E.CursorX);
+                        deleteCharFromPosList(E.Rows, E.Cursor.Y, E.Cursor.X);
                         SET_FLAG(FLAG_DIRTY);
                     }
                     break;
@@ -546,8 +573,8 @@ static int processInput(character_input ci){
             //stringAppendEnd(&OutputBuffer, ci.arr, ci.byteCount);
             if(ci.arr[0] != 0 && ci.arr[0] != ESC_SEQ[0]){
                 SET_FLAG(FLAG_DIRTY);
-                insertCharAtPosList(ci, E.CursorY, E.CursorX);
-                E.CursorX++;
+                insertCharAtPosList(ci, E.Cursor.Y, E.Cursor.X);
+                E.Cursor.X++;
             }
             return 0;
         }
@@ -612,8 +639,8 @@ void editorLoadFile(char *path){
     stringIntoInput(tempBuffer, Feedback);
 
     free(tempBuffer);
-    E.CursorX = 0;
-    E.CursorY = 0;
+    E.Cursor.X = 0;
+    E.Cursor.Y = 0;
     FixCursorPossition();
     CLEAR_FLAG(FLAG_DIRTY);
 }
@@ -630,13 +657,13 @@ static void drawRows(string *buffer){
 
     /* Calculating verticall offset */
 #if 0
-    int verticallOffset = MAX_VAL(E.CursorY - maxRows, 0);
-    int horizontalOffset = MAX_VAL(E.CursorX - maxCols, 0);
-    E.OffsetX = horizontalOffset;
-    E.OffsetY = verticallOffset;
+    int verticallOffset = MAX_VAL(E.Cursor.Y - maxRows, 0);
+    int horizontalOffset = MAX_VAL(E.Cursor.X - maxCols, 0);
+    E.Offset.X = horizontalOffset;
+    E.Offset.Y = verticallOffset;
 #else
-    int horizontalOffset = E.OffsetX;
-    int verticallOffset = E.OffsetY;
+    int horizontalOffset = E.Offset.X;
+    int verticallOffset = E.Offset.Y;
 #endif
     int targetRows = MIN_VAL(E.Rows->size - verticallOffset, maxRows);
     for(int i = 0; i < maxRows; i++){
@@ -687,7 +714,7 @@ static void formatHeader(string *buffer){
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
     
     int feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
-        fileNameStr, E.Rows->size, E.CursorY + 1, E.CursorX, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+        fileNameStr, E.Rows->size, E.Cursor.Y + 1, E.Cursor.X, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
         
     WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
     WriteToBuffer(buffer, "    ");
@@ -701,7 +728,7 @@ static void formatHeader(string *buffer){
 #else
     char bufferS[256];
     sprintf(bufferS, ESC_CLEAR_LINE "LineC: %d; curX: %d, curY: %d (%d), OffsetX: %d, OffsetY: %d, conSX: %d, conSY: %d, BufferId: (%d)%d\r\n", 
-        E.Rows->size, E.CursorX, E.CursorY, E.CursorY + 1, E.OffsetX, E.OffsetY, ConInfo.Cols, ConInfo.Rows, HAS_FLAG(FLAG_ALTVIEW) != 0, GET_ALT_BUFFERID());
+        E.Rows->size, E.Cursor.X, E.Cursor.Y, E.Cursor.Y + 1, E.Offset.X, E.Offset.Y, ConInfo.Cols, ConInfo.Rows, HAS_FLAG(FLAG_ALTVIEW) != 0, GET_ALT_BUFFERID());
     WriteToBuffer(buffer, bufferS);
 #endif
 }
@@ -720,15 +747,92 @@ static void editorRefreshScreen(){
     PrintBuffer(OutputBuffer);
     clearBuffer(&OutputBuffer);
 
-    setCursorPossition(E.CursorX - E.OffsetX, E.CursorY - E.OffsetY);
+    setCursorPossition(E.Cursor.X - E.Offset.X, E.Cursor.Y - E.Offset.Y);
     Print(ESC_SHOW_CURSOR);
+}
+
+static inline void updateStatus(){
+    /* Message expiring */
+    if(E.Message.Duration != 0){
+        if(ConInfo.CurrentTime - E.Message.PostTime > E.Message.Duration){
+            *E.Message.Data = 0;
+            E.Message.Duration = 0;
+            E.Message.PostTime = 0;
+        }
+    }
+
+    /* Offsets from top and left side */
+    if(HAS_FLAG(FLAG_SHOWNUMBERS)){
+        E.TextOffsetLeft = 4;
+    }else{
+        E.TextOffsetLeft = 1;
+    }
+    if(HAS_FLAG(FLAG_SHOWHEADER)){
+        E.TextOffsetTop = 1;
+    }else{
+        E.TextOffsetTop = 0;
+    }
+
+    /* Switching buffers */
+    if(HAS_FLAG(FLAG_ALTVIEW)){
+        uint8 bufferID = GET_ALT_BUFFERID();
+        if(bufferID < ALT_RESERVED_COUNT) SET_FLAG(FLAG_RDONLY);
+        else CLEAR_FLAG(FLAG_RDONLY);
+        E.Rows = (E.AltBuffers + bufferID);
+
+        if(E.oldCursor.X < 0) {
+            //SET_FLAG(FLAG_RENDER);
+            E.oldCursor = E.Cursor;
+            E.Cursor = (int_pair){0, 0};
+            FixCursorPossition();
+        }
+    }else{
+        CLEAR_FLAG(FLAG_READONLY);
+        E.Rows = &E.MainBuffer;
+        if(E.oldCursor.X >= 0){
+            //SET_FLAG(FLAG_RENDER);
+            E.Cursor = E.oldCursor;
+            E.oldCursor = (int_pair){-1, -1};
+            FixCursorPossition();
+        }
+    }
+}
+
+string *editorPromtHeader(char *promt){
+    char *format = "%s : %s";
+    string *strBuffer = stringCreateHeap(64);
+
+    while(1){
+        postEditorMessage(0, format, promt, strBuffer->data);
+        editorRefreshScreen();
+
+        character_input ci = pollInput();
+        switch(ci.arr[0]){
+            case '\x1b':
+            case '\b':
+            case '\t':
+                break;
+            case 127:
+                deleteCharFromPossition(strBuffer, strBuffer->len - 1);
+                break;
+            case '\r':
+                return strBuffer;
+            default:
+                stringAppendEnd(strBuffer, ci.arr, ci.byteCount);
+                break;
+        }
+    }
 }
 
 int main(int argc, char *argv[], char *envp[]){
     prepareConsole();
     SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE | FLAG_RENDER);
-    E.CursorX = 0;
-    E.CursorY = 0;
+    E.Cursor.X = 0;
+    E.Cursor.Y = 0;
+    E.maxCursor.X = DEFAULT_CURSOR_MAXIMUM_X;
+    E.maxCursor.Y = DEFAULT_CURSOR_MAXIMUM_Y;
+    E.oldCursor.X = -1;
+    E.oldCursor.Y = -1;
 
     ConInfo = getConsoleSystemInfo();
 
@@ -752,34 +856,7 @@ int main(int argc, char *argv[], char *envp[]){
 
     while(E.Flags & FLAG_RUNNING){
         ConInfo = getConsoleSystemInfo();
-        
-        /* Message expiring */
-        if(E.Message.Duration != 0){
-            if(ConInfo.CurrentTime - E.Message.PostTime > E.Message.Duration){
-                *E.Message.Data = 0;
-                E.Message.Duration = 0;
-                E.Message.PostTime = 0;
-            }
-        }
-
-        /* Offsets from top and left side */
-        if(HAS_FLAG(FLAG_SHOWNUMBERS)){
-            E.TextOffsetLeft = 4;
-        }else{
-            E.TextOffsetLeft = 1;
-        }
-        if(HAS_FLAG(FLAG_SHOWHEADER)){
-            E.TextOffsetTop = 1;
-        }else{
-            E.TextOffsetTop = 0;
-        }
-
-        /* Switching buffers */
-        if(HAS_FLAG(FLAG_ALTVIEW)){
-            E.Rows = (E.AltBuffers + GET_ALT_BUFFERID());
-        }else{
-            E.Rows = &E.MainBuffer;
-        }
+        updateStatus();
 
         /* Rendering to the terminal */
         if(HAS_FLAG(FLAG_RENDER)){

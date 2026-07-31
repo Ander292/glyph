@@ -124,6 +124,16 @@ int stringCharToByteCount(string *str, int startOffset, int endOffset, int maxCh
     return Result;
 }
 
+character_input getCharAtPos(string *str, int index){
+    int bytesPassed = 0;
+    character_input Result = {0};
+    for(int i = 0; i < index; i++){
+        bytesPassed += str->byteCount[i];
+    }
+    memcpy(Result.arr, str->data + bytesPassed, Result.byteCount);
+    Result.byteCount = str->byteCount[index];
+}
+
 void clearBuffer(string *str){
     *str->byteCount = 0;
     *str->data = 0;

@@ -19,8 +19,11 @@ void clearBuffer(string *str);
 string *stringCreateHeap(int size);
 string *bufferCreateFromString(const char *c, int size);
 void stringFree(string *str);
+void stringFreeHeap(string *str);
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
+
+character_input getCharAtPos(string *str, int index);
 
 // void shiftStringRight(char *str, int len);
 // void shiftStringLeft(char *str, int len);
