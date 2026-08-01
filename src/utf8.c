@@ -13,6 +13,8 @@ string stringCreate(int size){
 
     Result.byteCount = malloc(size);
     Result.data = malloc(size * 4);
+    Result.tokenId = malloc(size);
+    memset(Result.tokenId, 0, size);
 
     if(!Result.byteCount){
         die("Error allocating %zu bytes", size);
@@ -30,6 +32,7 @@ string stringCreate(int size){
 void stringFree(string *str){
     free(str->byteCount);
     free(str->data);
+    free(str->tokenId);
     str->byteCount = NULL;
     str->data = NULL;
 
@@ -49,6 +52,8 @@ string *stringCreateHeap(int size){
 
     Result->byteCount = malloc(size);
     Result->data = malloc(size * 4);
+    Result->tokenId = malloc(size);
+    memset(Result->tokenId, TOKEN_NEUTRAL, size);
 
     if(!Result->byteCount){
         die("Error allocating %zu bytes", size);
@@ -64,6 +69,7 @@ string *stringCreateHeap(int size){
 }
 
 void stringFreeHeap(string *str){
+    free(str->tokenId);
     free(str->byteCount);
     free(str->data);
     free(str);
@@ -79,6 +85,11 @@ void doubleSize(string *str){
     if(!str->data){
         die("Error reallocating %zu bytes", str->maxSize * 4);
     }
+
+    str->tokenId = realloc(str->tokenId, str->maxSize);
+    if(!str->tokenId){
+        die("Error reallocating %zu bytes", str->tokenId);
+    }
 }
 
 void stringAppendEnd(string *str, const char *c, int size){
@@ -89,7 +100,7 @@ void stringAppendEnd(string *str, const char *c, int size){
         int byteCount = charGetByteCount(c[pos]);
         if(byteCount == 0) break;
         str->byteCount[str->len]= byteCount;
-        
+        str->tokenId[str->len] = TOKEN_NEUTRAL;        
         
         int j = 0;
         for(; j < byteCount; j++){
@@ -100,6 +111,7 @@ void stringAppendEnd(string *str, const char *c, int size){
         str->len += 1;
     }
     str->byteCount[str->len] = 0;
+    str->tokenId[str->len] = 0;
 
     if(pos > size * 4) die("Fatal error. Pos: %d > Size: %d", pos, size);
 }
@@ -138,6 +150,7 @@ character_input getCharAtPos(string *str, int index){
 
 void clearBuffer(string *str){
     *str->byteCount = 0;
+    *str->tokenId = 0;
     *str->data = 0;
     str->len = 0;
     str->byteLen = 0;    
@@ -155,7 +168,7 @@ void terminateStringOnPos(string *str, int pos){
 
     memset(str->data + startOffsetInBytes, 0, byteCount);
     memset(str->byteCount + pos, 0, str->len - pos);
-
+    memset(str->tokenId + pos, 0, str->len - pos);
     str->len = pos;
     str->byteLen = startOffsetInBytes;
 
@@ -205,6 +218,7 @@ void deleteCharFromPossition(string *str, int pos){
     stringCharToByteCount(str, pos, 0, 0, &posInBytes);
 
     shiftStringLeft(str->byteCount + pos, str->len - pos);
+    shiftStringLeft(str->tokenId + pos, str->len - pos);
     str->len--;
 
     for(int i = 0; i < byteCount; i++){
@@ -238,7 +252,8 @@ void insertCharAtPossition(string *str, character_input ci, int pos, int insertM
         
         if(insertMode){
             shiftStringRight(str->byteCount + pos, str->len - pos + 1);
-                
+            shiftStringRight(str->tokenId + pos, str->len - pos + 1);
+
             for(int j = 0; j < ci.byteCount; j++){
                 shiftStringRight(str->data + startOffset, str->byteLen - startOffset + 1);
             }
@@ -435,4 +450,16 @@ string_list createListWithRows(int initRowCount){
     }
 
     return Result;
+}
+
+void listForeachString(string_list *list, void (*funct)(string *)){
+    for(list_node *p = list->head; p != NULL; p = p->next){
+        funct(p->str);
+    }
+}
+
+void listForeachNode(string_list *list, void (*funct)(list_node *)){
+    for(list_node *p = list->head; p != NULL; p = p->next){
+        funct(p);
+    }
 }

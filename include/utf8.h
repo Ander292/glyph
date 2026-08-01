@@ -7,10 +7,18 @@
 typedef struct string{
     char *data;         /* The string itself */
     char *byteCount;    /* The sizes in bytes of each character */
+    char *tokenId;      /* Used for syntax coloring */
     int len;            /* The length of the string in bytes */
     int byteLen;        /* The ammount of codepoints currently in data */
     int maxSize;        /* The size of 'byteCount' array. The 'data' array is always 4 times larger than byte size */
 } string;
+
+typedef enum token_type{
+    TOKEN_NEUTRAL,
+    TOKEN_NUMBER,
+    TOKEN_PREPROCESSOR,
+    TOKEN_KEYWORD
+} token_type;
 
 string stringCreate(int size);
 void doubleSize(string *str);
@@ -60,4 +68,6 @@ void swapStringsForIndexes(string_list *list, int ind1, int ind2);
 string_list createListWithRows(int initRowCount);
 void clearList(string_list *list);
 void freeList(string_list *list);
+void listForeachString(string_list *list, void (*funct)(string *));
+
 #endif

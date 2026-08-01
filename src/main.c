@@ -41,8 +41,8 @@ string OutputBuffer;
 
 static inline void updateStatus();
 static void editorRefreshScreen();
-string *editorPromtHeader(char *promt);
-int editorLoadFile(char *path);
+static string *editorPromtHeader(char *promt);
+static int editorLoadFile(char *path);
 
 static int countToNotChar(string *str, int startPos, uint32 character){
     int Result = 0;
@@ -192,7 +192,20 @@ static inline void messageCreate(editor_message *dest, time_t duration, const ch
     dest->Duration = duration;
 }
 
-int editorSave(char *path, string_list *src){
+static void syntaxHighlightString(string *str){
+    for(int i = 0; i < str->len; i++){
+        character_input ci = getCharAtPos(str, i);
+        if(ci.byteCount == 1 && *ci.arr >= '0' && *ci.arr <= '9'){
+            str->tokenId[i] = TOKEN_NUMBER;
+        }
+    }
+}
+
+static inline void syntaxHighlight(string_list *list){
+    listForeachString(list, syntaxHighlight);
+}
+
+static int editorSave(char *path, string_list *src){
 #define ROWS_TO_SAVE (src)
 
     if(*E.File == 0){
@@ -235,7 +248,7 @@ int editorSave(char *path, string_list *src){
 #undef ROWS_TO_SAVE
 }
 
-void FixCursorPossition(){
+static void FixCursorPossition(){
     /* Fixing the internal cursor possition and the offsets */
     string *str = getStringAtIndex(E.Rows, E.Cursor.Y);
     int currentWidth = 0;
@@ -647,7 +660,7 @@ static int processInput(character_input ci){
 
 
 /* Setting cursor possition (zero based) */
-static void setCursorPossition(int x, int y){
+static inline void setCursorPossition(int x, int y){
     char c[16];
     x++; y++;
 
@@ -664,7 +677,7 @@ static void setCursorPossition(int x, int y){
     Print(c);
 }
 
-void stringIntoInput(const char *str, int64 len){
+static void stringIntoInput(const char *str, int64 len){
     string *inputString = bufferCreateFromString(str, len);
     int bytesPassed = 0;
     for(int i = 0; i < inputString->len; i++){
@@ -677,7 +690,7 @@ void stringIntoInput(const char *str, int64 len){
     }
 }
 
-void byteIntoInput(const char *str, int64 len){
+static void byteIntoInput(const char *str, int64 len){
     const char *digits = "0123456789abcdef";
 #if 0
     char tempB[128];
@@ -724,7 +737,7 @@ void byteIntoInput(const char *str, int64 len){
     }
 }
 
-int editorLoadFile(char *path){
+static int editorLoadFile(char *path){
     clearEditorMessage();
     char buffer[256];
     int64 fileSize = getFileSize(path);
@@ -934,7 +947,7 @@ static inline void updateStatus(){
     }
 }
 
-string *editorPromtHeader(char *promt){
+static string *editorPromtHeader(char *promt){
     char *format = "%s : %s";
     string *strBuffer = stringCreateHeap(64);
 
