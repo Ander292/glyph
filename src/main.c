@@ -194,6 +194,13 @@ static inline void messageCreate(editor_message *dest, time_t duration, const ch
 
 int editorSave(char *path, string_list *src){
 #define ROWS_TO_SAVE (src)
+
+    if(*E.File == 0){
+        string *str = editorPromtHeader("Save location");
+        strcpy(E.File, str->data);
+        free(str);
+    }
+
     string Final = stringCreate(1024);
     uint32 SizeCount = 0;
     for(int i = 0; i < ROWS_TO_SAVE->size; i++){
@@ -376,7 +383,23 @@ static int processInput(character_input ci){
             }
             break;
         case CTRL_KEY('s'):
-            //postEditorMessage(5, "Saving not implemented yet");
+#if 0
+            if(*E.File == 0){
+                    string *str = editorPromtHeader("Save location");
+                    if(getFileSize(str->data) > 0) {
+                        strcpy(E.File, str->data);
+                        free(str);
+                        editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS);
+                        break;
+                    }else{
+                        postEditorMessage(5, "Invalid file: %s", str->data);
+                    }
+                    free(str);
+            }
+            else{
+                editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS);
+            }
+#endif
             editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS);
             break;
         case 127:  // Delete key in ascii but its backspace for some reason
@@ -750,7 +773,7 @@ static void formatHeader(string *buffer){
     if(HAS_FLAG(FLAG_ALTVIEW)){
         fNameLen = snprintf(fileNameStr, 512, "%s (%d) %3s", "AltBuffer", GET_ALT_BUFFERID(), (HAS_FLAG(FLAG_READONLY) ? "(r)" : ""));
     }else{
-        fNameLen = snprintf(fileNameStr, 512, "%s %3s", E.File, (HAS_FLAG(FLAG_READONLY) ? ("(r)") : (HAS_FLAG(FLAG_DIRTY) ? "(m)" : "")));
+        fNameLen = snprintf(fileNameStr, 512, "%s %3s", (*E.File == 0) ? ("New") : E.File, (HAS_FLAG(FLAG_READONLY) ? ("(r)") : (HAS_FLAG(FLAG_DIRTY) ? "(m)" : "")));
     }
     
     WriteToBuffer(buffer, ESC_CLEAR_LINE);
@@ -888,12 +911,13 @@ int main(int argc, char *argv[], char *envp[]){
         E.AltBuffers[i] = createListWithRows(1);
     }
 
-    if(argc != 2){
-        die("Argc was not 2: %d", argc);
+    if(argc > 1){
+        strcpy(E.File, argv[1]);
+        editorLoadFile(E.File);
+    }else{
+        E.File[0] = 0;
     }
 
-    strcpy(E.File, argv[1]);
-    editorLoadFile(E.File);
     
 
 
