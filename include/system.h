@@ -35,6 +35,7 @@ uint32 writeOutput(char *src, uint32 size);
 
 #define TIMEOUT_MS 10
 #define CTRL_KEY(k) ((k) & 0x1f)
+#define UNCTRL_KEY(k) ((k) | 0x60)
 
 #define Print(str) writeOutput(str, strlen(str))
 #define WINDOWS

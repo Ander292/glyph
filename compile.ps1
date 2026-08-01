@@ -58,8 +58,8 @@ $CompilationFlagsOrd = @(
     #"-Wundef"
     #"-Wstrict-overflow=5"
     "-fdiagnostics-show-option"
-    #"-g"
-    "-O2"
+    "-g"
+    #"-O2"
     #"-fsanitize=address"
 )
 

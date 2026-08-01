@@ -53,9 +53,12 @@ typedef struct editor_message{
 #define GET_ALT_BUFFERID()      (((GLOBAL_FLAGS) >> ALTVIEW_SHIFT) & ALTVIEW_MASK)
 #define SET_ALT_BUFFERID(f)     ((GLOBAL_FLAGS) = (((GLOBAL_FLAGS) & ~(ALTVIEW_MASK << ALTVIEW_SHIFT)) | (((f) & ALTVIEW_MASK) << ALTVIEW_SHIFT)))
 #define GET_FORMAT_NUMBER()     (((GLOBAL_FLAGS) >> FORMAT_SHIFT) & FORMAT_MASK)
-#define SET_FORMAT_NUMBER(f)    ((GLOBAL_FLAGS) = (((GLOBAL_FLAGS) & ~(FORMAT_MASK << FORMAT_SHIFT)) | (((F) & FORMAT_MASK) << FORMAT_SHIFT)))
+#define SET_FORMAT_NUMBER(f)    ((GLOBAL_FLAGS) = (((GLOBAL_FLAGS) & ~(FORMAT_MASK << FORMAT_SHIFT)) | (((f) & FORMAT_MASK) << FORMAT_SHIFT)))
+#define GET_FORMAT_STRING(f)    (Formats[f])
 
 #define FLAG_RUNNING        (1 << 31)
+#define FLAG_FORCE          (1 << 30)
+
 #define FLAG_SHOWNUMBERS    (1)
 #define FLAG_SHOWHEADER     (2)
 #define FLAG_INSERT_MODE    (4)
@@ -81,7 +84,13 @@ typedef struct editor_message{
 #define FORMAT_BIN      (2)
 #define FORMAT_UNUSED   (3)
 
-
 #define IS_PRINTABLE_CHAR(c) ((c) >= 32 && c != 127)
+
+static char *Formats[FORMAT_MASK + 1] = {
+    "UTF8",
+    "UTF16",
+    "BIN",
+    "UNUSED"
+};
 
 #endif

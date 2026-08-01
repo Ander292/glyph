@@ -664,7 +664,7 @@ static void setCursorPossition(int x, int y){
     Print(c);
 }
 
-void stringIntoInput(const char *str, int len){
+void stringIntoInput(const char *str, int64 len){
     string *inputString = bufferCreateFromString(str, len);
     int bytesPassed = 0;
     for(int i = 0; i < inputString->len; i++){
@@ -674,6 +674,53 @@ void stringIntoInput(const char *str, int len){
         bytesPassed += ci.byteCount;
 
         processInput(ci);
+    }
+}
+
+void byteIntoInput(const char *str, int64 len){
+    const char *digits = "0123456789abcdef";
+#if 0
+    char tempB[128];
+    tempB[0] = ' ';
+    tempB[1] = '|';
+    int noWhite = 0;
+    int pos = 2;
+#endif
+    for(int i = 0; i < len; i++){
+        char byte = str[i];
+        character_input ci = {0};
+        ci.byteCount = 1;
+        ci.arr[0] = digits[(byte & 0xf0) >> 4];
+        processInput(ci);
+        ci.arr[0] = digits[byte & 0x0f];
+        processInput(ci);
+#if 0
+        if(byte > 31 && byte != 127){
+            tempB[pos++] = byte;
+        }else{
+            tempB[pos++] = '\\';
+            tempB[pos++] = UNCTRL_KEY(byte);
+            noWhite = 1;
+        }
+#endif
+        if((i + 1) % 16 == 0){
+#if 0
+            tempB[pos++] = '\r';
+            tempB[pos] = 0;
+            stringIntoInput(tempB, pos);
+            pos = 2;
+#endif
+            ci.arr[0] = '\r';
+            processInput(ci);
+        }else{
+            ci.arr[0] = ' ';
+#if 0
+            if(noWhite) noWhite = 0;
+            else tempB[pos++] = ' ';
+            tempB[pos++] = ' ';
+#endif
+            processInput(ci);
+        }
     }
 }
 
@@ -699,17 +746,33 @@ int editorLoadFile(char *path){
     if(Feedback != fileSize) 
         postEditorMessage(5, "Possible load error (Exp: %u | Rec: %u)", fileSize, Feedback);
 
-    for(int64 i = 0; i < Feedback; i++){
-        if(tempBuffer[i] == '\n') {
-            SET_FLAG(FLAG_NEWLINE_ENTER);
+    
+    if(!HAS_FLAG(FLAG_FORCE)){
+        /* TODO: Check for file types */
+    }
+
+    switch(GET_FORMAT_NUMBER()){
+        case FORMAT_UTF8:{
+            for(int64 i = 0; i < Feedback; i++){
+                if(tempBuffer[i] == '\n') {
+                    SET_FLAG(FLAG_NEWLINE_ENTER);
+                    break;
+                }
+                else if(tempBuffer[i] == '\r'){
+                    CLEAR_FLAG(FLAG_NEWLINE_ENTER);
+                    break;
+                }
+            }
+            stringIntoInput(tempBuffer, Feedback);
             break;
         }
-        else if(tempBuffer[i] == '\r'){
-            CLEAR_FLAG(FLAG_NEWLINE_ENTER);
+        case FORMAT_UTF16:
+            break;
+        case FORMAT_BIN:{
+            byteIntoInput(tempBuffer, Feedback);
             break;
         }
     }
-    stringIntoInput(tempBuffer, Feedback);
 
     free(tempBuffer);
     E.Cursor.X = 0;
@@ -787,7 +850,7 @@ static void formatHeader(string *buffer){
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
     
     int feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
-        fileNameStr, E.Rows->size, E.Cursor.Y + 1, E.Cursor.X, "UTF8", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+        fileNameStr, E.Rows->size, E.Cursor.Y + 1, E.Cursor.X, GET_FORMAT_STRING(GET_FORMAT_NUMBER()), (*E.Message.Data == 0 ? "---" : E.Message.Data));
         
     WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
     WriteToBuffer(buffer, "    ");
@@ -903,6 +966,7 @@ string *editorPromtHeader(char *promt){
 int main(int argc, char *argv[], char *envp[]){
     prepareConsole();
     SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE | FLAG_RENDER);
+    SET_FORMAT_NUMBER(FORMAT_UTF8);
     E.Cursor.X = 0;
     E.Cursor.Y = 0;
     E.maxCursor.X = DEFAULT_CURSOR_MAXIMUM_X;
