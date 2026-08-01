@@ -197,8 +197,10 @@ int editorSave(char *path, string_list *src){
 
     if(*E.File == 0){
         string *str = editorPromtHeader("Save location");
-        strcpy(E.File, str->data);
-        free(str);
+        if(str != NULL){
+            strcpy(E.File, str->data);
+            stringFreeHeap(str);
+        }
     }
 
     string Final = stringCreate(1024);
@@ -328,15 +330,18 @@ static int processInput(character_input ci){
                 END_WHILE2:
             }
             string *feedback = editorPromtHeader("Enter path:");
-            if(getFileSize(feedback->data) <= 0) {
-                postEditorMessage(10, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
-                break;
+            if(feedback != NULL) {
+                if(getFileSize(feedback->data) <= 0) {
+                    postEditorMessage(10, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
+                    break;
+                }
+                freeList(E.Rows);
+                *(E.Rows) = createListWithRows(1);
+                E.Cursor = (int_pair){0, 0};
+                strcpy(E.File, feedback->data);
+                editorLoadFile(E.File);
+                stringFreeHeap(feedback);
             }
-            freeList(E.Rows);
-            *(E.Rows) = createListWithRows(1);
-            E.Cursor = (int_pair){0, 0};
-            editorLoadFile(feedback->data);
-            stringFreeHeap(feedback);
             break;
         }
         case CTRL_KEY('g'):
@@ -348,12 +353,14 @@ static int processInput(character_input ci){
             SET_ALT_BUFFERID(0);
 #else
             string *src = editorPromtHeader("Input string");
-            string *dest = getStringAtIndex(E.Rows, E.Cursor.Y);
-            for(int i = 0; i < src->len; i++){
-                character_input ci = getCharAtPos(src, i);
-                insertCharAtPossition(dest, ci, E.Cursor.X++, HAS_FLAG(FLAG_INSERT_MODE));
+            if(src != NULL){
+                string *dest = getStringAtIndex(E.Rows, E.Cursor.Y);
+                for(int i = 0; i < src->len; i++){
+                    character_input ci = getCharAtPos(src, i);
+                    insertCharAtPossition(dest, ci, E.Cursor.X++, HAS_FLAG(FLAG_INSERT_MODE));
+                }
+                stringFreeHeap(src);
             }
-            stringFreeHeap(src);
 #endif
             break;
         case CTRL_KEY('u'):
@@ -883,6 +890,9 @@ string *editorPromtHeader(char *promt){
                 break;
             case '\r':
                 return strBuffer;
+            case CTRL_KEY('q'):
+                stringFreeHeap(strBuffer);
+                return NULL;
             default:
                 stringAppendEnd(strBuffer, ci.arr, ci.byteCount);
                 break;
