@@ -38,7 +38,8 @@ uint32 writeOutput(char *src, uint32 size);
 #define UNCTRL_KEY(k) ((k) | 0x60)
 
 #define Print(str) writeOutput(str, strlen(str))
-#define WINDOWS
+#define LINUX
+#define arm
 
 #if defined WINDOWS
 #include <windows.h>
@@ -51,7 +52,7 @@ uint32 writeOutput(char *src, uint32 size);
 #include <sys/ioctl.h>
 
 #endif
-
+#ifdef x86
 static inline uint32 _BitScanReverse32(uint32 x){
     uint32 Result = 0;
     __asm__ (
@@ -60,7 +61,7 @@ static inline uint32 _BitScanReverse32(uint32 x){
         : "r" (x)
         : "cc"
     );
-    
+
     return Result;
 }
 
@@ -72,15 +73,37 @@ static inline uint16 _BitScanReverse16(uint16 x){
         : "r" (x)
         : "cc"
     );
-    
+
     return Result;
 }
+#elif defined arm
+static inline uint32 _CountLeadingZeros32(uint32 x){
+    uint32 Result = 0;
+    __asm__ (
+        "clz %1, %0\n\t"
+        : "=r" (Result)
+        : "r" (x)
+        : "cc"
+    );
+
+    return Result;
+}
+#endif
 
 static inline int charGetByteCount(char c){
     if(c == 0) return 0;
+#ifdef x86
     int Result = 15 - _BitScanReverse16(~(c << 8));
+#elif defined arm
+    int Result = _CountLeadingZeros32(~((uint32)c << 24));
+//    char str[2];
+//    str[0] = Result + '0';
+//    str[1] = 0;
+//    postEditorMessage(10, str);
+#endif
     if(Result > 4 || Result <= 0) Result = 1;
     return Result;
 }
+
 
 #endif /* SYSTEM_H */

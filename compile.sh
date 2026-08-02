@@ -44,7 +44,7 @@ compile() {
         local CurrentObj=`basename "$file" .c`.obj
         local args="$SrcDir/$file -c ${IncFlags[@]} ${CompFlags[@]} -o $ObjLocal/$CurrentObj"
         #echo "$args"
-        gcc $args
+        $gccPath $args
     done
 
     #linking
@@ -54,7 +54,7 @@ compile() {
 
 
     echo "Linking $2"
-    gcc \
+    $gccPath \
         "${Objs[@]}" \
         "${IncFlags[@]}" \
         "${LinkFlags[@]}" \
@@ -63,6 +63,8 @@ compile() {
 
 mode="$full"
 #full, run, build
+
+gccPath="gcc-15"
 
 if [ $# -ne 1 ]; then
     echo "Usage: `basename $0` <mode>"
@@ -114,7 +116,7 @@ CompilationFlags=(
 
 LinkerFlags=(
     "-pedantic"
-    "-m64"
+#    "-m64"
 )
 
 case "$mode" in
