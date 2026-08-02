@@ -202,7 +202,7 @@ static void syntaxHighlightString(string *str){
 }
 
 static inline void syntaxHighlight(string_list *list){
-    listForeachString(list, syntaxHighlight);
+    listForeachString(list, syntaxHighlightString);
 }
 
 static int editorSave(char *path, string_list *src){
