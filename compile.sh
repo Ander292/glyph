@@ -109,8 +109,10 @@ CompilationFlags=(
     #"-Wundef"
     #"-Wstrict-overflow=5"
     "-fdiagnostics-show-option"
-    "-g"
-    #"-O2"
+    #"-g"
+    "-DLINUX"
+    "-Darm"
+    "-O2"
     #"-fsanitize=address"
 )
 

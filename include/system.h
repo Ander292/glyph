@@ -38,8 +38,8 @@ uint32 writeOutput(char *src, uint32 size);
 #define UNCTRL_KEY(k) ((k) | 0x60)
 
 #define Print(str) writeOutput(str, strlen(str))
-#define LINUX
-#define arm
+//#define LINUX
+//#define arm
 
 #if defined WINDOWS
 #include <windows.h>
@@ -96,10 +96,8 @@ static inline int charGetByteCount(char c){
     int Result = 15 - _BitScanReverse16(~(c << 8));
 #elif defined arm
     int Result = _CountLeadingZeros32(~((uint32)c << 24));
-//    char str[2];
-//    str[0] = Result + '0';
-//    str[1] = 0;
-//    postEditorMessage(10, str);
+#else
+    int Result = 1;
 #endif
     if(Result > 4 || Result <= 0) Result = 1;
     return Result;
