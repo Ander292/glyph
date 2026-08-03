@@ -114,7 +114,7 @@ CompilationFlags=(
     "-Darm"
     "-O2"
     #"-fsanitize=address"
-    "-masm=intel"
+    # "-masm=intel"
 )
 
 LinkerFlags=(
