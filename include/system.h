@@ -56,7 +56,7 @@ uint32 writeOutput(char *src, uint32 size);
 static inline uint32 _BitScanReverse32(uint32 x){
     uint32 Result = 0;
     __asm__ (
-        "bsr %1, %0\n\t"
+        "bsr %0, %1\n\t"
         : "=r" (Result)
         : "r" (x)
         : "cc"
@@ -68,7 +68,7 @@ static inline uint32 _BitScanReverse32(uint32 x){
 static inline uint16 _BitScanReverse16(uint16 x){
     uint16 Result = 0;
     __asm__ (
-        "bsr %1, %0\n\t"
+        "bsr %0, %1\n\t"
         : "=r" (Result)
         : "r" (x)
         : "cc"
@@ -80,7 +80,7 @@ static inline uint16 _BitScanReverse16(uint16 x){
 static inline uint32 _CountLeadingZeros32(uint32 x){
     uint32 Result = 0;
     __asm__ (
-        "clz %1, %0\n\t"
+        "clz %0, %1\n\t"
         : "=r" (Result)
         : "r" (x)
         : "cc"

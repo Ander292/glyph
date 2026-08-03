@@ -63,6 +63,7 @@ $CompilationFlagsOrd = @(
     #"-fsanitize=address"
     "-DWINDOWS"
     "-Dx86"
+    "-masm=intel"
 )
 
 $CompilationFlagsProd = @(
@@ -78,6 +79,7 @@ $CompilationFlagsProd = @(
     #"-fsanitize=address"
     "-DWINDOWS"
     "-Dx86"
+    "-masm=intel"
 )
 
 $CompilationFlags = @()
