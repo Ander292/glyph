@@ -101,6 +101,7 @@ static inline int charGetByteCount(char c){
 #elif defined arm
     int Result = _CountLeadingZeros32(~((uint32)c << 24));
 #else
+#error "charGetByteCount error, no processor type defined"
     int Result = 1;
 #endif
     if(Result > 4 || Result <= 0) Result = 1;
