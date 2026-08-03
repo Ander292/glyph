@@ -76,6 +76,8 @@ $CompilationFlagsProd = @(
     #"-g"
     "-O2"
     #"-fsanitize=address"
+    "-DWINDOWS"
+    "-Dx86"
 )
 
 $CompilationFlags = @()
