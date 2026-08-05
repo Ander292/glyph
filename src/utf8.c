@@ -300,13 +300,33 @@ void insertCharAtPossition(string *str, character_input ci, int pos, int insertM
 
 }
 
+string *createCopy(string *src, int startCharOffset, int charCount){
+    if(charCount <= 0) return NULL;
+    int startOffsetInBytes;
+    int byteCount = stringCharToByteCount(src, startCharOffset, 0, charCount, &startOffsetInBytes);
+    if(byteCount == -1) return NULL;
+
+    string *Result = stringCreateHeap(powerOfTwoRoundUp(src->maxSize));
+    Result->byteLen = src->byteLen - startOffsetInBytes;
+    Result->len = src->len - startCharOffset;
+    Result->maxSize = src->maxSize;
+
+    memcpy(Result->data, src->data + startOffsetInBytes, byteCount);
+    memcpy(Result->byteCount, src->byteCount + startCharOffset, charCount);
+    memcpy(Result->tokenId, src->tokenId + startCharOffset, charCount);
+
+    return Result;
+}
+
+
+/*** String List ***/
+
 static inline list_node *nodeCreate(){
     list_node *Result = malloc(sizeof(list_node));
     memset(Result, 0, sizeof(list_node));
     return Result;
 }
 
-/* String List */
 void listAppendEnd(string_list *list, string *str){
     list->size++;
 

@@ -41,6 +41,8 @@ void deleteCharFromPossition(string *str, int pos);
 
 void terminateStringOnPos(string *str, int pos);
 
+string *createCopy(string *src, int startCharOffset, int charCount);
+
 #define PrintBuffer(buffer) writeOutput((buffer).data, (buffer).byteLen)
 #define WriteToBuffer(buffer, str) stringAppendEnd((buffer), (str), strlen(str))
 

@@ -829,6 +829,7 @@ static void drawRows(string *buffer){
             string *row = getStringAtIndex(E.Rows, i + verticallOffset);
             if(row == NULL) die("Row was null, im out");
 
+#if 1
             /* Deciding how much to write */
             int startOffset;
             int byteCount = stringCharToByteCount(row, horizontalOffset, 0, maxCols, &startOffset);
@@ -836,8 +837,12 @@ static void drawRows(string *buffer){
                 WriteToBuffer(buffer, "<--");
             }else{
                 stringAppendEnd(buffer, row->data + startOffset, byteCount);
+                WriteToBuffer(buffer, ESC_RESET_TEXT_ATTRIBUTES);
             }
-        }        
+#else
+            string *rowCopy = createCopy(row, horizontalOffset, maxCols);
+#endif
+        }
 
         if(i < maxRows - 1)
             WriteToBuffer(buffer, "\r\n");
