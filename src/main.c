@@ -390,7 +390,7 @@ static int processInput(character_input ci){
             int byteCountTillEnd = stringCharToByteCount(current, E.Cursor.X, 0, 0, &startOffset);
             char *start = current->data + startOffset;
             int removeCountLeft;
-            if((*start == ' ' || *start == 0) && ((start - 1 < current->data) || start[-1] == ' ')){
+            if(((start - 1 < current->data) || start[-1] == ' ')){
                 removeCountLeft = countBackToNotChar(current, E.Cursor.X, ' ');
             }else{
                 removeCountLeft = countBackToChar(current, E.Cursor.X, ' ');
@@ -398,7 +398,8 @@ static int processInput(character_input ci){
             if(removeCountLeft != 0){
                 SET_FLAG(FLAG_DIRTY);
                 for(int i = 0; i < removeCountLeft; i++){
-                    deleteCharFromPossition(current, E.Cursor.X - removeCountLeft);
+                    deleteCharFromPossition(current, E.Cursor.X-1);
+                    E.Cursor.X--;
                 }
             }
             break;
