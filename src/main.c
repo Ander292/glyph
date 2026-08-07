@@ -291,7 +291,7 @@ static void FixCursorPossition(){
 }
 
 
-static int processInput(character_input ci){
+static void processInput(character_input ci){
     switch(ci.arr[0]){
         case CTRL_KEY('q'):{
             if(HAS_FLAG(FLAG_DIRTY)){
@@ -305,7 +305,7 @@ static int processInput(character_input ci){
                             goto END_WHILE;
                         case 'N':
                             clearEditorMessage();
-                            return 0;
+                            return;
                         case 'S':
                             if(editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS)) break;
                             goto END_WHILE;
@@ -330,7 +330,7 @@ static int processInput(character_input ci){
                             goto END_WHILE2;
                         case 'N':
                             clearEditorMessage();
-                            return 0;
+                            return;
                         case 'S':
                             if(editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS)) break;
                             goto END_WHILE2;
@@ -648,7 +648,7 @@ static int processInput(character_input ci){
                 insertCharAtPosList(ci, E.Cursor.Y, E.Cursor.X);
                 E.Cursor.X++;
             }
-            return 0;
+            break;
         }
     }
 
