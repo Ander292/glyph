@@ -15,15 +15,15 @@ typedef struct int_pair{
 
 static struct{
     uint32 Flags;
-    
+
 #if 1
     int_pair Cursor; /* The possition of the cursor inside the internal buffer */
     int_pair oldCursor; /* The possitions in the main buffer, saved here during altbuffer switches */
     int_pair Offset;
     int_pair maxCursor;
 #else
-    int CursorX, CursorY; 
-    int oldCursorX, oldCursorY; 
+    int CursorX, CursorY;
+    int oldCursorX, oldCursorY;
     int OffsetX, OffsetY;
     int maxCursorX, maxCursorY;
 #endif
