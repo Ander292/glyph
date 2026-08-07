@@ -11,6 +11,7 @@ typedef struct editor_message{
 } editor_message;
 
 #define FILE_PATH_LENGTH 512
+#define ROW_OVERHIGHLIGHT_COUNT 25
 
 #define DEFAULT_CURSOR_MAXIMUM_X INT_MAX
 #define DEFAULT_CURSOR_MAXIMUM_Y INT_MAX
@@ -22,14 +23,16 @@ typedef struct editor_message{
 /**
  * FLAGS structure (bit by bit):
  *  global    file    altbuff  editor 
- * RFxxxxxx xxxxeern Aaaaaaaa xxTODIHN
- * ┃┃           ┃┃┃┃ ┃          ┃┃┃┃┃┃
- * ┃┃           ┃┃┃┃ ┃          ┃┃┃┃┃┗> SHOWNUMBERS flag
- * ┃┃           ┃┃┃┃ ┃          ┃┃┃┃┗━> SHOWHEADER flag
- * ┃┃           ┃┃┃┃ ┃          ┃┃┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
- * ┃┃           ┃┃┃┃ ┃          ┃┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
- * ┃┃           ┃┃┃┃ ┃          ┃┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
- * ┃┃           ┃┃┃┃ ┃          ┗━━━━━> TO_RENDER flag (will not rerender the scren if its zero)
+ * RFxxxxxx xxxxeern Aaaaaaaa fSTODIHN
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┃┃┃
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┃┃┗> SHOWNUMBERS flag
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┃┗━> SHOWHEADER flag
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┃┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
+ * ┃┃           ┃┃┃┃ ┃        ┃┃┗━━━━━> TO_RENDER flag (will not rerender the scren if its zero)
+ * ┃┃           ┃┃┃┃ ┃        ┃┗━━━━━━> SYNTAX flag (will highlight if set)
+ * ┃┃           ┃┃┃┃ ┃        ┗━━━━━━━> TO_FORMAT flag (will format syntax before next render)
  * ┃┃           ┃┃┃┃ ┗━━━━━━━━━━━━━━━━> ALTVIEW flag (7 bytes to its right 
  * ┃┃           ┃┃┃┃                    are used for alt buffer number. Extracted using GET_ALT_BUFFERID())
  * ┃┃           ┃┃┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter used when reading LF files)
@@ -66,6 +69,8 @@ typedef struct editor_message{
 #define FLAG_READONLY       (16)
 #define FLAG_RDONLY         FLAG_READONLY
 #define FLAG_RENDER         (32)
+#define FLAG_SYNTAX         (64)
+#define FLAG_FORMAT         (128)
 
 #define FLAG_NEWLINE_ENTER  (1 << 16)
 

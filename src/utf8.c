@@ -8,9 +8,77 @@ char *token_escape[] = {
     ESC_RESET_TEXT_ATTRIBUTES,
     ESC_TEXT_COLOR_BLUE,
     ESC_TEXT_COLOR_MAGENTA,
-    ESC_TEXT_COLOR_YELLOW,
+    ESC_TEXT_COLOR_YELLOW_BRIGHT,
+    ESC_TEXT_COLOR_GREEN_BRIGHT,
     ESC_TEXT_COLOR_GREEN,
-    ESC_TEXT_COLOR_RED
+    ESC_TEXT_COLOR_CYAN,
+    ESC_TEXT_COLOR_CYAN,
+    ESC_BACKGROUND_COLOR_GREEN_BRIGHT
+    ESC_TEXT_COLOR_RED_BRIGHT
+};
+
+static char *keyword1[] = {
+    "while",
+    "for",
+    "if",
+    "else",
+    "switch",
+    "case",
+    "default",
+    "return",
+    "break",
+    "continue"
+};
+
+static char *keyword2[] = {
+    "int",
+    "short",
+    "char",
+    "long",
+    "unsigned",
+    "signed",
+    "static",
+    "void",
+    "float",
+    "double",
+    "inline",
+    "auto",
+    "const",
+
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+
+    "int8_t",
+    "int16_t",
+    "int32_t",
+    "int64_t",
+    "uint8_t",
+    "uint16_t",
+    "uint32_t",
+    "uint64_t",
+    "size_t"
+};
+
+static char *preprocesorKeyword[] = {
+    "#define",
+    "#include",
+    "#undef",
+    "#ifdef",
+    "#ifndef",
+    "#else",
+    "#elif",
+    "#region",
+    "#endregion",
+    "#pragma",
+    "#endif",
+    "#warning",
+    "#error"
 };
 
 /* Allocates the memory for the string. Size must be > 0 or undefined behavior!!!*/
@@ -346,22 +414,69 @@ string *createCopy(string *src, int startCharOffset, int charCount){
 
 
 /*** Syntax coloring ***/
-
+int syntaxHighlightStringKeyword(string *str, int flags){
+    for(int i = 0; i < str->len; i++){
+        /* Keyword highlighting */
+        int startOffsetInBytes;
+        stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
+        for(uint32 j = 0; j < sizeof(keyword1) / sizeof(char*); j++){
+            // int startOffsetInBytes;
+            // stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
+            int keyLen = strlen(keyword1[j]);
+            if(isSeparator(*(str->data + startOffsetInBytes + keyLen)) 
+                && (isSeparator(*(str->data + startOffsetInBytes - 1)) || i == 0)
+                && !strncmp(keyword1[j], str->data + startOffsetInBytes, keyLen)){
+                memset(str->tokenId + i, TOKEN_KEYWORD_1, keyLen);
+                i += keyLen;
+                goto START;
+            }
+        }
+        for(uint32 j = 0; j < sizeof(keyword2) / sizeof(char*); j++){
+            // int startOffsetInBytes;
+            // stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
+            int keyLen = strlen(keyword2[j]);
+            if(isSeparator(*(str->data + startOffsetInBytes + keyLen)) 
+                && (isSeparator(*(str->data + startOffsetInBytes - 1)) || i == 0)
+                && !strncmp(keyword2[j], str->data + startOffsetInBytes, keyLen)){
+                memset(str->tokenId + i, TOKEN_KEYWORD_2, keyLen);
+                i += keyLen;
+                goto START;
+            }
+        }
+        for(uint32 j = 0; j < sizeof(preprocesorKeyword) / sizeof(char*); j++){
+            // int startOffsetInBytes;
+            // stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
+            int keyLen = strlen(preprocesorKeyword[j]);
+            if(isSeparator(*(str->data + startOffsetInBytes + keyLen)) 
+                && (isSeparator(*(str->data + startOffsetInBytes - 1)) || i == 0)
+                && !strncmp(preprocesorKeyword[j], str->data + startOffsetInBytes, keyLen)){
+                memset(str->tokenId + i, TOKEN_PREPROCESSOR, keyLen);
+                i += keyLen;
+                goto START;
+            }
+        }
+        START:
+    }
+    return flags;
+}
 int syntaxHighlightString(string *str, int flags){
+    resetHighlight(str, flags);
     // TODO: Merge all the int8s into one variable.
-    // Fix multiline comments
-    // Highlight 25 lines above and bellow the limit
     int8 inComment = flags & SYNTAX_MULTILINE_COMMENT;
+    int8 singleLineComment = flags & SYNTAX_WAS_EXTENDED;
+    int8 sep = 0;
+    int8 prevSep = 0;
     int8 inString = 0;
     int8 inHashtag = 0;
 
-    int8 oldInComment = 0, oldInString = 0, oldInHashtag = 0;
+    int8 oldInComment = 0, oldInString = 0, oldInHashtag = 0, oldSingleLineComment = 0;
 
     int8 commentFirstCond = 0;
     int8 commentBreakCond = 0;
 
     for(int i = 0; i < str->len; i++){
         character_input ci = getCharAtPos(str, i);
+        /* The first check to see if its a comment */
         switch(ci.arr[0]){
             case '"':
             case '\'':
@@ -373,6 +488,7 @@ int syntaxHighlightString(string *str, int flags){
             case '/':
                 if(commentFirstCond){
                     inComment = 1;
+                    singleLineComment = 1;
                 }else if(commentBreakCond){
                     inComment = 0;
                 }else{
@@ -382,9 +498,13 @@ int syntaxHighlightString(string *str, int flags){
             case '*':
                 if(commentFirstCond){
                     inComment = 1;
+                    singleLineComment = 0;
                 }else{
                     commentBreakCond = 1;
                 }
+                break;
+            case ' ':
+                sep = 1;
                 break;
             default:
                 commentFirstCond = 0;
@@ -392,7 +512,6 @@ int syntaxHighlightString(string *str, int flags){
                 break;
         }
 
-        
         if(inString || oldInString){
             str->tokenId[i] = TOKEN_STRING;
         }else if(inComment || oldInComment){
@@ -408,11 +527,20 @@ int syntaxHighlightString(string *str, int flags){
         oldInComment = inComment;
         oldInHashtag = inHashtag;
         oldInString = inString;
+        prevSep = sep;
     }
 
-    return inComment;
-}
+    // Checking for trailing whitespaces
+    for(int i = str->len - 1; i >= 0; i--){
+        character_input ci = getCharAtPos(str, i);
+        if(*ci.arr == ' ') str->tokenId[i] = TOKEN_TRAILING_WHITE;
+        else break;
+    }
 
+    oldSingleLineComment = singleLineComment;
+    if(str->data[str->byteLen - 1] == '\\') singleLineComment = 0;
+    return (inComment && !singleLineComment) | ((oldSingleLineComment && inComment) << 1);
+}
 
 /*** String List ***/
 

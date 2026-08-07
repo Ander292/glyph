@@ -50,7 +50,17 @@ static inline void syntaxHighlightGlobal(string_list *list){
 }
 
 static inline void syntaxHighlight(string_list *list){
-    listForeachStringEx(list, E.Cursor.Y, ConInfo.Rows, syntaxHighlightString);
+    listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), ConInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, syntaxHighlightString);
+    listForeachStringEx(list, E.Offset.Y, ConInfo.Rows, syntaxHighlightStringKeyword);
+}
+
+#if 0
+static inline void syntaxHighlightNarrow(string_list *list){
+    listForeachStringEx(list, E.Cursor.Y, ConInfo.Rows, syntaxHighlightStringKeyword);
+}
+#endif
+static inline void resetSyntaxHighlight(string_list *list){
+    listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), ConInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, resetHighlight);
 }
 
 static int countToNotChar(string *str, int startPos, uint32 character){
@@ -357,9 +367,9 @@ static void processInput(character_input ci){
             TOGGLE_FLAG(FLAG_SHOWHEADER);
             break;
         case CTRL_KEY('p'):
-#if 0
-            TOGGLE_FLAG(FLAG_ALTVIEW);
-            SET_ALT_BUFFERID(0);
+#if 1
+            TOGGLE_FLAG(FLAG_SYNTAX);
+            //SET_ALT_BUFFERID(0);
 #else
             string *src = editorPromtHeader("Input string");
             if(src != NULL){
@@ -794,7 +804,6 @@ static int editorLoadFile(char *path){
 /* Rendering */
 
 static void drawRows(string *buffer){
-    syntaxHighlight(E.Rows);
     char rowNum[5];
     int maxRows = ConInfo.Rows;
     if(HAS_FLAG(FLAG_SHOWHEADER)) maxRows -= 1;
@@ -1007,7 +1016,7 @@ static string *editorPromtHeader(char *promt){
 
 int main(int argc, char *argv[], char *envp[]){
     prepareConsole();
-    SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE | FLAG_RENDER);
+    SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE | FLAG_RENDER | FLAG_SYNTAX);
     SET_FORMAT_NUMBER(FORMAT_UTF8);
     E.Cursor.X = 0;
     E.Cursor.Y = 0;
@@ -1033,7 +1042,8 @@ int main(int argc, char *argv[], char *envp[]){
     }else{
         E.File[0] = 0;
     }
-
+    
+    syntaxHighlight(E.Rows);
  
 
 
@@ -1045,6 +1055,13 @@ int main(int argc, char *argv[], char *envp[]){
         if(HAS_FLAG(FLAG_RENDER)){
             editorRefreshScreen();
             CLEAR_FLAG(FLAG_RENDER);
+            SET_FLAG(FLAG_FORMAT);
+        }else if(HAS_FLAG(FLAG_FORMAT)){
+            if(HAS_FLAG(FLAG_SYNTAX))
+                syntaxHighlight(E.Rows);
+            else
+                resetSyntaxHighlight(E.Rows);
+            CLEAR_FLAG(FLAG_FORMAT);
         }
 
         /* Processing input: Reading from stdin, checking for special cases and adding to the main buffer */

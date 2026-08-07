@@ -19,7 +19,11 @@ typedef enum token_type{
     TOKEN_PREPROCESSOR,
     TOKEN_STRING,
     TOKEN_COMMENT,
-    TOKEN_KEYWORD
+    TOKEN_KEYWORD_1,
+    TOKEN_KEYWORD_2,
+    TOKEN_PARENTHESES,
+    TOKEN_TRAILING_WHITE,
+    TOKEN_SCREAM
 } token_type;
 
 extern char *token_escape[];
@@ -30,6 +34,7 @@ typedef struct character{
     char tokenId;
 }character;
 
+#define isSeparator(c) ((c) == ' ' || (c) == 0)
 
 string stringCreate(int size);
 void doubleSize(string *str);
@@ -86,8 +91,14 @@ void listForeachString(string_list *list, int (*funct)(string *, int flags));
 void listForeachStringEx(string_list *list, int startIndex, int maxLen, int (*funct)(string *, int flags));
 
 /*** Syntax coloring ***/
+static inline int resetHighlight(string *str, int unused){
+    memset(str->tokenId, TOKEN_NEUTRAL, str->len);
+    return 0;
+}
 
 int syntaxHighlightString(string *str, int flags);
-#define SYNTAX_MULTILINE_COMMENT 0x1
+int syntaxHighlightStringKeyword(string *str, int flags);
 
+#define SYNTAX_MULTILINE_COMMENT 0x1
+#define SYNTAX_WAS_EXTENDED 0x2
 #endif
