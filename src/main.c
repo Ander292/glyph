@@ -44,6 +44,15 @@ static void editorRefreshScreen();
 static string *editorPromtHeader(char *promt);
 static int editorLoadFile(char *path);
 
+
+static inline void syntaxHighlightGlobal(string_list *list){
+    listForeachString(list, syntaxHighlightString);
+}
+
+static inline void syntaxHighlight(string_list *list){
+    listForeachStringEx(list, E.Cursor.Y, ConInfo.Rows, syntaxHighlightString);
+}
+
 static int countToNotChar(string *str, int startPos, uint32 character){
     int Result = 0;
     character_input ci = {0};
@@ -190,19 +199,6 @@ static inline void messageCreate(editor_message *dest, time_t duration, const ch
     //strcpy(dest->Data, text);
     dest->PostTime = ConInfo.CurrentTime;
     dest->Duration = duration;
-}
-
-static void syntaxHighlightString(string *str){
-    for(int i = 0; i < str->len; i++){
-        character_input ci = getCharAtPos(str, i);
-        if(ci.byteCount == 1 && *ci.arr >= '0' && *ci.arr <= '9'){
-            str->tokenId[i] = TOKEN_NUMBER;
-        }
-    }
-}
-
-static inline void syntaxHighlight(string_list *list){
-    listForeachString(list, syntaxHighlightString);
 }
 
 static int editorSave(char *path, string_list *src){
@@ -798,6 +794,7 @@ static int editorLoadFile(char *path){
 /* Rendering */
 
 static void drawRows(string *buffer){
+    syntaxHighlight(E.Rows);
     char rowNum[5];
     int maxRows = ConInfo.Rows;
     if(HAS_FLAG(FLAG_SHOWHEADER)) maxRows -= 1;
@@ -829,7 +826,7 @@ static void drawRows(string *buffer){
             string *row = getStringAtIndex(E.Rows, i + verticallOffset);
             if(row == NULL) die("Row was null, im out");
 
-#if 1
+#if 0
             /* Deciding how much to write */
             int startOffset;
             int byteCount = stringCharToByteCount(row, horizontalOffset, 0, maxCols, &startOffset);
@@ -840,7 +837,29 @@ static void drawRows(string *buffer){
                 WriteToBuffer(buffer, ESC_RESET_TEXT_ATTRIBUTES);
             }
 #else
-            string *rowCopy = createCopy(row, horizontalOffset, maxCols);
+            int startOffset;
+            int byteCount = stringCharToByteCount(row, horizontalOffset, 0, maxCols, &startOffset);
+            if(byteCount == -1){
+                WriteToBuffer(buffer, "<--");
+            }else{
+                string *formatBuffer = stringCreateHeap(row->maxSize);
+                char prevTokenId = TOKEN_NEUTRAL;
+                int escLen = 0;
+                for(int j = horizontalOffset; (j < maxCols + horizontalOffset) && (j < row->len); j++){
+                    character c = getCharAtPosEx(row, j);
+                    if(c.tokenId != prevTokenId){
+                        char *escSeqInsert = token_escape[c.tokenId];
+                        escLen += strlen(escSeqInsert);
+                        WriteToBuffer(formatBuffer, escSeqInsert);
+                        prevTokenId = c.tokenId;
+                    }
+                    stringAppendEnd(formatBuffer, c.arr, c.byteCount);
+                }
+
+                stringAppendEnd(buffer, formatBuffer->data, byteCount + escLen);
+                stringFreeHeap(formatBuffer);
+                WriteToBuffer(buffer, ESC_RESET_TEXT_ATTRIBUTES);
+            }
 #endif
         }
 
@@ -870,7 +889,11 @@ static void formatHeader(string *buffer){
     
     int feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s ||    |: %s :|",
         fileNameStr, E.Rows->size, E.Cursor.Y + 1, E.Cursor.X, GET_FORMAT_STRING(GET_FORMAT_NUMBER()), (*E.Message.Data == 0 ? "---" : E.Message.Data));
-        
+    
+    if(feedback > width && *E.Message.Data != 0){
+        feedback = snprintf(dest, 2*width, "|: %s :|", (*E.Message.Data == 0 ? "---" : E.Message.Data));
+    }
+
     WriteToBuffer(buffer, ESC_INVERTED_TEXT_COLOR ESC_TEXT_BOLD);
     WriteToBuffer(buffer, "    ");
     
@@ -1011,7 +1034,7 @@ int main(int argc, char *argv[], char *envp[]){
         E.File[0] = 0;
     }
 
-    
+ 
 
 
     while(E.Flags & FLAG_RUNNING){

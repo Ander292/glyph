@@ -4,6 +4,15 @@
 #include <stdio.h>
 #include <string.h>
 
+char *token_escape[] = {
+    ESC_RESET_TEXT_ATTRIBUTES,
+    ESC_TEXT_COLOR_BLUE,
+    ESC_TEXT_COLOR_MAGENTA,
+    ESC_TEXT_COLOR_YELLOW,
+    ESC_TEXT_COLOR_GREEN,
+    ESC_TEXT_COLOR_RED
+};
+
 /* Allocates the memory for the string. Size must be > 0 or undefined behavior!!!*/
 string stringCreate(int size){
     string Result;
@@ -114,6 +123,7 @@ void stringAppendEnd(string *str, const char *c, int size){
     str->tokenId[str->len] = 0;
 
     if(pos > size * 4) die("Fatal error. Pos: %d > Size: %d", pos, size);
+    //syntaxHighlightString(str);
 }
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int maxCharCount, int *outStartOffset){
@@ -148,6 +158,19 @@ character_input getCharAtPos(string *str, int index){
     return Result;
 }
 
+character getCharAtPosEx(string *str, int index){
+    int bytesPassed = 0;
+    character Result = {0};
+    for(int i = 0; i < index; i++){
+        bytesPassed += str->byteCount[i];
+    }
+    Result.byteCount = str->byteCount[index];
+    Result.tokenId = str->tokenId[index];
+    memcpy(Result.arr, str->data + bytesPassed, Result.byteCount);
+
+    return Result;
+}
+
 void clearBuffer(string *str){
     *str->byteCount = 0;
     *str->tokenId = 0;
@@ -171,6 +194,8 @@ void terminateStringOnPos(string *str, int pos){
     memset(str->tokenId + pos, 0, str->len - pos);
     str->len = pos;
     str->byteLen = startOffsetInBytes;
+
+    //syntaxHighlightString(str);
 
     // str->data[str->byteLen] = 0;
     // str->byteCount[str->len] = 0;
@@ -228,6 +253,7 @@ void deleteCharFromPossition(string *str, int pos){
 
     str->byteCount[str->len] = 0;
     str->data[str->byteLen] = 0;
+    // syntaxHighlightString(str);
 }
 
 /* The cancer itself */
@@ -297,7 +323,7 @@ void insertCharAtPossition(string *str, character_input ci, int pos, int insertM
         str->byteCount[str->len] = 0;
         str->data[str->byteLen] = 0;
     }
-
+    //syntaxHighlightString(str);
 }
 
 string *createCopy(string *src, int startCharOffset, int charCount){
@@ -316,6 +342,30 @@ string *createCopy(string *src, int startCharOffset, int charCount){
     memcpy(Result->tokenId, src->tokenId + startCharOffset, charCount);
 
     return Result;
+}
+
+
+/*** Syntax coloring ***/
+
+void syntaxHighlightString(string *str){
+    int charHit = 0;
+    int inComment = 0;
+    int inString = 0;
+    for(int i = 0; i < str->len; i++){
+        character_input ci = getCharAtPos(str, i);
+        
+
+        if(ci.byteCount == 1 && *ci.arr >= '0' && *ci.arr <= '9'){
+            str->tokenId[i] = TOKEN_NUMBER;
+        }else if(inString){
+            str->tokenId[i] = TOKEN_STRING;
+        }else if(inComment){
+            str->tokenId[i] = TOKEN_COMMENT;
+        }else{
+            str->tokenId[i] = TOKEN_NEUTRAL;
+        }
+        if(*ci.arr != ' ') charHit = 1;
+    }
 }
 
 
@@ -474,6 +524,13 @@ string_list createListWithRows(int initRowCount){
 
 void listForeachString(string_list *list, void (*funct)(string *)){
     for(list_node *p = list->head; p != NULL; p = p->next){
+        funct(p->str);
+    }
+}
+
+void listForeachStringEx(string_list *list, int startIndex, int maxLen, void (*funct)(string *)){
+    list_node *p = getNodeAtIndex(list, startIndex);
+    for(int i = 0; i < maxLen && p != NULL; p = p->next){
         funct(p->str);
     }
 }

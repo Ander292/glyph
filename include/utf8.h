@@ -17,8 +17,19 @@ typedef enum token_type{
     TOKEN_NEUTRAL,
     TOKEN_NUMBER,
     TOKEN_PREPROCESSOR,
+    TOKEN_STRING,
+    TOKEN_COMMENT,
     TOKEN_KEYWORD
 } token_type;
+
+extern char *token_escape[];
+
+typedef struct character{
+    char arr[4];
+    int byteCount;
+    char tokenId;
+}character;
+
 
 string stringCreate(int size);
 void doubleSize(string *str);
@@ -32,6 +43,7 @@ void stringFreeHeap(string *str);
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
 
 character_input getCharAtPos(string *str, int index);
+character getCharAtPosEx(string *str, int index);
 
 // void shiftStringRight(char *str, int len);
 // void shiftStringLeft(char *str, int len);
@@ -71,5 +83,9 @@ string_list createListWithRows(int initRowCount);
 void clearList(string_list *list);
 void freeList(string_list *list);
 void listForeachString(string_list *list, void (*funct)(string *));
+void listForeachStringEx(string_list *list, int startIndex, int maxLen, void (*funct)(string *));
+
+/*** Syntax coloring ***/
+void syntaxHighlightString(string *str);
 
 #endif
