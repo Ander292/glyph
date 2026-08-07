@@ -82,10 +82,12 @@ void swapStringsForIndexes(string_list *list, int ind1, int ind2);
 string_list createListWithRows(int initRowCount);
 void clearList(string_list *list);
 void freeList(string_list *list);
-void listForeachString(string_list *list, void (*funct)(string *));
-void listForeachStringEx(string_list *list, int startIndex, int maxLen, void (*funct)(string *));
+void listForeachString(string_list *list, int (*funct)(string *, int flags));
+void listForeachStringEx(string_list *list, int startIndex, int maxLen, int (*funct)(string *, int flags));
 
 /*** Syntax coloring ***/
-void syntaxHighlightString(string *str);
+
+int syntaxHighlightString(string *str, int flags);
+#define SYNTAX_MULTILINE_COMMENT 0x1
 
 #endif

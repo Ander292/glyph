@@ -347,25 +347,70 @@ string *createCopy(string *src, int startCharOffset, int charCount){
 
 /*** Syntax coloring ***/
 
-void syntaxHighlightString(string *str){
-    int charHit = 0;
-    int inComment = 0;
-    int inString = 0;
+int syntaxHighlightString(string *str, int flags){
+    // TODO: Merge all the int8s into one variable.
+    // Fix multiline comments
+    // Highlight 25 lines above and bellow the limit
+    int8 inComment = flags & SYNTAX_MULTILINE_COMMENT;
+    int8 inString = 0;
+    int8 inHashtag = 0;
+
+    int8 oldInComment = 0, oldInString = 0, oldInHashtag = 0;
+
+    int8 commentFirstCond = 0;
+    int8 commentBreakCond = 0;
+
     for(int i = 0; i < str->len; i++){
         character_input ci = getCharAtPos(str, i);
-        
+        switch(ci.arr[0]){
+            case '"':
+            case '\'':
+                inString ^= 1;
+                break;
+            case '#':
+                inHashtag = 1;
+                break;
+            case '/':
+                if(commentFirstCond){
+                    inComment = 1;
+                }else if(commentBreakCond){
+                    inComment = 0;
+                }else{
+                    commentFirstCond = 1;
+                }
+                break;
+            case '*':
+                if(commentFirstCond){
+                    inComment = 1;
+                }else{
+                    commentBreakCond = 1;
+                }
+                break;
+            default:
+                commentFirstCond = 0;
+                commentBreakCond = 0;
+                break;
+        }
 
-        if(ci.byteCount == 1 && *ci.arr >= '0' && *ci.arr <= '9'){
-            str->tokenId[i] = TOKEN_NUMBER;
-        }else if(inString){
+        
+        if(inString || oldInString){
             str->tokenId[i] = TOKEN_STRING;
-        }else if(inComment){
+        }else if(inComment || oldInComment){
             str->tokenId[i] = TOKEN_COMMENT;
+        }else if(ci.byteCount == 1 && *ci.arr >= '0' && *ci.arr <= '9'){
+            str->tokenId[i] = TOKEN_NUMBER;
         }else{
             str->tokenId[i] = TOKEN_NEUTRAL;
         }
-        if(*ci.arr != ' ') charHit = 1;
+
+        if(inComment && !oldInComment && i > 0) str->tokenId[i-1] = TOKEN_COMMENT;
+        
+        oldInComment = inComment;
+        oldInHashtag = inHashtag;
+        oldInString = inString;
     }
+
+    return inComment;
 }
 
 
@@ -522,16 +567,18 @@ string_list createListWithRows(int initRowCount){
     return Result;
 }
 
-void listForeachString(string_list *list, void (*funct)(string *)){
+void listForeachString(string_list *list, int (*funct)(string *, int flags)){
+    int retVal = 0;
     for(list_node *p = list->head; p != NULL; p = p->next){
-        funct(p->str);
+        retVal = funct(p->str, retVal);
     }
 }
 
-void listForeachStringEx(string_list *list, int startIndex, int maxLen, void (*funct)(string *)){
+void listForeachStringEx(string_list *list, int startIndex, int maxLen, int (*funct)(string *, int flags)){
+    int retVal = 0;
     list_node *p = getNodeAtIndex(list, startIndex);
     for(int i = 0; i < maxLen && p != NULL; p = p->next){
-        funct(p->str);
+        retVal = funct(p->str, retVal);
     }
 }
 
