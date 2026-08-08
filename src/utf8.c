@@ -69,6 +69,7 @@ static char *preprocesorKeyword[] = {
     "#define",
     "#include",
     "#undef",
+    "#if",
     "#ifdef",
     "#ifndef",
     "#else",
