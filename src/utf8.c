@@ -12,8 +12,8 @@ char *token_escape[] = {
     ESC_TEXT_COLOR_GREEN_BRIGHT,
     ESC_TEXT_COLOR_GREEN,
     ESC_TEXT_COLOR_CYAN,
-    ESC_TEXT_COLOR_CYAN,
-    ESC_BACKGROUND_COLOR_GREEN_BRIGHT
+    ESC_TEXT_COLOR_MAGENTA_BRIGHT,
+    ESC_BACKGROUND_COLOR_GREEN_BRIGHT,
     ESC_TEXT_COLOR_RED_BRIGHT
 };
 
@@ -424,8 +424,8 @@ int syntaxHighlightStringKeyword(string *str, int flags){
             // int startOffsetInBytes;
             // stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
             int keyLen = strlen(keyword1[j]);
-            if(isSeparator(*(str->data + startOffsetInBytes + keyLen)) 
-                && (isSeparator(*(str->data + startOffsetInBytes - 1)) || i == 0)
+            if(sepOrPar(*(str->data + startOffsetInBytes + keyLen)) 
+                && (sepOrPar(*(str->data + startOffsetInBytes - 1)) || i == 0)
                 && !strncmp(keyword1[j], str->data + startOffsetInBytes, keyLen)){
                 memset(str->tokenId + i, TOKEN_KEYWORD_1, keyLen);
                 i += keyLen;
@@ -436,8 +436,8 @@ int syntaxHighlightStringKeyword(string *str, int flags){
             // int startOffsetInBytes;
             // stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
             int keyLen = strlen(keyword2[j]);
-            if(isSeparator(*(str->data + startOffsetInBytes + keyLen)) 
-                && (isSeparator(*(str->data + startOffsetInBytes - 1)) || i == 0)
+            if(sepOrPar(*(str->data + startOffsetInBytes + keyLen))
+                && (sepOrPar(*(str->data + startOffsetInBytes - 1)) || i == 0)
                 && !strncmp(keyword2[j], str->data + startOffsetInBytes, keyLen)){
                 memset(str->tokenId + i, TOKEN_KEYWORD_2, keyLen);
                 i += keyLen;
@@ -448,8 +448,8 @@ int syntaxHighlightStringKeyword(string *str, int flags){
             // int startOffsetInBytes;
             // stringCharToByteCount(str, i, 0, 0, &startOffsetInBytes);
             int keyLen = strlen(preprocesorKeyword[j]);
-            if(isSeparator(*(str->data + startOffsetInBytes + keyLen)) 
-                && (isSeparator(*(str->data + startOffsetInBytes - 1)) || i == 0)
+            if(sepOrPar(*(str->data + startOffsetInBytes + keyLen)) 
+                && (sepOrPar(*(str->data + startOffsetInBytes - 1)) || i == 0)
                 && !strncmp(preprocesorKeyword[j], str->data + startOffsetInBytes, keyLen)){
                 memset(str->tokenId + i, TOKEN_PREPROCESSOR, keyLen);
                 i += keyLen;
@@ -466,18 +466,20 @@ int syntaxHighlightString(string *str, int flags){
     int8 inComment = flags & SYNTAX_MULTILINE_COMMENT;
     int8 singleLineComment = flags & SYNTAX_WAS_EXTENDED;
     int8 sep = 0;
-    int8 prevSep = 0;
-    int8 inString = 0;
-    int8 inHashtag = 0;
+    int8 prevSep = 1;
+    int8 inString = 0, inHashtag = 0, inScream = 0, isNum = 0;
+    int screamStartIndex = 0;
 
-    int8 oldInComment = 0, oldInString = 0, oldInHashtag = 0, oldSingleLineComment = 0;
+    int8 oldInComment = 0, oldInString = 0, oldInHashtag = 0, oldSingleLineComment = 0, oldInScream = 0, wasNum = 0;
 
     int8 commentFirstCond = 0;
     int8 commentBreakCond = 0;
+    int8 octCond = 0, isHex = 0;
 
     for(int i = 0; i < str->len; i++){
         character_input ci = getCharAtPos(str, i);
         /* The first check to see if its a comment */
+        isNum = 0;
         switch(ci.arr[0]){
             case '"':
             case '\'':
@@ -504,20 +506,76 @@ int syntaxHighlightString(string *str, int flags){
                     commentBreakCond = 1;
                 }
                 break;
+            case 'x':
+                if(octCond){
+                    isHex = 1;
+                    isNum = 1;
+                }
+                break;
+            case '0':
+                octCond = 1;
+                ATR_FALLTROUGHT;
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+            case '6':
+            case '7':
+            case '8':
+            case '9':
+                isNum = 1;
+                break;
+            case 'a':
+            case 'b':
+            case 'c':
+            case 'd':
+            case 'e':
+            case 'f':
+                if(isHex)
+                    isNum = 1;
+                break;
             case ' ':
+            case ':':
+            case '.':
                 sep = 1;
+                inScream = 0;
                 break;
             default:
+                //isNum = isDigit(ci.arr[0]);
+                if(!inComment){
+                    if(oldInScream && (upOrSpecial(ci.arr[0]) || isDigit(ci.arr[0]))){
+                        inScream = 1;
+                    }else if(!oldInScream){
+                        if(prevSep && upOrSpecial(ci.arr[0])){
+                            inScream = 1;
+                            screamStartIndex = i;
+                        }
+                    }else{
+                        inScream = 0;
+                        if(!isParanthesis(ci.arr[0]))
+                            memset(str->tokenId + screamStartIndex, TOKEN_NEUTRAL, str->len - screamStartIndex);
+                    }
+                }
                 commentFirstCond = 0;
                 commentBreakCond = 0;
                 break;
         }
+        if(!isNum) {
+            octCond = 0;
+            isHex = 0;
+        }
+    
 
         if(inString || oldInString){
             str->tokenId[i] = TOKEN_STRING;
         }else if(inComment || oldInComment){
             str->tokenId[i] = TOKEN_COMMENT;
-        }else if(ci.byteCount == 1 && *ci.arr >= '0' && *ci.arr <= '9'){
+        }else if(isParanthesis(ci.arr[0])){
+            str->tokenId[i] = TOKEN_PARENTHESES;
+        }else if(inScream){
+            str->tokenId[i] = TOKEN_SCREAM;
+        }else if(ci.byteCount == 1 && isNum){
             str->tokenId[i] = TOKEN_NUMBER;
         }else{
             str->tokenId[i] = TOKEN_NEUTRAL;
@@ -529,6 +587,8 @@ int syntaxHighlightString(string *str, int flags){
         oldInHashtag = inHashtag;
         oldInString = inString;
         prevSep = sep;
+        oldInScream = inScream;
+        wasNum = isNum;
     }
 
     // Checking for trailing whitespaces

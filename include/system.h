@@ -104,7 +104,7 @@ static inline int charGetByteCount(char c){
 #error "charGetByteCount error, no processor type defined"
     int Result = 1;
 #endif
-    if(Result == 1) die("This is not allowed!");
+    // if(Result == 1) die("This is not allowed!");
     if(Result > 4 || Result <= 0) Result = 1;
     return Result;
 }

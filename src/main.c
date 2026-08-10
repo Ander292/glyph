@@ -60,7 +60,7 @@ static inline void syntaxHighlightNarrow(string_list *list){
 }
 #endif
 static inline void resetSyntaxHighlight(string_list *list){
-    listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), ConInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, resetHighlight);
+    listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ConInfo.Rows, 0), ConInfo.Rows + ConInfo.Rows, resetHighlight);
 }
 
 static int countToNotChar(string *str, int startPos, uint32 character){
@@ -945,6 +945,7 @@ static inline void updateStatus(){
             *E.Message.Data = 0;
             E.Message.Duration = 0;
             E.Message.PostTime = 0;
+            SET_FLAG(FLAG_RENDER);
         }
     }
 
@@ -1062,6 +1063,7 @@ int main(int argc, char *argv[], char *envp[]){
             else
                 resetSyntaxHighlight(E.Rows);
             CLEAR_FLAG(FLAG_FORMAT);
+            editorRefreshScreen();
         }
 
         /* Processing input: Reading from stdin, checking for special cases and adding to the main buffer */

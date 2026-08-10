@@ -1,7 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#define ATR_FALLTROUGHT __attribute__((fallthrough));
+
 #define TAB_SPACE_SIZE 4
 
 typedef struct editor_message{
@@ -11,7 +11,7 @@ typedef struct editor_message{
 } editor_message;
 
 #define FILE_PATH_LENGTH 512
-#define ROW_OVERHIGHLIGHT_COUNT 25
+#define ROW_OVERHIGHLIGHT_COUNT 40
 
 #define DEFAULT_CURSOR_MAXIMUM_X INT_MAX
 #define DEFAULT_CURSOR_MAXIMUM_Y INT_MAX
@@ -20,6 +20,7 @@ typedef struct editor_message{
 
 #define postEditorMessage(duration, text, ...) messageCreate(&GLOBAL_STRUCT_NAME.Message, duration, text, ##__VA_ARGS__)
 #define clearEditorMessage() messageCreate(&GLOBAL_STRUCT_NAME.Message, 0, "")
+
 /**
  * FLAGS structure (bit by bit):
  *  global    file    altbuff  editor 

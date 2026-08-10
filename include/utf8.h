@@ -34,7 +34,13 @@ typedef struct character{
     char tokenId;
 }character;
 
-#define isSeparator(c) ((c) == ' ' || (c) == 0)
+#define isSeparator(c) ((c) == ' ' || (c) == 0 || (c) == ':' || (c) == '.' || (c) == ';')
+#define isParanthesis(c) ((c) == '(' || (c) == ')' || (c) == '{' || (c) == '}' || (c) == '[' || (c) == ']')
+#define sepOrPar(c) (isSeparator(c) || isParanthesis(c))
+#define isUppercase(c) ((c) >= 'A' && (c) <= 'Z')
+#define isSpecial(c) ((c) == '_' || (c) == '$')
+#define isDigit(c) ((c) >= '0' && (c) <= '9')
+#define upOrSpecial(c) (isUppercase(c) || isSpecial(c))
 
 string stringCreate(int size);
 void doubleSize(string *str);
@@ -101,4 +107,5 @@ int syntaxHighlightStringKeyword(string *str, int flags);
 
 #define SYNTAX_MULTILINE_COMMENT 0x1
 #define SYNTAX_WAS_EXTENDED 0x2
+
 #endif
