@@ -24,21 +24,22 @@ typedef struct editor_message{
 /**
  * FLAGS structure (bit by bit):
  *  global    file    altbuff  editor 
- * RFxxxxxx xxxxeern Aaaaaaaa fSTODIHN
- * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┃┃┃
- * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┃┃┗> SHOWNUMBERS flag
- * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┃┗━> SHOWHEADER flag
- * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
- * ┃┃           ┃┃┃┃ ┃        ┃┃┃┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
- * ┃┃           ┃┃┃┃ ┃        ┃┃┃┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
- * ┃┃           ┃┃┃┃ ┃        ┃┃┗━━━━━> TO_RENDER flag (will not rerender the scren if its zero)
- * ┃┃           ┃┃┃┃ ┃        ┃┗━━━━━━> SYNTAX flag (will highlight if set)
- * ┃┃           ┃┃┃┃ ┃        ┗━━━━━━━> TO_FORMAT flag (will format syntax before next render)
- * ┃┃           ┃┃┃┃ ┗━━━━━━━━━━━━━━━━> ALTVIEW flag (7 bytes to its right 
- * ┃┃           ┃┃┃┃                    are used for alt buffer number. Extracted using GET_ALT_BUFFERID())
- * ┃┃           ┃┃┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter used when reading LF files)
- * ┃┃           ┃┃┗━━━━━━━━━━━━━━━━━━━> UNUSED
- * ┃┃           ┗┻━━━━━━━━━━━━━━━━━━━━> FILE_FORMAT
+ * RFxxxxxx xxxheern Aaaaaaaa fSTODIHN
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┃┃┃┃┃┃
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┃┃┃┃┃┗> SHOWNUMBERS flag
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┃┃┃┃┗━> SHOWHEADER flag
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┃┃┃┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┃┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┃┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┃┗━━━━━> TO_RENDER flag (will not rerender the scren if its zero)
+ * ┃┃          ┃┃┃┃┃ ┃        ┃┗━━━━━━> SYNTAX flag (will highlight if set)
+ * ┃┃          ┃┃┃┃┃ ┃        ┗━━━━━━━> TO_FORMAT flag (will format syntax before next render)
+ * ┃┃          ┃┃┃┃┃ ┗━━━━━━━━━━━━━━━━> ALTVIEW flag (7 bytes to its right 
+ * ┃┃          ┃┃┃┃┃                    are used for alt buffer number. Extracted using GET_ALT_BUFFERID())
+ * ┃┃          ┃┃┃┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter used when reading LF files)
+ * ┃┃          ┃┃┃┗━━━━━━━━━━━━━━━━━━━> UNUSED
+ * ┃┃          ┃┗┻━━━━━━━━━━━━━━━━━━━━> FILE_FORMAT
+ * ┃┃          ┗━━━━━━━━━━━━━━━━━━━━━━> UNUSED
  * ┃┃
  * ┃┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━> FORCE flag (will not check file type on reload)
  * ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━> RUNNING flag

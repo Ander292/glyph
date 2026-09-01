@@ -50,8 +50,8 @@ static inline void syntaxHighlightGlobal(string_list *list){
 }
 
 static inline void syntaxHighlight(string_list *list){
-    listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), ConInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, syntaxHighlightString);
     listForeachStringEx(list, E.Offset.Y, ConInfo.Rows, syntaxHighlightStringKeyword);
+    listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), ConInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, syntaxHighlightString);
 }
 
 #if 0
