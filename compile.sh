@@ -111,7 +111,7 @@ CompilationFlags=(
     "-fdiagnostics-show-option"
     #"-g"
     "-DLINUX"
-    "-Darm"
+    #"-Darm"
     "-O2"
     #"-fsanitize=address"
     # "-masm=intel"

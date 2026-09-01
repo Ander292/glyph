@@ -69,7 +69,7 @@ static inline uint32 _BitScanReverse32(uint32 x){
 
 static inline uint16 _BitScanReverse16(uint16 x){
     uint16 Result = 0;
-    __asm__ (
+    __asm__ volatile (
         ".intel_syntax noprefix\n\t"
         "bsr %0, %1\n\t"
         ".att_syntax noprefix"
@@ -83,13 +83,21 @@ static inline uint16 _BitScanReverse16(uint16 x){
 #elif defined arm
 static inline uint32 _CountLeadingZeros32(uint32 x){
     uint32 Result = 0;
-    __asm__ (
+    __asm__ volatile (
         "clz %0, %1\n\t"
         : "=r" (Result)
         : "r" (x)
         : "cc"
     );
 
+    return Result;
+}
+#elif defined aarch64
+static inline uint32 _CountLeadingZeros32(uint32 x){
+    uint32 Result = 0;
+    __asm__ volatile (
+
+    );
     return Result;
 }
 #endif
@@ -101,8 +109,12 @@ static inline int charGetByteCount(char c){
 #elif defined arm
     int Result = _CountLeadingZeros32(~((uint32)c << 24));
 #else
-#error "charGetByteCount error, no processor type defined"
-    int Result = 1;
+    int Result = 0;
+    if ((c & 0x80) == 0) Result = 1;
+    if ((c & 0xE0) == 0xC0) Result = 2;
+    if ((c & 0xF0) == 0xE0) Result = 3;
+    if ((c & 0xF8) == 0xF0) Result = 4;
+
 #endif
     // if(Result == 1) die("This is not allowed!");
     if(Result > 4 || Result <= 0) Result = 1;
