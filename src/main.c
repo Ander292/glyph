@@ -43,6 +43,26 @@ static inline void updateStatus();
 static void editorRefreshScreen();
 static string *editorPromtHeader(char *promt);
 static int editorLoadFile(char *path);
+static void stringIntoInput(const char *str, int64 len);
+
+static const char helpFull[] =
+    "Ctrl key combinations: \r"
+
+        "\te -> enter/leave help\r"
+        "\tq -> quit\r"
+        "\to -> open new file\r"
+        "\ts -> save current file\r"
+        
+        "\th -> same as ctrl+backspace, delete whole word\r"
+        
+        "\tg -> show header\r"
+        "\tp -> toggle syntax highlighting\r"
+        "\tn -> toggle numbers\r"
+        "\tu -> switch between utf16 and utf8 mode"
+
+        //"\tr -> read-only mode\r"
+;
+static const unsigned long long helpFullLength = sizeof(helpFull);
 
 
 static inline void syntaxHighlightGlobal(string_list *list){
@@ -61,6 +81,21 @@ static inline void syntaxHighlightNarrow(string_list *list){
 #endif
 static inline void resetSyntaxHighlight(string_list *list){
     listForeachStringEx(list, MAX_VAL(E.Cursor.Y - ConInfo.Rows, 0), ConInfo.Rows + ConInfo.Rows, resetHighlight);
+}
+
+static void switchToAltBuffer(uint8 bufferID){
+    SET_FLAG(FLAG_ALTVIEW);
+
+    SET_ALT_BUFFERID(bufferID);
+    if(bufferID < ALT_RESERVED_COUNT) SET_FLAG(FLAG_RDONLY);
+    else CLEAR_FLAG(FLAG_RDONLY);
+    E.Rows = (E.AltBuffers + bufferID);
+}
+
+static void switchToMainBuffer(){
+    CLEAR_FLAG(FLAG_ALTVIEW);
+    CLEAR_FLAG(FLAG_RDONLY);
+    E.Rows = &E.MainBuffer;
 }
 
 static int countToNotChar(string *str, int startPos, uint32 character){
@@ -388,7 +423,7 @@ static void processInput(character_input ci){
         case CTRL_KEY('r'):
             TOGGLE_FLAG(FLAG_READONLY);
             break;
-        case CTRL_KEY('w'):
+        //case CTRL_KEY('w'):
         case '\b': // Backspace (or ctrl + h)
             if(HAS_FLAG(FLAG_READONLY)) break;
             string *current = getStringAtIndex(E.Rows, E.Cursor.Y);
@@ -409,6 +444,24 @@ static void processInput(character_input ci){
                 }
             }
             break;
+        case CTRL_KEY('e'):{
+            // Help
+            uint32 wasDirty = HAS_FLAG(FLAG_DIRTY);
+            if(HAS_FLAG(FLAG_ALTVIEW) && GET_ALT_BUFFERID() == 0){
+                switchToMainBuffer();
+                E.Cursor = E.oldCursor;
+                E.oldCursor = (int_pair){-1, -1};                
+            }else{
+                E.oldCursor = E.Cursor;
+                switchToAltBuffer(0);
+
+                freeList(E.Rows);
+                *E.Rows = createListWithRows(1);
+                E.Cursor = (int_pair){0, 0};
+                stringIntoInput(helpFull, helpFullLength);
+            }
+            if(!wasDirty) CLEAR_FLAG(FLAG_DIRTY);
+        } break;
         case CTRL_KEY('s'):
 #if 0
             if(*E.File == 0){
@@ -687,6 +740,10 @@ static inline void setCursorPossition(int x, int y){
 static void stringIntoInput(const char *str, int64 len){
     string *inputString = bufferCreateFromString(str, len);
     int bytesPassed = 0;
+
+    int wasRdonly = HAS_FLAG(FLAG_RDONLY);
+    CLEAR_FLAG(FLAG_RDONLY);
+
     for(int i = 0; i < inputString->len; i++){
         character_input ci = {0};
         ci.byteCount = inputString->byteCount[i];
@@ -695,6 +752,8 @@ static void stringIntoInput(const char *str, int64 len){
 
         processInput(ci);
     }
+
+    if(wasRdonly) SET_FLAG(FLAG_RDONLY);
 }
 
 static void byteIntoInput(const char *str, int64 len){
@@ -1029,7 +1088,7 @@ int main(int argc, char *argv[], char *envp[]){
     ConInfo = getConsoleSystemInfo();
 
     OutputBuffer = stringCreate(64);
-    postEditorMessage(5, "Ctrl+q to quit");
+    postEditorMessage(5, "Ctrl+e to open help");
 
     E.MainBuffer = createListWithRows(1);
     E.Rows = &E.MainBuffer;

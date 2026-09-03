@@ -17,7 +17,7 @@ char *token_escape[] = {
     ESC_TEXT_COLOR_RED_BRIGHT
 };
 
-static char *keyword1[] = {
+static const char *keyword1[] = {
     "while",
     "for",
     "if",
@@ -30,7 +30,7 @@ static char *keyword1[] = {
     "continue"
 };
 
-static char *keyword2[] = {
+static const char *keyword2[] = {
     "int",
     "short",
     "char",
@@ -65,7 +65,7 @@ static char *keyword2[] = {
     "size_t"
 };
 
-static char *preprocesorKeyword[] = {
+static const char *preprocesorKeyword[] = {
     "#define",
     "#include",
     "#undef",
