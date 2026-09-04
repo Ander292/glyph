@@ -18,6 +18,8 @@ typedef struct editor_message{
 
 #define GLOBAL_STRUCT_NAME E
 
+#define messageDurationDefault 5
+#define messageDurationInfinite 0
 #define postEditorMessage(duration, text, ...) messageCreate(&GLOBAL_STRUCT_NAME.Message, duration, text, ##__VA_ARGS__)
 #define clearEditorMessage() messageCreate(&GLOBAL_STRUCT_NAME.Message, 0, "")
 

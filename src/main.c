@@ -52,10 +52,11 @@ static const char helpFull[] =
         "\tq -> quit\r"
         "\to -> open new file\r"
         "\ts -> save current file\r"
-        
+        "\tg -> goto line\r"
+
         "\th -> same as ctrl+backspace, delete whole word\r"
         
-        "\tg -> show header\r"
+        "\tt -> show header\r"
         "\tp -> toggle syntax highlighting\r"
         "\tn -> toggle numbers\r"
         "\tu -> switch between utf16 and utf8 mode"
@@ -277,9 +278,9 @@ static int editorSave(char *path, string_list *src){
     int64 Result = fileWrite(path, Final.data, Final.byteLen);
     
     if(Result != SizeCount){
-        postEditorMessage(5, "Error saving file. E: %u, W: %u", SizeCount, Result);
+        postEditorMessage(messageDurationDefault, "Error saving file. E: %u, W: %u", SizeCount, Result);
     }else{
-        postEditorMessage(5, "File properly saved (Wrote %u bytes)", Result);
+        postEditorMessage(messageDurationDefault, "File properly saved (Wrote %u bytes)", Result);
         UNSET_FLAG(FLAG_DIRTY);
     }
 
@@ -340,7 +341,7 @@ static void processInput(character_input ci){
     switch(ci.arr[0]){
         case CTRL_KEY('q'):{
             if(HAS_FLAG(FLAG_DIRTY)){
-                postEditorMessage(20, "Unsaved changes. Quit? (Yes, No, Save)");
+                postEditorMessage(4*messageDurationDefault, "Unsaved changes. Quit? (Yes, No, Save)");
                 while(1){
                     editorRefreshScreen();
                     character_input ci = pollInput();
@@ -366,7 +367,7 @@ static void processInput(character_input ci){
             break;
         case CTRL_KEY('o'):{ // File open
             if(HAS_FLAG(FLAG_DIRTY) && E.File[0] != 0){
-                postEditorMessage(20, "Unsaved changes. Proceed? (Yes, No, Save)");
+                postEditorMessage(4*messageDurationDefault, "Unsaved changes. Proceed? (Yes, No, Save)");
                 while(1){
                     editorRefreshScreen();
                     character_input ci = pollInput();
@@ -386,7 +387,7 @@ static void processInput(character_input ci){
             string *feedback = editorPromtHeader("Enter path:");
             if(feedback != NULL) {
                 if(getFileSize(feedback->data) <= 0) {
-                    postEditorMessage(10, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
+                    postEditorMessage(2*messageDurationDefault, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
                     break;
                 }
                 freeList(E.Rows);
@@ -399,6 +400,37 @@ static void processInput(character_input ci){
             break;
         }
         case CTRL_KEY('g'):
+            string *Result = editorPromtHeader("Goto line:");
+            if(Result){
+                char *endPtr;
+                int32 val = strtoul(Result->data, &endPtr, 0);
+                stringFreeHeap(Result);
+                if(*endPtr != 0){
+                    postEditorMessage(messageDurationDefault, "Invalid input: Not a number");
+                }else if(errno == ERANGE){
+                    postEditorMessage(messageDurationDefault, "Invalid input: Overflow (number too large)");
+                }else{
+                    if(val > 0){
+#if 0
+                        if(val < E.Rows->size){
+                            E.Cursor.Y = val-1;
+                            clearEditorMessage();
+                        }else{
+                            postEditorMessage(messageDurationDefault, "Out of bounds: %d < %d", E.Rows->size, val);
+                        }
+#else
+                        E.Cursor.Y = (val - 1 < E.Rows->size ? val - 1 : E.Rows->size - 1);
+                        clearEditorMessage();
+#endif
+                    }else{
+                        postEditorMessage(messageDurationDefault, "Out of bounds: %d is negative", val);
+                    }
+                }
+            }else{
+                postEditorMessage(messageDurationDefault, "Canceled");
+            }
+            break;
+        case CTRL_KEY('t'):
             TOGGLE_FLAG(FLAG_SHOWHEADER);
             break;
         case CTRL_KEY('p'):
@@ -472,7 +504,7 @@ static void processInput(character_input ci){
                         editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS);
                         break;
                     }else{
-                        postEditorMessage(5, "Invalid file: %s", str->data);
+                        postEditorMessage(messageDurationDefault, "Invalid file: %s", str->data);
                     }
                     free(str);
             }
@@ -542,7 +574,7 @@ static void processInput(character_input ci){
             }
             break;
         // case 127: // Delete key
-        //     postEditorMessage(5, "Delete key ):");
+        //     postEditorMessage(messageDurationDefault, "Delete key ):");
         //     SET_FLAG(FLAG_DIRTY);
         //     break;
         case '\x1b':{
@@ -682,7 +714,7 @@ static void processInput(character_input ci){
                     }
                     break;
                 case '3': // Delete key
-                    //postEditorMessage(5, "Delete key <3");
+                    //postEditorMessage(messageDurationDefault, "Delete key <3");
                     //SET_FLAG(FLAG_DIRTY);
                     if(HAS_FLAG(FLAG_READONLY)) break;
                     string *currentRow = getStringAtIndex(E.Rows, E.Cursor.Y);
@@ -808,7 +840,7 @@ static int editorLoadFile(char *path){
     char buffer[256];
     int64 fileSize = getFileSize(path);
     if(fileSize <= 0) {
-        postEditorMessage(10, "FileSize error: %s : %s", path, getInputOutputErrorString());
+        postEditorMessage(2*messageDurationDefault, "FileSize error: %s : %s", path, getInputOutputErrorString());
         return 1;
     }
 
@@ -818,12 +850,12 @@ static int editorLoadFile(char *path){
 
     int64 Feedback = fileRead(path, tempBuffer, fileSize);
     if(Feedback <= 0){
-        postEditorMessage(10, "fileRead error: %s : %s", path, getInputOutputErrorString());
+        postEditorMessage(2*messageDurationDefault, "fileRead error: %s : %s", path, getInputOutputErrorString());
         return 1;
     }
 
     if(Feedback != fileSize) 
-        postEditorMessage(5, "Possible load error (Exp: %u | Rec: %u)", fileSize, Feedback);
+        postEditorMessage(messageDurationDefault, "Possible load error (Exp: %u | Rec: %u)", fileSize, Feedback);
 
     
     if(!HAS_FLAG(FLAG_FORCE)){
@@ -1050,7 +1082,7 @@ static string *editorPromtHeader(char *promt){
     string *strBuffer = stringCreateHeap(64);
 
     while(1){
-        postEditorMessage(0, format, promt, strBuffer->data);
+        postEditorMessage(messageDurationInfinite, format, promt, strBuffer->data);
         editorRefreshScreen();
 
         character_input ci = pollInput();
@@ -1088,7 +1120,7 @@ int main(int argc, char *argv[], char *envp[]){
     ConInfo = getConsoleSystemInfo();
 
     OutputBuffer = stringCreate(64);
-    postEditorMessage(5, "Ctrl+e to open help");
+    postEditorMessage(messageDurationDefault, "Ctrl+e to open help");
 
     E.MainBuffer = createListWithRows(1);
     E.Rows = &E.MainBuffer;
