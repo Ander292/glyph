@@ -433,6 +433,31 @@ static void processInput(character_input ci){
         case CTRL_KEY('t'):
             TOGGLE_FLAG(FLAG_SHOWHEADER);
             break;
+        case CTRL_KEY('f'):
+            // Search (Ctrl+f)
+            string *Result = editorPromtHeader("Find:");
+            if(Result){
+                list_node *p = E.Rows->head;
+                for(int i = 0; i < E.Rows->size; i++, p = p->next){
+                    char *resultPtr = strstr(p->str->data, Result->data);
+                    while(resultPtr != NULL){
+                        character_input ci = pollInput();
+                        switch(*ci.arr){
+                            case '\r':
+
+                                // Search further
+                                break;
+                            default:
+                                // Break search
+                                break;
+                        }
+                    }
+                }
+                stringFreeHeap(Result);
+            }else{
+                postEditorMessage(messageDurationDefault, "Canceled");
+            }
+            break;
         case CTRL_KEY('p'):
 #if 1
             TOGGLE_FLAG(FLAG_SYNTAX);
@@ -1135,8 +1160,7 @@ int main(int argc, char *argv[], char *envp[]){
         E.File[0] = 0;
     }
     
-    syntaxHighlight(E.Rows);
- 
+    syntaxHighlight(E.Rows); 
 
 
     while(E.Flags & FLAG_RUNNING){

@@ -23,7 +23,8 @@ typedef enum token_type{
     TOKEN_KEYWORD_2,
     TOKEN_PARENTHESES,
     TOKEN_TRAILING_WHITE,
-    TOKEN_SCREAM
+    TOKEN_SCREAM,
+    TOKEN_SEARCH_HIGHTLIGHT
 } token_type;
 
 extern char *token_escape[];
