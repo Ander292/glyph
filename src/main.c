@@ -339,6 +339,10 @@ static void FixCursorPossition(){
 
 static void processInput(character_input ci){
     switch(ci.arr[0]){
+        case CTRL_KEY('c'): // Ctrl+c and ctrl+v is managed by the console host for now
+        case CTRL_KEY('v'):
+        //case CTRL_KEY('x'):
+            break;
         case CTRL_KEY('q'):{
             if(HAS_FLAG(FLAG_DIRTY)){
                 postEditorMessage(4*messageDurationDefault, "Unsaved changes. Quit? (Yes, No, Save)");
@@ -399,7 +403,7 @@ static void processInput(character_input ci){
             }
             break;
         }
-        case CTRL_KEY('g'):
+        case CTRL_KEY('g'):{
             string *Result = editorPromtHeader("Goto line:");
             if(Result){
                 char *endPtr;
@@ -429,35 +433,69 @@ static void processInput(character_input ci){
             }else{
                 postEditorMessage(messageDurationDefault, "Canceled");
             }
-            break;
+        }break;
         case CTRL_KEY('t'):
             TOGGLE_FLAG(FLAG_SHOWHEADER);
             break;
-        case CTRL_KEY('f'):
+        case CTRL_KEY('f'):{
+            SEARCH_REPEAT:
             // Search (Ctrl+f)
             string *Result = editorPromtHeader("Find:");
             if(Result){
-                list_node *p = E.Rows->head;
-                for(int i = 0; i < E.Rows->size; i++, p = p->next){
-                    char *resultPtr = strstr(p->str->data, Result->data);
-                    while(resultPtr != NULL){
-                        character_input ci = pollInput();
-                        switch(*ci.arr){
-                            case '\r':
+                int32 matchCount = 0;
+                int_pair oldCursor = E.Cursor;
+                do{
+                    list_node *p = E.Rows->head;
+                    for(int32 i = 0; i < E.Rows->size; i++, p = p->next){
+                        char *resultPtr = strstr(p->str->data, Result->data);
+                        while(resultPtr != NULL){
+                            matchCount++;
+                            int32 xOffset = resultPtr - p->str->data;
+                            E.Cursor.X = xOffset;
+                            E.Cursor.Y = i;
 
-                                // Search further
-                                break;
-                            default:
-                                // Break search
-                                break;
+                            FixCursorPossition();
+                            editorRefreshScreen();
+
+                            character_input ci;
+                            do{
+                                ci = pollInput();
+                            }while(ci.byteCount == 0);
+                            
+
+                            switch(*ci.arr){
+                                case '\r':
+                                    // Search further
+                                    resultPtr = strstr(resultPtr + Result->byteLen, Result->data);
+                                    break;
+                                case 'r':
+                                    // Return to old possition
+                                    E.Cursor = oldCursor;
+                                    ATR_FALLTROUGHT;
+                                case CTRL_KEY('f'):
+                                    stringFreeHeap(Result);
+                                    goto SEARCH_REPEAT;
+                                    break;
+                                default:
+                                    // Break search
+                                    resultPtr = NULL;
+                                    goto WHILE_END;
+                                    break;
+                            }
                         }
                     }
-                }
-                stringFreeHeap(Result);
+
+                }while(matchCount);
+                WHILE_END:
+                if(matchCount)
+                    clearEditorMessage();
+                else
+                    postEditorMessage(messageDurationDefault, "No matches");
+                    stringFreeHeap(Result);
             }else{
                 postEditorMessage(messageDurationDefault, "Canceled");
             }
-            break;
+        }break;
         case CTRL_KEY('p'):
 #if 1
             TOGGLE_FLAG(FLAG_SYNTAX);
@@ -1117,7 +1155,8 @@ static string *editorPromtHeader(char *promt){
             case '\t':
                 break;
             case 127:
-                deleteCharFromPossition(strBuffer, strBuffer->len - 1);
+                if(strBuffer->len)
+                    deleteCharFromPossition(strBuffer, strBuffer->len - 1);
                 break;
             case '\r':
                 return strBuffer;
