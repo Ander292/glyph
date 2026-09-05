@@ -15,7 +15,7 @@ char *token_escape[] = {
     ESC_TEXT_COLOR_MAGENTA_BRIGHT,
     ESC_BACKGROUND_COLOR_GREEN_BRIGHT,
     ESC_TEXT_COLOR_RED_BRIGHT,
-    ESC_BACKGROUND_COLOR_RED_BRIGHT
+    ESC_BACKGROUND_COLOR_WHITE_BRIGHT,
 };
 
 static const char *keyword1[] = {
@@ -222,7 +222,19 @@ int stringByteToCharCount(string *str, int startOffsetInBytes, int endOffsetInBy
 
     if(startOffsetInBytes > str->byteLen) return -1;
     int charCountToReachStart = 0;
-    
+    for(int i = 0; i < startOffsetInBytes; ){
+        i += charGetByteCount(str->data[i]);
+        charCountToReachStart++;
+    }
+    if(outStartOffsetInChars)
+        *outStartOffsetInChars = charCountToReachStart;
+
+    for(int i = startOffsetInBytes; i < (str->byteLen - endOffsetInBytes) && (i < maxByteCount + startOffsetInBytes);){
+        Result++;
+        i += charGetByteCount(str->data[i]);
+    }
+
+    return Result;
 }
 
 character_input getCharAtPos(string *str, int index){

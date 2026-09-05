@@ -459,16 +459,18 @@ static void processInput(character_input ci){
                                 syntaxHighlight(E.Rows);
                             else
                                 resetSyntaxHighlight(E.Rows);
+
                             /* Highlighting the string */
-                            //stringCharToByteCount(p->str, xOffset, 0, );
-                            
+                            int xOffsetInChars;
+                            int charLen = stringByteToCharCount(p->str, xOffset, 0, Result->byteLen, &xOffsetInChars);
+                            syntaxForce(p->str, xOffsetInChars, TOKEN_SEARCH_HIGHTLIGHT, charLen);
+
                             editorRefreshScreen();
 
                             character_input ci;
                             do{
                                 ci = pollInput();
                             }while(ci.byteCount == 0);
-                            
 
                             switch(*ci.arr){
                                 case '\r':

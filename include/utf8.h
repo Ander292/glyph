@@ -53,6 +53,7 @@ void stringFree(string *str);
 void stringFreeHeap(string *str);
 
 int stringCharToByteCount(string *str, int startOffset, int endOffset, int charCount, int *outStartOffset);
+int stringByteToCharCount(string *str, int startOffsetInBytes, int endOffsetInBytes, int maxByteCount, int *outStartOffsetInChars);
 
 character_input getCharAtPos(string *str, int index);
 character getCharAtPosEx(string *str, int index);
@@ -106,7 +107,7 @@ static inline int resetHighlight(string *str, int unused){
 int syntaxHighlightString(string *str, int flags);
 int syntaxHighlightStringKeyword(string *str, int flags);
 static inline void syntaxForce(string *str, int offset, token_type tokenId, int len){
-    memset(str->tokenId, tokenId, len);
+    memset(str->tokenId + offset, tokenId, len);
 }
 
 #define SYNTAX_MULTILINE_COMMENT 0x1
