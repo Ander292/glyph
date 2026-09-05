@@ -216,6 +216,15 @@ int stringCharToByteCount(string *str, int startOffset, int endOffset, int maxCh
     return Result;
 }
 
+int stringByteToCharCount(string *str, int startOffsetInBytes, int endOffsetInBytes, int maxByteCount, int *outStartOffsetInChars){
+    if(maxByteCount == 0) maxByteCount = INT_MAX / 2;
+    int Result = 0;
+
+    if(startOffsetInBytes > str->byteLen) return -1;
+    int charCountToReachStart = 0;
+    
+}
+
 character_input getCharAtPos(string *str, int index){
     int bytesPassed = 0;
     character_input Result = {0};
@@ -568,21 +577,23 @@ int syntaxHighlightString(string *str, int flags){
         }
     
 
-        if(inString || oldInString){
-            str->tokenId[i] = TOKEN_STRING;
-        }else if(inComment || oldInComment){
-            str->tokenId[i] = TOKEN_COMMENT;
-        }else if(isParanthesis(ci.arr[0])){
-            str->tokenId[i] = TOKEN_PARENTHESES;
-        }else if(inScream){
-            str->tokenId[i] = TOKEN_SCREAM;
-        }else if(ci.byteCount == 1 && isNum){
-            str->tokenId[i] = TOKEN_NUMBER;
-        }else{
-            str->tokenId[i] = TOKEN_NEUTRAL;
+        if(str->tokenId[i] != TOKEN_SEARCH_HIGHTLIGHT){
+            if(inString || oldInString){
+                str->tokenId[i] = TOKEN_STRING;
+            }else if(inComment || oldInComment){
+                str->tokenId[i] = TOKEN_COMMENT;
+            }else if(isParanthesis(ci.arr[0])){
+                str->tokenId[i] = TOKEN_PARENTHESES;
+            }else if(inScream){
+                str->tokenId[i] = TOKEN_SCREAM;
+            }else if(ci.byteCount == 1 && isNum){
+                str->tokenId[i] = TOKEN_NUMBER;
+            }else{
+                str->tokenId[i] = TOKEN_NEUTRAL;
+            }
+    
+            if(inComment && !oldInComment && i > 0) str->tokenId[i-1] = TOKEN_COMMENT;
         }
-
-        if(inComment && !oldInComment && i > 0) str->tokenId[i-1] = TOKEN_COMMENT;
         
         oldInComment = inComment;
         oldInHashtag = inHashtag;
@@ -603,6 +614,7 @@ int syntaxHighlightString(string *str, int flags){
     if(str->data[str->byteLen - 1] == '\\') singleLineComment = 0;
     return (inComment && !singleLineComment) | ((oldSingleLineComment && inComment) << 1);
 }
+
 
 /*** String List ***/
 

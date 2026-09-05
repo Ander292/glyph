@@ -455,6 +455,13 @@ static void processInput(character_input ci){
                             E.Cursor.Y = i;
 
                             FixCursorPossition();
+                            if(HAS_FLAG(FLAG_SYNTAX))
+                                syntaxHighlight(E.Rows);
+                            else
+                                resetSyntaxHighlight(E.Rows);
+                            /* Highlighting the string */
+                            //stringCharToByteCount(p->str, xOffset, 0, );
+                            
                             editorRefreshScreen();
 
                             character_input ci;

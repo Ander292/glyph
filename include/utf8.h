@@ -105,6 +105,9 @@ static inline int resetHighlight(string *str, int unused){
 
 int syntaxHighlightString(string *str, int flags);
 int syntaxHighlightStringKeyword(string *str, int flags);
+static inline void syntaxForce(string *str, int offset, token_type tokenId, int len){
+    memset(str->tokenId, tokenId, len);
+}
 
 #define SYNTAX_MULTILINE_COMMENT 0x1
 #define SYNTAX_WAS_EXTENDED 0x2
