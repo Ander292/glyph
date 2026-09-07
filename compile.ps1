@@ -95,6 +95,7 @@ elseif( ($mode -eq "buildP") ){
 $ExtraFlags = @(
     "-pedantic"
     "-m64"
+    #"-m32"
 )
 
 if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
@@ -124,6 +125,7 @@ if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
         $Resources `
         -O `
         coff `
+        #-F pe-i386 -D USE_X86_MODE `
         -o `
         $ResourcesObj
 
