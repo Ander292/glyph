@@ -79,6 +79,7 @@ $CompilationFlagsProd = @(
     #"-fsanitize=address"
     "-DWINDOWS"
     "-Dx86"
+    #"-s"
     # "-masm=intel"
 )
 
@@ -121,11 +122,11 @@ if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
     # Compiling resources into a windows resource file:
 
     Write-Host "Preparing resources..."
+    #-F pe-i386 -D USE_X86_MODE `
     windres `
         $Resources `
         -O `
         coff `
-        #-F pe-i386 -D USE_X86_MODE `
         -o `
         $ResourcesObj
 
