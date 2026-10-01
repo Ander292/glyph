@@ -81,6 +81,7 @@ $CompilationFlagsProd = @(
     "-Dx86"
     #"-s"
     # "-masm=intel"
+    # "-Wl,-s"
 )
 
 $CompilationFlags = @()
@@ -96,6 +97,7 @@ elseif( ($mode -eq "buildP") ){
 $ExtraFlags = @(
     "-pedantic"
     "-m64"
+    "-s"
     #"-m32"
 )
 
