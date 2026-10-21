@@ -8,8 +8,8 @@ static inline void UniversalCheck(char character, int *byteCountAdr){
     if(((character >= 'a' && character <= 'z') || 
         (character >= 'A' && character <= 'Z')) && *byteCountAdr < 2) *byteCountAdr = 2; 
     
-    if((character == 'h' && character == 'f') || (character == 'H' && character == 'F') ||
-       (character == 'o' && character == 'O')) *byteCountAdr = 3;
+    if(character == 'h' || character == 'f' || character == 'H' || character == 'F' ||
+       character == 'o' || character == 'O') *byteCountAdr = 3;
 
     if((character <= '9' && character >= '0' 
         || character == 'O') && *byteCountAdr < 4) *byteCountAdr = 4;
