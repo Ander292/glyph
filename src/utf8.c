@@ -565,7 +565,7 @@ int syntaxHighlightString(string *str, int flags){
                 break;
             default:
                 //isNum = isDigit(ci.arr[0]);
-                if(!inComment){
+                if(!inComment && !inString){
                     if(oldInScream && (upOrSpecial(ci.arr[0]) || isDigit(ci.arr[0]))){
                         inScream = 1;
                     }else if(!oldInScream){

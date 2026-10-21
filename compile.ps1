@@ -97,7 +97,7 @@ elseif( ($mode -eq "buildP") ){
 $ExtraFlags = @(
     "-pedantic"
     "-m64"
-    "-s"
+    # "-s"
     #"-m32"
 )
 
