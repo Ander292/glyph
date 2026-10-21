@@ -38,7 +38,7 @@ typedef struct editor_message{
  * ┃┃          ┃┃┃┃┃ ┃        ┗━━━━━━━> TO_FORMAT flag (will format syntax before next render)
  * ┃┃          ┃┃┃┃┃ ┗━━━━━━━━━━━━━━━━> ALTVIEW flag (7 bytes to its right 
  * ┃┃          ┃┃┃┃┃                    are used for alt buffer number. Extracted using GET_ALT_BUFFERID())
- * ┃┃          ┃┃┃┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter used when reading LF files)
+ * ┃┃          ┃┃┃┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter. Used when reading LF files)
  * ┃┃          ┃┃┃┗━━━━━━━━━━━━━━━━━━━> UNUSED
  * ┃┃          ┃┗┻━━━━━━━━━━━━━━━━━━━━> FILE_FORMAT
  * ┃┃          ┗━━━━━━━━━━━━━━━━━━━━━━> UNUSED
@@ -100,6 +100,11 @@ static char *Formats[FORMAT_MASK + 1] = {
     "UTF16",
     "BIN",
     "UNUSED"
+};
+
+static char *EndLine[] = {
+    "CRLF",
+    "LF"
 };
 
 #endif
