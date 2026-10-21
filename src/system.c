@@ -2,6 +2,19 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+// TODO: Possibly make the whole input thing more efficient
+// Linux input definetly has place for improvement!!!
+static inline void UniversalCheck(char character, int *byteCountAdr){
+    if(((character >= 'a' && character <= 'z') || 
+        (character >= 'A' && character <= 'Z')) && *byteCountAdr < 2) *byteCountAdr = 2; 
+    
+    if((character == 'h' && character == 'f') || (character == 'H' && character == 'F') ||
+       (character == 'o' && character == 'O')) *byteCountAdr = 3;
+
+    if((character <= '9' && character >= '0' 
+        || character == 'O') && *byteCountAdr < 4) *byteCountAdr = 4;
+    if(character == ';') *byteCountAdr = 6;
+}
 /* Platform specific code */
 #if defined WINDOWS
 
@@ -170,11 +183,7 @@ character_input pollInput(){
                 if(!ReadFile(hStdin, Result.arr + i, 1, &Feedback, NULL)){
                     WIN32_ErrorExit("Error reading stdin");
                 }
-                if(((Result.arr[i] >= 'a' && Result.arr[i] <= 'z') || 
-                    (Result.arr[i] >= 'A' && Result.arr[i] <= 'Z')) && byteCount < 2) byteCount = 2; 
-                if((Result.arr[i] <= '9' && Result.arr[i] >= '0' 
-                    || Result.arr[i] == 'O') && byteCount < 4) byteCount = 4;
-                if(Result.arr[i] == ';') byteCount = 6;
+                UniversalCheck(Result.arr[i], &byteCount);
             }
 
             Result.byteCount = byteCount;
@@ -300,14 +309,7 @@ character_input pollInput(){
             if((Feedback = read(STDIN_FILENO, Result.arr + i, 1)) <= 0){
                 die("Error reading stdin");
             }
-            if(((Result.arr[i] >= 'a' && Result.arr[i] <= 'z') || 
-                (Result.arr[i] >= 'A' && Result.arr[i] <= 'Z')) && byteCount < 2) byteCount = 2; 
-            if((Result.arr[i] == 'h' && Result.arr[i] == 'f') || 
-                (Result.arr[i] == 'H' && Result.arr[i] == 'F')) byteCount = 3;
-                
-            if((Result.arr[i] <= '9' && Result.arr[i] >= '0' 
-                || Result.arr[i] == 'O') && byteCount < 4) byteCount = 4;
-            if(Result.arr[i] == ';') byteCount = 6;
+            UniversalCheck(Result.arr[i], &byteCount);
         }
         Result.byteCount = byteCount;
     }
