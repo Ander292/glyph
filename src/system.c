@@ -302,6 +302,9 @@ character_input pollInput(){
             }
             if(((Result.arr[i] >= 'a' && Result.arr[i] <= 'z') || 
                 (Result.arr[i] >= 'A' && Result.arr[i] <= 'Z')) && byteCount < 2) byteCount = 2; 
+            if((Result.arr[i] == 'h' && Result.arr[i] == 'f') || 
+                (Result.arr[i] == 'H' && Result.arr[i] == 'F')) byteCount = 3;
+                
             if((Result.arr[i] <= '9' && Result.arr[i] >= '0' 
                 || Result.arr[i] == 'O') && byteCount < 4) byteCount = 4;
             if(Result.arr[i] == ';') byteCount = 6;
