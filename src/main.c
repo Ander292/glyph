@@ -1181,7 +1181,12 @@ static string *editorPromtHeader(char *promt){
 
 int main(int argc, char *argv[], char *envp[]){
     prepareConsole();
+    CLEAR_FLAG(0xffffffff);
     SET_FLAG(FLAG_RUNNING | FLAG_SHOWHEADER | FLAG_SHOWNUMBERS | FLAG_INSERT_MODE | FLAG_RENDER | FLAG_SYNTAX);
+#if defined LINUX
+    SET_FLAG(FLAG_NEWLINE_ENTER);
+#endif
+
     SET_FORMAT_NUMBER(FORMAT_UTF8);
     E.Cursor.X = 0;
     E.Cursor.Y = 0;
