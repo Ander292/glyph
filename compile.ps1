@@ -15,7 +15,7 @@ $AssetsDir          = Join-Path $RootDir    "assets"
 $ResourceDir        = Join-Path $RootDir    "resources"
 
 $BuildDir           = Join-Path $RootDir    "build"
-$BinDir             = Join-Path $BuildDir   $ProjectName
+$BinDir             = Join-Path $BuildDir   "bin"
 $ObjDir             = Join-Path $BuildDir   "obj"
 
 $ResourcesObj       = Join-Path $ObjDir     "resource.obj"
@@ -85,21 +85,31 @@ $CompilationFlagsProd = @(
 )
 
 $CompilationFlags = @()
-
-if( ($mode -eq "build") -OR ($mode -eq "full") ){
-    $CompilationFlags = $CompilationFlagsOrd
-}
-elseif( ($mode -eq "buildP") ){
-    $CompilationFlags = $CompilationFlagsProd
-}
+$ExtraFlags = @()
 
 # Extra flags for the linking stage
-$ExtraFlags = @(
+$ExtraFlagsOrd = @(
     "-pedantic"
     "-m64"
     # "-s"
     #"-m32"
 )
+
+$ExtraFlagsProd = @(
+    "-pedantic"
+    "-m64"
+    "-Wl,-s"
+    #"-m32"
+)
+
+if( ($mode -eq "build") -OR ($mode -eq "full") ){
+    $CompilationFlags = $CompilationFlagsOrd
+    $ExtraFlags = $ExtraFlagsOrd
+}
+elseif( ($mode -eq "buildP") ){
+    $CompilationFlags = $CompilationFlagsProd
+    $ExtraFlags = $ExtraFlagsProd
+}
 
 if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
 

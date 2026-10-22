@@ -64,7 +64,7 @@ compile() {
 mode="$full"
 #full, run, build
 
-gccPath="gcc-15"
+gccPath="cc"
 
 if [ $# -ne 1 ]; then
     echo "Usage: `basename $0` <mode>"
