@@ -1059,7 +1059,7 @@ static void formatHeader(string *buffer){
     WriteToBuffer(buffer, ESC_CLEAR_LINE);
     for(int i = 0; i < offsetLeft; i++) WriteToBuffer(buffer, " ");
     
-    int feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s %s||    |: %s :|",
+    int feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s %s ||    |: %s :|",
         fileNameStr, E.Rows->size, E.Cursor.Y + 1, E.Cursor.X, GET_FORMAT_STRING(GET_FORMAT_NUMBER()), EndLine[HAS_FLAG(FLAG_NEWLINE_ENTER) != 0], (*E.Message.Data == 0 ? "---" : E.Message.Data));
     
     if(feedback > width && *E.Message.Data != 0){
