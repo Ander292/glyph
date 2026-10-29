@@ -255,6 +255,8 @@ static int editorSave(char *path, string_list *src){
         if(str != NULL){
             strcpy(E.File, str->data);
             stringFreeHeap(str);
+        }else{
+            return -1;
         }
     }
 
@@ -357,8 +359,15 @@ static void processInput(character_input ci){
                             clearEditorMessage();
                             return;
                         case 'S':
-                            if(editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS)) break;
-                            goto END_WHILE;
+                            switch(editorSave(E.File, DEFAULT_SAVE_SOURCE_ADDRESS)){
+                                case 1: break;
+                                case 0:
+                                    goto END_WHILE;
+                                case -1:
+                                    postEditorMessage(messageDurationDefault, "Saving canceled");
+                                    return;
+                            }
+                            break;
                     }
                 }
                 END_WHILE:
