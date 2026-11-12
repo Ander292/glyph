@@ -175,5 +175,5 @@ if ( ( $mode -eq "full" ) -OR ( $mode -eq "run" ) ) {
     #$ProgramPath = Read-Host "Input file name to open"
     Write-Host "Running program..."
     #& "$OutputExe" $ProgramPath
-    & $OutputExe ".\include\main.h"
+    & $OutputExe ".\Lana.txt"
 }

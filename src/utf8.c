@@ -483,7 +483,7 @@ int syntaxHighlightStringKeyword(string *str, int flags){
     return flags;
 }
 int syntaxHighlightString(string *str, int flags){
-    resetHighlight(str, flags);
+    //resetHighlight(str, flags);
     // TODO: Merge all the int8s into one variable.
     int8 inComment = flags & SYNTAX_MULTILINE_COMMENT;
     int8 singleLineComment = flags & SYNTAX_WAS_EXTENDED;
@@ -556,6 +556,7 @@ int syntaxHighlightString(string *str, int flags){
             case 'f':
                 if(isHex)
                     isNum = 1;
+                else goto DEFAULT;
                 break;
             case ' ':
             case ':':
@@ -564,6 +565,7 @@ int syntaxHighlightString(string *str, int flags){
                 inScream = 0;
                 break;
             default:
+            DEFAULT:
                 //isNum = isDigit(ci.arr[0]);
                 if(!inComment && !inString){
                     if(oldInScream && (upOrSpecial(ci.arr[0]) || isDigit(ci.arr[0]))){
