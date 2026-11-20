@@ -7,13 +7,9 @@
 #define ESC_SEQ "\x1b["
 #define ESC(c) ESC_SEQ c
 
-#define ESC_HIDE_CURSOR ESC("?25l")
-#define ESC_SHOW_CURSOR ESC("?25h")
-
+/* Screen operations */
 #define ESC_CLEAR_SCREEN ESC("2J")
 #define ESC_CLEAR_LINE ESC("2K")
-
-//#define ESC_FULL_CLEAR ESC("c")   // THIS IS BROKEN DO NOT USE
 
 #define ESC_MOVE_TO_AUX_BUFFER  ESC("?1049h")
 #define ESC_MOVE_TO_MAIN_BUFFER ESC("?1049l")
@@ -22,6 +18,7 @@
 
 #define ESC_NOOVERFLOW ESC("?7l")
 #define ESC_YESOVERFLOW ESC("?7h")
+
 /* Text attributes */
 #define ESC_INVERTED_TEXT_COLOR ESC("7m")
 #define ESC_RESET_TEXT_ATTRIBUTES ESC("m")
@@ -71,6 +68,7 @@
 #define ESC_TEXT_BOLD ESC("1m")
 #define ESC_TEXT_RESET_BOLD ESC("22m")
 
+
 /* Cursor */
 #define ESC_RESET_CURSOR_POSSITION ESC("0;0H")
 #define ESC_MOVE_CURSOR_LEFT ESC("1D")
@@ -82,5 +80,7 @@
 #define ESC_DISABLE_CURSOR_BLINKING ESC("?12l")
 #define ESC_FORCE_STATIC_CURSOR ESC("2 q")
 #define ESC_RESET_CURSOR_ATTRIBUTES ESC("0 q")
+#define ESC_HIDE_CURSOR ESC("?25l")
+#define ESC_SHOW_CURSOR ESC("?25h")
 
 #endif
