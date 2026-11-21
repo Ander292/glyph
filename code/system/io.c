@@ -22,27 +22,61 @@ static inline i32 charGetByteCount(char c){
 
 #ifdef WINDOWS
 #include "win32.c"
-#else
+#elif defined UNIX
+#include "unix32.c"
 #endif
 
 read_result io_ReadConsoleInput(){
     read_result result = {0};
 
-    result.bytes[0] = readByteBlock();
+    result.bytes[0] = readByte();
     if(result.bytes[0] == ESC_SEQ[0]){
         result.size = 3;
 
         for(int i = 1; i < result.size; i++){
-                result.bytes[i] = readByteBlock();
+                result.bytes[i] = readByte();
                 universalCheck(result.bytes[i], &result.size);
             }
     }else{
         result.size = charGetByteCount(result.bytes[0]);
         
         for(int i = 1; i < result.size; i++){
-            result.bytes[i] = readByteBlock();
+            result.bytes[i] = readByte();
         }
     }
 
     return result;
+}
+
+static inline uint32 getInputOutputErrorCode(){
+#if defined WINDOWS
+    return GetLastError();
+#elif defined UNIX
+    return errno;
+#endif
+}
+
+char *getInputOutputErrorString(){
+#if defined WINDOWS
+    return WIN32_formatError((DWORD)getInputOutputErrorCode());
+#elif defined UNIX
+    return strerror(errno);
+#endif
+}
+
+void Die(const char *format, ...){
+    char str[256];
+
+    va_list args;
+    va_start(args, format);
+    vsprintf(str, format, args);
+    va_end(args);
+
+    uint32 errCode = getInputOutputErrorCode();
+    char *errStr = getInputOutputErrorString();
+
+    printf(ESC_CLEAR_SCREEN "%s : (%u) %s\n", str, errCode, errStr);
+
+    readByte();
+    exit(1);
 }

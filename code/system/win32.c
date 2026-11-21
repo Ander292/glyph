@@ -1,9 +1,11 @@
 #ifndef WIN32_C
 #define WIN32_c
 
+#include <stdio.h>
 #include <windows.h>
 #include "escape.h"
 #include "types.h"
+#include "io.h"
 
 DWORD OldConsoleModeIn;
 DWORD OldConsoleModeOut;
@@ -11,19 +13,21 @@ HANDLE hStdin;
 HANDLE hStdout;
 HANDLE hStderr;
 
+static inline char readByte();
+
 /* Terminal */
-void term_DisableRawMode(){
+void term_disableRawMode(){
     DWORD ConsoleMode = OldConsoleModeIn;
     SetConsoleMode(hStdin, ConsoleMode);
     ConsoleMode = OldConsoleModeOut;
     SetConsoleMode(hStdout, ConsoleMode);
 
-    Print(ESC_MOVE_TO_MAIN_BUFFER);
-    Print(ESC_ENABLE_CURSOR_BLINKING);
-    Print(ESC_RESET_CURSOR_ATTRIBUTES);
+    PrintA(ESC_MOVE_TO_MAIN_BUFFER);
+    PrintA(ESC_ENABLE_CURSOR_BLINKING);
+    PrintA(ESC_RESET_CURSOR_ATTRIBUTES);
 }
 
-void term_EnableRawMode(){
+void term_enableRawMode(){
     DWORD ConsoleMode;
 
     /* Stdin */
@@ -41,32 +45,32 @@ void term_EnableRawMode(){
 
     ConsoleMode = ConsoleMode & ~(ENABLE_WRAP_AT_EOL_OUTPUT);
     SetConsoleMode(hStdout, ConsoleMode);
-    Print(ESC_DISABLE_CURSOR_BLINKING);
-    Print(ESC_FORCE_STATIC_CURSOR);
+    PrintA(ESC_DISABLE_CURSOR_BLINKING);
+    PrintA(ESC_FORCE_STATIC_CURSOR);
 }
 
-// console_info getConsoleSystemInfo(){
-//     console_info Result;
-//     CONSOLE_SCREEN_BUFFER_INFO si;
-//     GetConsoleScreenBufferInfo(hStdout, &si);
-//     Result.Rows = si.dwSize.Y;
-//     Result.Cols = si.dwSize.X;
+console_info term_GetConsoleSystemInfo(){
+    console_info Result;
+    CONSOLE_SCREEN_BUFFER_INFO si;
+    GetConsoleScreenBufferInfo(hStdout, &si);
+    Result.Rows = si.dwSize.Y;
+    Result.Cols = si.dwSize.X;
 
-//     Result.CurrentTime = time(NULL);
-//     return Result;
-// }
+    Result.CurrentTime = time(NULL);
+    return Result;
+}
 
 void term_PrepareConsole(){
     hStdin = GetStdHandle(STD_INPUT_HANDLE);
     hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
     hStderr = GetStdHandle(STD_ERROR_HANDLE);
-    enableRawMode();
-    Print(ESC_MOVE_TO_AUX_BUFFER);
+    term_enableRawMode();
+    PrintA(ESC_MOVE_TO_AUX_BUFFER);
 
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
     FlushConsoleInputBuffer(hStdin);
-    atexit(term_DisableRawMode);
+    atexit(term_disableRawMode);
 }
 
 static inline LPSTR WIN32_formatError(DWORD dwError){
@@ -84,39 +88,22 @@ static inline LPSTR WIN32_formatError(DWORD dwError){
     return MessageBuffer;
 }
 
-static void WIN32_errorExit(char *format, ...){
-    char str[256];
-
-    va_list args;
-    va_start(args, format);
-    vsprintf(str, format, args);
-    va_end(args);
-
-    DWORD ErrorCode = GetLastError();
-    LPSTR WindowsErrorString = WIN32_formatError(ErrorCode);
-
-    printf("%s : (%u) %s\n", format, ErrorCode, WindowsErrorString);
-
-    readByteBlock();
-    exit(2);
-}
-
 /* Input output */
-static inline char readByteBlock(){
+static inline char readByte(){
     char result;
     DWORD readFeedback;
     if(!ReadFile(hStdin, &result, 1, &readFeedback, NULL)){
-        exit(1);
+        Die("Error reading stdin. (readByte)");
     }
 
     return result;
 }
 
-static inline u32 writeOutput(char *src, u32 size){
+u32 writeOutput(char *src, u32 size){
     DWORD Feedback;
 
     if((!WriteFile(hStdout, src, size, &Feedback, NULL)) || (Feedback != size)){
-        WIN32_ErrorExit("Error writting to stdout. %p R: %u F: %u", src, size, Feedback);
+        Die("Error writting to stdout. %p R: %u F: %u", src, size, Feedback);
     }
 
     return Feedback;

@@ -3,16 +3,19 @@ param (
 )
 # full, run, build, buildP
 
-[array]$Sources = @(
-    "src/main.c"
-    "system/io.c"
+$Sources = @(
+    "code/src/main.c"
+    "code/system/io.c"
 )
 $IncludeFlags = @(
-    "-Iinclude"
-    "-I."
+    "-Icode/include"
+    "-Icode"
+)
+$Flags = @(
+    "-g"
 )
 
-gcc $Sources $IncludeFlags -o "build/main.exe"
+gcc $Sources $IncludeFlags $Flags -o "build/main.exe"
 
 # $ProjectName = "glyph"
 

@@ -8,10 +8,10 @@
             "name": "(gdb) Debugger Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/bin/glyph.exe",
+            "program": "${workspaceFolder}/build/main.exe",
             "args": [
                 //"C:\\Users\\Korisnik\\test.txt"
-                "Lana.txt"
+                // "Lana.txt"
                 //"D:\\Documents\\Fakultet\\Principi\\Bitwise\\zad.txt"
             ],
             "stopAtEntry": false,
