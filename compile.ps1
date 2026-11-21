@@ -3,177 +3,188 @@ param (
 )
 # full, run, build, buildP
 
-$ProjectName = "glyph"
-
-# Directories
-
-$RootDir            = Split-Path -Parent    $MyInvocation.MyCommand.Path
-
-$SrcDir             = Join-Path $RootDir    "src"
-$IncludeDir         = Join-Path $RootDir    "include"
-$AssetsDir          = Join-Path $RootDir    "assets"
-$ResourceDir        = Join-Path $RootDir    "resources"
-
-$BuildDir           = Join-Path $RootDir    "build"
-$BinDir             = Join-Path $BuildDir   "bin"
-$ObjDir             = Join-Path $BuildDir   "obj"
-
-$ResourcesObj       = Join-Path $ObjDir     "resource.obj"
-$OutputExe          = Join-Path $BinDir     "$ProjectName.exe"
-
-# Source arrays
-
-[array]$Sources     = Get-ChildItem "$SrcDir\*.c"       | ForEach-Object { $_.FullName }
-
-[array]$ObjC        = Get-ChildItem "$SrcDir\*.c"       | ForEach-Object { $_.BaseName + ".obj"}
-
-[array]$Resources   = Get-ChildItem "$ResourceDir\*.rc" | ForEach-Object { $_.FullName }
-
-
-#Making folders if they arent present:
-
-New-Item -ItemType Directory -Force -Path $SrcDir       | Out-Null
-New-Item -ItemType Directory -Force -Path $IncludeDir   | Out-Null
-New-Item -ItemType Directory -Force -Path $AssetsDir    | Out-Null
-New-Item -ItemType Directory -Force -Path $ResourceDir  | Out-Null
-
-New-Item -ItemType Directory -Force -Path $BuildDir     | Out-Null
-New-Item -ItemType Directory -Force -Path $BinDir       | Out-Null
-New-Item -ItemType Directory -Force -Path $ObjDir       | Out-Null
-
-#Flags that are included based on which libraries are there
+[array]$Sources = @(
+    "src/main.c"
+    "system/io.c"
+)
 $IncludeFlags = @(
-    "-I$IncludeDir"
+    "-Iinclude"
+    "-I."
 )
 
-#Flags for special libraries (if there are any)
-$LibFlags = @(
-)
+gcc $Sources $IncludeFlags -o "build/main.exe"
 
-$CompilationFlagsOrd = @(
-    #"-Wall"
-    #"-pedantic"
-    "-Wextra"
-    #"-Wconversion"
-    #"-Wundef"
-    #"-Wstrict-overflow=5"
-    "-fdiagnostics-show-option"
-    "-g"
-    #"-O2"
-    #"-fsanitize=address"
-    "-DWINDOWS"
-    "-Dx86"
-    # "-masm=intel"
-)
+# $ProjectName = "glyph"
 
-$CompilationFlagsProd = @(
-    #"-Wall"
-    #"-pedantic"
-    "-Wextra"
-    #"-Wconversion"
-    #"-Wundef"
-    #"-Wstrict-overflow=5"
-    "-fdiagnostics-show-option"
-    #"-g"
-    "-O2"
-    #"-fsanitize=address"
-    "-DWINDOWS"
-    "-Dx86"
-    #"-s"
-    # "-masm=intel"
-    # "-Wl,-s"
-)
+# # Directories
 
-$CompilationFlags = @()
-$ExtraFlags = @()
+# $RootDir            = Split-Path -Parent    $MyInvocation.MyCommand.Path
 
-# Extra flags for the linking stage
-$ExtraFlagsOrd = @(
-    "-pedantic"
-    "-m64"
-    # "-s"
-    #"-m32"
-)
+# $SrcDir             = Join-Path $RootDir    "src"
+# $IncludeDir         = Join-Path $RootDir    "include"
+# $AssetsDir          = Join-Path $RootDir    "assets"
+# $ResourceDir        = Join-Path $RootDir    "resources"
 
-$ExtraFlagsProd = @(
-    "-pedantic"
-    "-m64"
-    "-Wl,-s"
-    #"-m32"
-)
+# $BuildDir           = Join-Path $RootDir    "build"
+# $BinDir             = Join-Path $BuildDir   "bin"
+# $ObjDir             = Join-Path $BuildDir   "obj"
 
-if( ($mode -eq "build") -OR ($mode -eq "full") ){
-    $CompilationFlags = $CompilationFlagsOrd
-    $ExtraFlags = $ExtraFlagsOrd
-}
-elseif( ($mode -eq "buildP") ){
-    $CompilationFlags = $CompilationFlagsProd
-    $ExtraFlags = $ExtraFlagsProd
-}
+# $ResourcesObj       = Join-Path $ObjDir     "resource.obj"
+# $OutputExe          = Join-Path $BinDir     "$ProjectName.exe"
 
-if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
+# # Source arrays
 
-    # Compiling c code into obj files
-    Write-Host "Compiling c files..."
-    $i = 0
-    $Sources.ForEach({
-        $CurrentObj     = Join-Path     $ObjDir  $ObjC[$i]
+# [array]$Sources     = Get-ChildItem "$SrcDir\*.c"       | ForEach-Object { $_.FullName }
 
-        gcc `
-            $IncludeFlags `
-            $_ `
-            $CompilationFlags `
-            -c `
-            -o `
-            $CurrentObj
+# [array]$ObjC        = Get-ChildItem "$SrcDir\*.c"       | ForEach-Object { $_.BaseName + ".obj"}
+
+# [array]$Resources   = Get-ChildItem "$ResourceDir\*.rc" | ForEach-Object { $_.FullName }
+
+
+# #Making folders if they arent present:
+
+# New-Item -ItemType Directory -Force -Path $SrcDir       | Out-Null
+# New-Item -ItemType Directory -Force -Path $IncludeDir   | Out-Null
+# New-Item -ItemType Directory -Force -Path $AssetsDir    | Out-Null
+# New-Item -ItemType Directory -Force -Path $ResourceDir  | Out-Null
+
+# New-Item -ItemType Directory -Force -Path $BuildDir     | Out-Null
+# New-Item -ItemType Directory -Force -Path $BinDir       | Out-Null
+# New-Item -ItemType Directory -Force -Path $ObjDir       | Out-Null
+
+# #Flags that are included based on which libraries are there
+# $IncludeFlags = @(
+#     "-I$IncludeDir"
+# )
+
+# #Flags for special libraries (if there are any)
+# $LibFlags = @(
+# )
+
+# $CompilationFlagsOrd = @(
+#     #"-Wall"
+#     #"-pedantic"
+#     "-Wextra"
+#     #"-Wconversion"
+#     #"-Wundef"
+#     #"-Wstrict-overflow=5"
+#     "-fdiagnostics-show-option"
+#     "-g"
+#     #"-O2"
+#     #"-fsanitize=address"
+#     "-DWINDOWS"
+#     "-Dx86"
+#     # "-masm=intel"
+# )
+
+# $CompilationFlagsProd = @(
+#     #"-Wall"
+#     #"-pedantic"
+#     "-Wextra"
+#     #"-Wconversion"
+#     #"-Wundef"
+#     #"-Wstrict-overflow=5"
+#     "-fdiagnostics-show-option"
+#     #"-g"
+#     "-O2"
+#     #"-fsanitize=address"
+#     "-DWINDOWS"
+#     "-Dx86"
+#     #"-s"
+#     # "-masm=intel"
+#     # "-Wl,-s"
+# )
+
+# $CompilationFlags = @()
+# $ExtraFlags = @()
+
+# # Extra flags for the linking stage
+# $ExtraFlagsOrd = @(
+#     "-pedantic"
+#     "-m64"
+#     # "-s"
+#     #"-m32"
+# )
+
+# $ExtraFlagsProd = @(
+#     "-pedantic"
+#     "-m64"
+#     "-Wl,-s"
+#     #"-m32"
+# )
+
+# if( ($mode -eq "build") -OR ($mode -eq "full") ){
+#     $CompilationFlags = $CompilationFlagsOrd
+#     $ExtraFlags = $ExtraFlagsOrd
+# }
+# elseif( ($mode -eq "buildP") ){
+#     $CompilationFlags = $CompilationFlagsProd
+#     $ExtraFlags = $ExtraFlagsProd
+# }
+
+# if( ( $mode -eq "full" ) -OR ( $mode -eq "build" ) -OR ( $mode -eq "buildP") ){
+
+#     # Compiling c code into obj files
+#     Write-Host "Compiling c files..."
+#     $i = 0
+#     $Sources.ForEach({
+#         $CurrentObj     = Join-Path     $ObjDir  $ObjC[$i]
+
+#         gcc `
+#             $IncludeFlags `
+#             $_ `
+#             $CompilationFlags `
+#             -c `
+#             -o `
+#             $CurrentObj
         
-        $i++
-        if ($LASTEXITCODE -ne 0) {Write-Error "Error compiling $_"}
-    })
+#         $i++
+#         if ($LASTEXITCODE -ne 0) {Write-Error "Error compiling $_"}
+#     })
 
-    # Compiling resources into a windows resource file:
+#     # Compiling resources into a windows resource file:
 
-    Write-Host "Preparing resources..."
-    #-F pe-i386 -D USE_X86_MODE `
-    windres `
-        $Resources `
-        -O `
-        coff `
-        -o `
-        $ResourcesObj
-
-
-    # Fetching every obj file that was produced as a result
-    [array]$Objs        = Get-ChildItem "$ObjDir\*.obj"         | ForEach-Object { $_.FullName }
+#     Write-Host "Preparing resources..."
+#     #-F pe-i386 -D USE_X86_MODE `
+#     windres `
+#         $Resources `
+#         -O `
+#         coff `
+#         -o `
+#         $ResourcesObj
 
 
-    # Linking stage
-    Write-Host "Linking..."
-    gcc `
-        $Objs `
-        $IncludeFlags `
-        $LibFlags `
-        $ExtraFlags `
-        -o $OutputExe
+#     # Fetching every obj file that was produced as a result
+#     [array]$Objs        = Get-ChildItem "$ObjDir\*.obj"         | ForEach-Object { $_.FullName }
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Compilation fajled!"
-        exit(1)
-    }
 
-    Write-Host "Compilation was sucessful!"
+#     # Linking stage
+#     Write-Host "Linking..."
+#     gcc `
+#         $Objs `
+#         $IncludeFlags `
+#         $LibFlags `
+#         $ExtraFlags `
+#         -o $OutputExe
+
+#     if ($LASTEXITCODE -ne 0) {
+#         Write-Error "Compilation fajled!"
+#         exit(1)
+#     }
+
+#     Write-Host "Compilation was sucessful!"
 
     
-}
+# }
 
-# I added mine to path and I hate copying it to C:\bin manually
-if ( $mode -eq "update" ) {
-        Copy-Item $OutputExe "C:\bin\" -Force
-}
+# # I added mine to path and I hate copying it to C:\bin manually
+# if ( $mode -eq "update" ) {
+#         Copy-Item $OutputExe "C:\bin\" -Force
+# }
 
-if ( ( $mode -eq "full" ) -OR ( $mode -eq "run" ) ) {
-    #$ProgramPath = Read-Host "Input file name to open"
-    Write-Host "Running program..."
-    #& "$OutputExe" $ProgramPath
-    & $OutputExe ".\Lana.txt"
-}
+# if ( ( $mode -eq "full" ) -OR ( $mode -eq "run" ) ) {
+#     #$ProgramPath = Read-Host "Input file name to open"
+#     Write-Host "Running program..."
+#     #& "$OutputExe" $ProgramPath
+#     & $OutputExe ".\Lana.txt"
+# }

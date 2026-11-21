@@ -7,6 +7,10 @@
 #define MIN_VAL(a, b) (a < b ? a : b)
 #define MAX_VAL(a, b) (a > b ? a : b)
 
+#define OUT
+#define IN
+#define VALUE_RESULT
+
 typedef int8_t      int8,   i8;
 typedef int16_t     int16,  i16;
 typedef int32_t     int32,  i32;
@@ -26,12 +30,12 @@ typedef double      real64;
 typedef union wchar32{
     u8 bytes[4];
     u32 full;
-};
+} wchar32;
 
 typedef union wchar16{
     u8 bytes[2];
     u16 full;
-};
+} wchar16;
 
 static inline uint32 powerOfTwoRoundUp(uint32 num){
     if(num == 1) return 2;
