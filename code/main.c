@@ -19,16 +19,19 @@ int main(int argc, char *argv[], char *envp[]){
     term_PrepareConsole();
 
     string_a *str = StringCreateHeapA(64);
+    string_u32 *str32 = StringCreateHeapU32(64);
 
-#if 0
+#if 1
     for(;;){
         io_SetCursorPossition(0, 0);
         read_result r = io_ReadConsoleInput();
         if(r.bytes[0] == '\r') break;
-        if(r.type == TYPE_ANSI) StringAppendEndA(&str, r.bytes, 1);
+        if(r.type == TYPE_ANSI || r.type == TYPE_UTF32) 
+            StringAppendEndU32(str32, r.bytes, r.size);
         
+        TranslateToUtf8(str, str32);
         PrintA(ESC_CLEAR_LINE);
-        PrintBufferA(str);
+        PrintBufferA(*str);
     }
 #endif
 
@@ -54,7 +57,8 @@ int main(int argc, char *argv[], char *envp[]){
 
     StringFreeHeapA(old);
     StringFreeHeapA(str);
-#else
+#endif
+#if 0
     const char *bla = "1234ččč5678ććć9f";
     int blalen = 22;
 
@@ -80,7 +84,7 @@ int main(int argc, char *argv[], char *envp[]){
     InsertCharAtPosU32(str32, WCHAR32(U'R'), 73, INS_MODE_INCREASE_SIZE);
     TEST_REFR2
 
-    InsertCharAtPosU32(str32, WCHAR32(U'ф'), 72, INS_MODE_OVERWRITE | INS_MODE_INCREASE_SIZE);
+    InsertCharAtPosU32(str32, WCHAR32(0x88D1), 72, INS_MODE_OVERWRITE | INS_MODE_INCREASE_SIZE);
     TEST_REFR2
 
 #endif
