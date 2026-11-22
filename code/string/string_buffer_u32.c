@@ -200,3 +200,22 @@ string_u32 *CreateCopyU32(string_u32 *str, u32 startOffset, u32 endOffset){
     
     return result;
 }
+
+string_a *TranslateToUtf8(string_u32 *str){
+    string_a *result = StringCreateHeapA(str->maxSize);
+
+    // TODO: Handle tokens
+
+    for(u32 i = 0; i < str->len; i++){
+        const char *currentChar = str->data + i;
+        StringAppendEndA(result, currentChar, charGetByteCount(*currentChar));
+    }
+
+    return result;
+}
+void PrintBufferU32(string_u32 *str){
+    string_a *Temp = TranslateToUtf8(str);
+    PrintBufferA(*Temp);
+
+    StringFreeA(&Temp);
+}

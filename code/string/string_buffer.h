@@ -109,14 +109,14 @@ static inline i8 GetTokenAtPosU32(string_u32 *str, u32 index){
         return -1;
 }
 
-bool32 InsertCharAtPosU32(string_u32 *str, char c, u32 index, u32 insertionMode);
+bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMode);
 bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos);
 bool32 TerminateStringOnPosU32(string_u32 *str, u32 pos);
 
 string_u32 *CreateCopyU32(string_u32 *str, u32 startOffest, u32 endOffset);
 
-//#define PrintBufferU32(buffer) writeOutput((buffer).data, (buffer).len);
-//#define WriteToBufferU32(buffer, str) StringAppendEndA((buffer), (str), strlen(str))
-
+string_a *TranslateToUtf8(string_u32 *str);
+void PrintBufferU32(string_u32 *str);
+#define WriteToBufferU32(buffer, str) StringAppendEndU32((buffer), (str), strlen(str))
 
 #endif /* STRING_BUFFER_H */
