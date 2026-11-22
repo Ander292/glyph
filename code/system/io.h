@@ -3,8 +3,8 @@
 
 #define WINDOWS
 
-#include "../include/types.h"
-#include "../include/escape.h"
+#include "types.h"
+#include "escape.h"
 #include "errno.h"
 #include <string.h>
 #include <time.h>
@@ -27,6 +27,7 @@ typedef struct console_info{
     time_t CurrentTime;
 } console_info;
 
+void io_SetCursorPossition(u32 x, u32 y);
 read_result io_ReadConsoleInput();
 
 // void term_DisableRawMode();
@@ -39,5 +40,12 @@ void Die(const char *format, ...);
 u32 writeOutput(char *src, u32 size);
 #define PrintA(str) writeOutput(str, strlen(str))
 
+static inline i32 charGetByteCount(char c){
+    if(c == 0) return 0;
+    if((c & 0x80) == 0) return 1;
+    if((c & 0xE0) == 0xC0) return 2;
+    if((c & 0xF0) == 0xE0) return 3;
+    if((c & 0xF8) == 0xF0) return 4;
+}
 
 #endif /* SYS_IO_H */

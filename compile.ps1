@@ -4,8 +4,11 @@ param (
 # full, run, build, buildP
 
 $Sources = @(
-    "code/src/main.c"
+    "code/main.c"
     "code/system/io.c"
+    "code/input_parser.c"
+    "code/string/string_buffer_a.c"
+    "code/string/string_buffer_u32.c"
 )
 $IncludeFlags = @(
     "-Icode/include"

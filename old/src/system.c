@@ -2,116 +2,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-// TODO: Possibly make the whole input thing more efficient
-// Linux input definetly has place for improvement!!!
-static inline void UniversalCheck(char character, int *byteCountAdr){
-    if(((character >= 'a' && character <= 'z') || 
-        (character >= 'A' && character <= 'Z')) && *byteCountAdr < 2) *byteCountAdr = 2; 
-    
-    if(character == 'h' || character == 'f' || character == 'H' || character == 'F' ||
-       character == 'o' || character == 'O') *byteCountAdr = 3;
-
-    if((character <= '9' && character >= '0' 
-        || character == 'O') && *byteCountAdr < 4) *byteCountAdr = 4;
-    if(character == ';') *byteCountAdr = 6;
-}
 /* Platform specific code */
 #if defined WINDOWS
-
-DWORD OldConsoleModeIn;
-DWORD OldConsoleModeOut;
-HANDLE hStdin;
-HANDLE hStdout;
-HANDLE hStderr;
-
-void disableRawMode(){
-    DWORD ConsoleMode = OldConsoleModeIn;
-    SetConsoleMode(hStdin, ConsoleMode);
-    ConsoleMode = OldConsoleModeOut;
-    SetConsoleMode(hStdout, ConsoleMode);
-
-    Print(ESC_MOVE_TO_MAIN_BUFFER);
-    Print(ESC_ENABLE_CURSOR_BLINKING);
-    Print(ESC_RESET_CURSOR_ATTRIBUTES);
-}
-
-void enableRawMode(){
-    DWORD ConsoleMode;
-
-    /* Stdin */
-    GetConsoleMode(hStdin, &ConsoleMode);
-    OldConsoleModeIn = ConsoleMode;
-
-    ConsoleMode = ConsoleMode & ~(ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | 
-        ENABLE_LINE_INPUT | ENABLE_MOUSE_INPUT | 
-        ENABLE_WINDOW_INPUT) | (ENABLE_VIRTUAL_TERMINAL_INPUT);
-    SetConsoleMode(hStdin, ConsoleMode);
-
-    /* Stdout */
-    GetConsoleMode(hStdout, &ConsoleMode);
-    OldConsoleModeOut = ConsoleMode;
-
-    ConsoleMode = ConsoleMode & ~(ENABLE_WRAP_AT_EOL_OUTPUT);
-    SetConsoleMode(hStdout, ConsoleMode);
-    Print(ESC_DISABLE_CURSOR_BLINKING);
-    Print(ESC_FORCE_STATIC_CURSOR);
-}
-
-console_info getConsoleSystemInfo(){
-    console_info Result;
-    CONSOLE_SCREEN_BUFFER_INFO si;
-    GetConsoleScreenBufferInfo(hStdout, &si);
-    Result.Rows = si.dwSize.Y;
-    Result.Cols = si.dwSize.X;
-
-    Result.CurrentTime = time(NULL);
-    return Result;
-}
-
-void prepareConsole(){
-    hStdin = GetStdHandle(STD_INPUT_HANDLE);
-    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-    hStderr = GetStdHandle(STD_ERROR_HANDLE);
-    enableRawMode();
-    Print(ESC_MOVE_TO_AUX_BUFFER);
-
-    SetConsoleOutputCP(CP_UTF8);
-    SetConsoleCP(CP_UTF8);
-    FlushConsoleInputBuffer(hStdin);
-    atexit(disableRawMode);
-}
-
-static inline LPSTR WIN32_FormatError(DWORD dwError){
-    LPSTR MessageBuffer;
-    FormatMessageA(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-        FORMAT_MESSAGE_FROM_SYSTEM | 
-        FORMAT_MESSAGE_IGNORE_INSERTS |
-        FORMAT_MESSAGE_MAX_WIDTH_MASK,
-        NULL, dwError, 0, 
-        (LPSTR)&MessageBuffer,
-        0, NULL
-    );
-
-    return MessageBuffer;
-}
-
-static void WIN32_ErrorExit(char *format, ...){
-    char str[256];
-
-    va_list args;
-    va_start(args, format);
-    vsprintf(str, format, args);
-    va_end(args);
-
-    DWORD ErrorCode = GetLastError();
-    LPSTR WindowsErrorString = WIN32_FormatError(ErrorCode);
-
-    printf("%s : (%u) %s\n", format, ErrorCode, WindowsErrorString);
-
-    getchar();
-    exit(2);
-}
 
 int GetNumberOfCharInputEvents(){
     DWORD TotalEvents = 0;
@@ -195,16 +87,6 @@ character_input pollInput(){
     }
 
     return Result;
-}
-
-uint32 writeOutput(char *src, uint32 size){
-    DWORD Feedback;
-
-    if((!WriteFile(hStdout, src, size, &Feedback, NULL)) || (Feedback != size)){
-        WIN32_ErrorExit("Error writting to stdout. %p R: %u F: %u", src, size, Feedback);
-    }
-
-    return Feedback;
 }
 
 // TODO: Better error handling for these functions!!!

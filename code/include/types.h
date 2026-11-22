@@ -11,6 +11,9 @@
 #define IN
 #define VALUE_RESULT
 
+#define true 1
+#define false 0
+
 typedef int8_t      int8,   i8;
 typedef int16_t     int16,  i16;
 typedef int32_t     int32,  i32;
@@ -24,9 +27,6 @@ typedef uint64_t    uint64, u64,    qword;
 typedef float       real32;
 typedef double      real64;
 
-//typedef uint16      wchar16;
-//typedef uint32      wchar32;
-
 typedef union wchar32{
     u8 bytes[4];
     u32 full;
@@ -37,7 +37,7 @@ typedef union wchar16{
     u16 full;
 } wchar16;
 
-static inline uint32 powerOfTwoRoundUp(uint32 num){
+static inline u32 powerOfTwoRoundUp(u32 num){
     if(num == 1) return 2;
 
     num--;

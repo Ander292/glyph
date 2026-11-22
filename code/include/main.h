@@ -5,3 +5,7 @@
  *  READ:
  *      ReadingInputEvents --sends escape sequences--> READ --bytes--> ...
  */
+
+#define TEST_FLAG(flags, flag) (((flags) & (flag)) != 0)
+#define SET_FLAG(flags, flag) ((flags) |= (flag))
+#define CLEAR_FLAG(flags, flag) ((flags) &= (~(flag)))

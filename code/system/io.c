@@ -1,4 +1,5 @@
 #include "io.h"
+#include <stdio.h>
 
 static inline void universalCheck(char character, int *byteCountAdr){
     if(((character >= 'a' && character <= 'z') || 
@@ -12,12 +13,22 @@ static inline void universalCheck(char character, int *byteCountAdr){
     if(character == ';') *byteCountAdr = 6;
 }
 
-static inline i32 charGetByteCount(char c){
-    if(c == 0) return 0;
-    if((c & 0x80) == 0) return 1;
-    if((c & 0xE0) == 0xC0) return 2;
-    if((c & 0xF0) == 0xE0) return 3;
-    if((c & 0xF8) == 0xF0) return 4;
+void io_SetCursorPossition(u32 x, u32 y){
+    char c[16];
+    x++; y++;
+#if 0
+    u32 maxRows = ConInfo.Rows;
+    u32 maxCols = ConInfo.Cols;
+
+    x += E.TextOffsetLeft;
+    y += E.TextOffsetTop;
+    
+    if(x > maxCols) x = maxCols;
+    if(y > maxRows) y = maxRows;
+#endif
+
+    snprintf(c, sizeof(c), ESC_SEQ "%d;%dH", (y), (x));
+    PrintA(c);
 }
 
 #ifdef WINDOWS
@@ -31,6 +42,7 @@ read_result io_ReadConsoleInput(){
 
     result.bytes[0] = readByte();
     if(result.bytes[0] == ESC_SEQ[0]){
+        result.type = TYPE_ESCAPE;
         result.size = 3;
 
         for(int i = 1; i < result.size; i++){
@@ -39,7 +51,9 @@ read_result io_ReadConsoleInput(){
             }
     }else{
         result.size = charGetByteCount(result.bytes[0]);
-        
+        if(result.size == 1) result.type = TYPE_ANSI;
+        else result.type = TYPE_UTF32;
+
         for(int i = 1; i < result.size; i++){
             result.bytes[i] = readByte();
         }
@@ -56,7 +70,7 @@ static inline uint32 getInputOutputErrorCode(){
 #endif
 }
 
-char *getInputOutputErrorString(){
+static inline char *getInputOutputErrorString(){
 #if defined WINDOWS
     return WIN32_formatError((DWORD)getInputOutputErrorCode());
 #elif defined UNIX
