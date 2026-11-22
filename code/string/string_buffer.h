@@ -115,7 +115,7 @@ bool32 TerminateStringOnPosU32(string_u32 *str, u32 pos);
 
 string_u32 *CreateCopyU32(string_u32 *str, u32 startOffest, u32 endOffset);
 
-string_a *TranslateToUtf8(string_u32 *str);
+void TranslateToUtf8(string_a *dest, string_u32 *src);
 void PrintBufferU32(string_u32 *str);
 #define WriteToBufferU32(buffer, str) StringAppendEndU32((buffer), (str), strlen(str))
 

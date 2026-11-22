@@ -8,11 +8,17 @@
     PrintBufferA(*str); \
     io_ReadConsoleInput();
 
+#define TEST_REFR2 \
+    TranslateToUtf8(str, str32); \
+    io_SetCursorPossition(0, 0); \
+    PrintA(ESC_CLEAR_LINE); \
+    PrintBufferA(*str); \
+    io_ReadConsoleInput();
+
 int main(int argc, char *argv[], char *envp[]){  
     term_PrepareConsole();
 
-    //string_a *str = StringCreateHeapA(64);
-    string_u32 *str;
+    string_a *str = StringCreateHeapA(64);
 
 #if 0
     for(;;){
@@ -49,6 +55,34 @@ int main(int argc, char *argv[], char *envp[]){
     StringFreeHeapA(old);
     StringFreeHeapA(str);
 #else
+    const char *bla = "1234ččč5678ććć9f";
+    int blalen = 22;
+
+    string_u32 *str32 = BufferCreateFromStringU32(bla, blalen);
+    TEST_REFR2
+
+    StringAppendEndU32(str32, bla, blalen);
+    TEST_REFR2
+
+    // wchar32 wc = GetCharAtPosU32(str32, 12);
+
+    // OverrunBufferWithA(str, wc.bytes, charGetByteCount(*wc.bytes));
+    // TEST_REFR
+
+    InsertCharAtPosU32(str32, WCHAR32(U' '), 12, 0);
+    TEST_REFR2
+
+    InsertCharAtPosU32(str32, WCHAR32(U'F'), 12, INS_MODE_OVERWRITE);
+    TEST_REFR2
+
+    InsertCharAtPosU32(str32, WCHAR32(U'R'), 72, INS_MODE_OVERWRITE | INS_MODE_INCREASE_SIZE);
+    TEST_REFR2
+    InsertCharAtPosU32(str32, WCHAR32(U'R'), 73, INS_MODE_INCREASE_SIZE);
+    TEST_REFR2
+
+    InsertCharAtPosU32(str32, WCHAR32(U'ф'), 72, INS_MODE_OVERWRITE | INS_MODE_INCREASE_SIZE);
+    TEST_REFR2
+
 #endif
     return 0;
 }

@@ -2,6 +2,7 @@ param (
     [string]$mode = "full"
 )
 # full, run, build, buildP
+$OutPath = "build/main.exe"
 
 $Sources = @(
     "code/main.c"
@@ -19,7 +20,12 @@ $Flags = @(
     "-DDO_DEBUG_CHECK"
 )
 
-gcc $Sources $IncludeFlags $Flags -o "build/main.exe"
+if($mode -eq "build" -OR $mode -eq "full"){
+    gcc $Sources $IncludeFlags $Flags -o $OutPath
+}
+if($mode -eq "run"){
+    & $OutPath
+}
 
 # $ProjectName = "glyph"
 

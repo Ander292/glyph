@@ -37,6 +37,8 @@ typedef union wchar16{
     u16 full;
 } wchar16;
 
+#define WCHAR32(s) (wchar32){.full = (u32)(s)}
+
 static inline u32 powerOfTwoRoundUp(u32 num){
     if(num == 1) return 2;
 

@@ -47,6 +47,10 @@ void StringAppendEndU32(string_u32 *str, const char *c, u32 size){
         u32 byteCount = charGetByteCount(c[i]);
         char *writePtr = (char*)(str->data + str->len);
         memcpy(writePtr, c + i, byteCount);
+        
+        if(4 - byteCount > 0){
+            memset(writePtr + byteCount, 0, 4 - byteCount);
+        }
 
         i += byteCount;
         str->len++;
@@ -98,7 +102,7 @@ string_u32 *StringCreateHeapU32(u32 size){
 }
 
 string_u32 *BufferCreateFromStringU32(const char *c, u32 size){
-    string_u32 *result = StringCreateHeap32(powerOfTwoRoundUp(size));
+    string_u32 *result = StringCreateHeapU32(powerOfTwoRoundUp(size));
     StringAppendEndU32(result, c, size);
 
     return result;
@@ -119,6 +123,7 @@ void StringFreeHeapU32(string_u32 *str){
 }
 
 bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMode){
+    u32 wcharlen = sizeof(str->data->full);
     if(index == str->len){
         if(str->len == str->maxSize) doubleSizeU32(str);
 
@@ -128,12 +133,13 @@ bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMo
 
     }else if(index < str->len){
         if(!TEST_FLAG(insertionMode, INS_MODE_OVERWRITE)){
-            char *dataInsPos = str->data + index;
+            char *dataInsPos = (char*)(str->data + index);
             char *tokenInsPos = str->tokenId + index;
 
-            u32 shiftLen = str->len - index;
-            memmove(dataInsPos + 1, dataInsPos, shiftLen*4);
-            memmove(tokenInsPos + 1, tokenInsPos, shiftLen);
+            u32 shiftLen = (str->len - index) * wcharlen;
+            u32 tokenShiftLen = (str->len - index);
+            memmove(dataInsPos + wcharlen, dataInsPos, shiftLen);
+            memmove(tokenInsPos + 1, tokenInsPos, tokenShiftLen);
             str->len++;
         }
         str->tokenId[index] = TOKEN_NEUTRAL;
@@ -144,7 +150,7 @@ bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMo
         if(TEST_FLAG(insertionMode, INS_MODE_INCREASE_SIZE)){
             while(index >= str->maxSize) doubleSizeU32(str);
 
-            char *firstFreeChar = str->data + str->len;
+            char *firstFreeChar = (char *)(str->data + str->len);
             char *firstFreeToken = str->tokenId + str->len;
             u32 emptySegmentLen = index - str->len;
 
@@ -164,7 +170,7 @@ bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMo
 bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos){
     if(pos > str->len) return false;
     else{
-        char *destPos = str->data + pos;
+        char *destPos = (char*)(str->data + pos);
         char *destPosToken = str->tokenId + pos;
 
         u32 moveLen = str->len - pos - 1;
@@ -188,9 +194,9 @@ bool32 TerminateStringOnPosU32(string_u32 *str, u32 pos){
 string_u32 *CreateCopyU32(string_u32 *str, u32 startOffset, u32 endOffset){
     if(startOffset >= str->len || endOffset >= str->len) return NULL;
 
-    string_u32 *result = StringCreateHeapA(str->maxSize);
+    string_u32 *result = StringCreateHeapU32(str->maxSize);
 
-    char *startPosData = str->data + startOffset;
+    char *startPosData = (char*)(str->data + startOffset);
     char *startPosToken = str->tokenId + startOffset;
     u32 len = str->len - startOffset - endOffset;
 
@@ -201,21 +207,18 @@ string_u32 *CreateCopyU32(string_u32 *str, u32 startOffset, u32 endOffset){
     return result;
 }
 
-string_a *TranslateToUtf8(string_u32 *str){
-    string_a *result = StringCreateHeapA(str->maxSize);
-
+void TranslateToUtf8(string_a *dest, string_u32 *src){
     // TODO: Handle tokens
-
-    for(u32 i = 0; i < str->len; i++){
-        const char *currentChar = str->data + i;
-        StringAppendEndA(result, currentChar, charGetByteCount(*currentChar));
+    dest->len = 0;
+    for(u32 i = 0; i < src->len; i++){
+        const char *currentChar = (char*)(src->data + i);
+        StringAppendEndA(dest, currentChar, charGetByteCount(*currentChar));
     }
-
-    return result;
 }
 void PrintBufferU32(string_u32 *str){
-    string_a *Temp = TranslateToUtf8(str);
+    string_a *Temp = StringCreateHeapA(str->maxSize);
+    TranslateToUtf8(Temp, str);
     PrintBufferA(*Temp);
 
-    StringFreeA(&Temp);
+    StringFreeA(Temp);
 }
