@@ -12,11 +12,11 @@ string_a StringCreateA(u32 size){
 
     result.data = malloc(size * sizeof(*result.data));
     if(result.data == NULL) {
-        Die("Error allocating stringA data array");
+        Die("Error allocating string_a data array");
     }
     result.tokenId = malloc(size * sizeof(*result.tokenId));
     if(result.tokenId == NULL) {
-        Die("Error allocating stringA tokenId array");
+        Die("Error allocating string_a tokenId array");
     }
 
     return result;
@@ -122,7 +122,7 @@ bool32 InsertCharAtPosA(string_a *str, char c, u32 index, u32 insertionMode){
             memmove(tokenInsPos + 1, tokenInsPos, shiftLen);
             str->len++;
         }
-        str->tokenId[index] = c;
+        str->tokenId[index] = TOKEN_NEUTRAL;
         str->data[index] = c;
         return true;
 
@@ -162,7 +162,7 @@ bool32 DeleteCharFromPosA(string_a *str, u32 pos){
     }
 }
 
-bool32 TerminateStringOnPos(string_a *str, u32 pos){
+bool32 TerminateStringOnPosA(string_a *str, u32 pos){
     if(pos > str->len) return false;
     else if(pos < str->len){
         str->len = pos;

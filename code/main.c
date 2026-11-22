@@ -11,7 +11,8 @@
 int main(int argc, char *argv[], char *envp[]){  
     term_PrepareConsole();
 
-    string_a *str = StringCreateHeapA(64);
+    //string_a *str = StringCreateHeapA(64);
+    string_u32 *str;
 
 #if 0
     for(;;){
@@ -25,6 +26,7 @@ int main(int argc, char *argv[], char *envp[]){
     }
 #endif
 
+#if 0
     char *bla = "Indifandozerapanzero";
     int blalen = 20;
     
@@ -37,7 +39,7 @@ int main(int argc, char *argv[], char *envp[]){
     DeleteCharFromPosA(str, 14);
     TEST_REFR
 
-    // TerminateStringOnPos(str, 6);
+    // TerminateStringOnPosA(str, 6);
     // TEST_REFR
 
     string_a *old = str;
@@ -46,6 +48,7 @@ int main(int argc, char *argv[], char *envp[]){
 
     StringFreeHeapA(old);
     StringFreeHeapA(str);
-
+#else
+#endif
     return 0;
 }

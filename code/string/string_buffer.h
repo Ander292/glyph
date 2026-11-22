@@ -34,6 +34,11 @@ typedef enum token_type{
     TOKEN_SEARCH_HIGHTLIGHT
 } token_type;
 
+typedef enum insertion_flags{
+    INS_MODE_OVERWRITE = 1,     // if set will overwrite chars instead of shifting
+    INS_MODE_INCREASE_SIZE = 2  // will allow characters to be inserted beyond the [0, len] range
+} insertion_flags;
+
 extern char *token_escape[];
 
 #define isSeparator(c) ((c) == ' ' || (c) == 0 || (c) == ':' || (c) == '.' || (c) == ';')
@@ -44,8 +49,8 @@ extern char *token_escape[];
 #define isDigit(c) ((c) >= '0' && (c) <= '9')
 #define upOrSpecial(c) (isUppercase(c) || isSpecial(c))
 
+/* string_buffer_a */
 string_a StringCreateA(u32 size);
-//void doubleSizeA(string_a *str);
 void StringAppendEndA(string_a *str, const char *c, u32 size);
 void OverrunBufferWithA(string_a *str, const char *c, u32 size);
 void ClearBufferA(string_a *str);
@@ -68,18 +73,50 @@ static inline i8 GetTokenAtPosA(string_a *str, u32 index){
         return -1;
 }
 
-typedef enum insertion_flags{
-    INS_MODE_OVERWRITE = 1,     // if set will overwrite chars instead of shifting
-    INS_MODE_INCREASE_SIZE = 2  // will allow characters to be inserted beyond the [0, len] range
-} insertion_flags;
-
 bool32 InsertCharAtPosA(string_a *str, char c, u32 index, u32 insertionMode);
 bool32 DeleteCharFromPosA(string_a *str, u32 pos);
-bool32 TerminateStringOnPos(string_a *str, u32 pos);
+bool32 TerminateStringOnPosA(string_a *str, u32 pos);
 
 string_a *CreateCopyA(string_a *str, u32 startOffest, u32 endOffset);
 
 #define PrintBufferA(buffer) writeOutput((buffer).data, (buffer).len);
 #define WriteToBufferA(buffer, str) StringAppendEndA((buffer), (str), strlen(str))
+
+/* string_buffer_u32 */
+string_u32 StringCreateU32(u32 size);
+
+void StringAppendEndU32(string_u32 *str, const char *c, u32 size);
+void OverrunBufferWithU32(string_u32 *str, const char *c, u32 size);
+
+void ClearBufferU32(string_u32 *str);
+string_u32 *StringCreateHeapU32(u32 size);
+string_u32 *BufferCreateFromStringU32(const char *c, u32 size);
+
+void StringFreeU32(string_u32 *str);
+void StringFreeHeapU32(string_u32 *str);
+
+static inline wchar32 GetCharAtPosU32(string_u32 *str, u32 index){
+    if(index < str->len)
+        return str->data[index];
+    else
+        return (wchar32){0};
+}
+
+static inline i8 GetTokenAtPosU32(string_u32 *str, u32 index){
+    if(index < str->len)
+        return str->tokenId[index];
+    else
+        return -1;
+}
+
+bool32 InsertCharAtPosU32(string_u32 *str, char c, u32 index, u32 insertionMode);
+bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos);
+bool32 TerminateStringOnPosU32(string_u32 *str, u32 pos);
+
+string_u32 *CreateCopyU32(string_u32 *str, u32 startOffest, u32 endOffset);
+
+//#define PrintBufferU32(buffer) writeOutput((buffer).data, (buffer).len);
+//#define WriteToBufferU32(buffer, str) StringAppendEndA((buffer), (str), strlen(str))
+
 
 #endif /* STRING_BUFFER_H */

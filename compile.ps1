@@ -16,6 +16,7 @@ $IncludeFlags = @(
 )
 $Flags = @(
     "-g"
+    "-DDO_DEBUG_CHECK"
 )
 
 gcc $Sources $IncludeFlags $Flags -o "build/main.exe"

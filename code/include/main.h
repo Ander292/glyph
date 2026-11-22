@@ -9,3 +9,9 @@
 #define TEST_FLAG(flags, flag) (((flags) & (flag)) != 0)
 #define SET_FLAG(flags, flag) ((flags) |= (flag))
 #define CLEAR_FLAG(flags, flag) ((flags) &= (~(flag)))
+
+#ifdef DO_DEBUG_CHECK
+#define debug_check(expr) if(expr)
+#else
+#define debug_check(expr) if(false)
+#endif
