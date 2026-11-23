@@ -4,6 +4,80 @@
 
 #include <stdlib.h>
 
+static const char32_t *keyword1[] = {
+    U"while",
+    U"for",
+    U"if",
+    U"else",
+    U"switch",
+    U"case",
+    U"default",
+    U"return",
+    U"break",
+    U"continue"
+};
+
+static const char32_t *keyword2[] = {
+    U"int",
+    U"short",
+    U"char",
+    U"long",
+    U"unsigned",
+    U"signed",
+    U"static",
+    U"void",
+    U"float",
+    U"double",
+    U"inline",
+    U"auto",
+    U"const",
+
+    U"int8",
+    U"int16",
+    U"int32",
+    U"int64",
+    U"uint8",
+    U"uint16",
+    U"uint32",
+    U"uint64",
+
+    U"int8_t",
+    U"int16_t",
+    U"int32_t",
+    U"int64_t",
+    U"uint8_t",
+    U"uint16_t",
+    U"uint32_t",
+    U"uint64_t",
+    U"size_t",
+
+    U"i8",
+    U"i16",
+    U"i32",
+    U"i64",
+    U"u8",
+    U"u16",
+    U"u32",
+    U"u64"
+};
+
+static const char32_t *preprocesorKeyword[] = {
+    U"#define",
+    U"#include",
+    U"#undef",
+    U"#if",
+    U"#ifdef",
+    U"#ifndef",
+    U"#else",
+    U"#elif",
+    U"#region",
+    U"#endregion",
+    U"#pragma",
+    U"#endif",
+    U"#warning",
+    U"#error"
+};
+
 string_u32 StringCreateU32(u32 size){
     size = powerOfTwoRoundUp(size);
     string_u32 result = {0};
@@ -72,11 +146,13 @@ void OverrunBufferWithU32(string_u32 *str, const char *c, u32 size){
     StringAppendEndU32(str, c, size);
 }
 
+#if 0
 void ClearBufferU32(string_u32 *str){
     str->len = 0;
     *str->data = (wchar32){0};
     *str->tokenId = 0;
 }
+#endif
 
 string_u32 *StringCreateHeapU32(u32 size){
     size = powerOfTwoRoundUp(size);
@@ -108,6 +184,7 @@ string_u32 *BufferCreateFromStringU32(const char *c, u32 size){
     return result;
 }
 
+#if 0
 void StringFreeU32(string_u32 *str){
     free(str->data);
     free(str->tokenId);
@@ -121,6 +198,7 @@ void StringFreeHeapU32(string_u32 *str){
     free(str->tokenId);
     free(str);
 }
+#endif
 
 bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMode){
     u32 wcharlen = sizeof(str->data->full);

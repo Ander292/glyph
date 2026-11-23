@@ -2,6 +2,7 @@
 #define STRING_BUFFER_H
 
 #include "types.h"
+#include "escape.h"
 #include <limits.h>
 #include <uchar.h>
 
@@ -19,6 +20,16 @@ typedef struct string_u32{
     u32 len;
     u32 maxSize;
 } string_u32;
+
+typedef union string{
+    byte d[MAX_VAL(sizeof(string_u32), sizeof(string_a))];
+    struct{
+        void *unknown;
+        i8 *tokenId;
+        u32 len;
+        u32 maxSize;
+    };
+} string;
 
 typedef enum token_type{
     TOKEN_NEUTRAL,
@@ -49,15 +60,24 @@ extern char *token_escape[];
 #define isDigit(c) ((c) >= '0' && (c) <= '9')
 #define upOrSpecial(c) (isUppercase(c) || isSpecial(c))
 
+/* universal functions */
+void ClearBuffer(void *str);
+void StringFree(void *str);
+void StringFreeHeap(void *str);
+
 /* string_buffer_a */
 string_a StringCreateA(u32 size);
 void StringAppendEndA(string_a *str, const char *c, u32 size);
 void OverrunBufferWithA(string_a *str, const char *c, u32 size);
-void ClearBufferA(string_a *str);
+// void ClearBufferA(string_a *str);
 string_a *StringCreateHeapA(u32 size);
 string_a *BufferCreateFromStringA(const char *c, u32 size);
-void StringFreeA(string_a *str);
-void StringFreeHeapA(string_a *str);
+// void StringFreeA(string_a *str);
+// void StringFreeHeapA(string_a *str);
+
+#define ClearBufferA(str) ClearBuffer(str);
+#define StringFreeA(str) StringFree(str);
+#define StringFreeHeapA(str) StringFreeHeap(str);
 
 static inline char GetCharAtPosA(string_a *str, u32 index){
     if(index < str->len)
@@ -88,12 +108,16 @@ string_u32 StringCreateU32(u32 size);
 void StringAppendEndU32(string_u32 *str, const char *c, u32 size);
 void OverrunBufferWithU32(string_u32 *str, const char *c, u32 size);
 
-void ClearBufferU32(string_u32 *str);
+//void ClearBufferU32(string_u32 *str);
 string_u32 *StringCreateHeapU32(u32 size);
 string_u32 *BufferCreateFromStringU32(const char *c, u32 size);
 
-void StringFreeU32(string_u32 *str);
-void StringFreeHeapU32(string_u32 *str);
+//void StringFreeU32(string_u32 *str);
+//void StringFreeHeapU32(string_u32 *str);
+
+#define ClearBufferA(str) ClearBuffer(str);
+#define StringFreeA(str) StringFree(str);
+#define StringFreeHeapA(str) StringFreeHeap(str);
 
 static inline wchar32 GetCharAtPosU32(string_u32 *str, u32 index){
     if(index < str->len)
@@ -118,5 +142,13 @@ string_u32 *CreateCopyU32(string_u32 *str, u32 startOffest, u32 endOffset);
 void TranslateToUtf8(string_a *dest, string_u32 *src);
 void PrintBufferU32(string_u32 *str);
 #define WriteToBufferU32(buffer, str) StringAppendEndU32((buffer), (str), strlen(str))
+
+i32 ResetHighlight(string *str, i32 unused);
+i32 SyntaxHighlightString(string *str, i32 flags);
+i32 SyntaxHighlightStringKeyword(string *str, i32 flags);
+i32 SyntaxForce(string *str, i32 offset, token_type tokenId, i32 len);
+
+#define SYNTAX_MULTILINE_COMMENT 0x1
+#define SYNTAX_WAS_EXTENDED 0x2
 
 #endif /* STRING_BUFFER_H */

@@ -4,6 +4,71 @@
 
 #include <stdlib.h>
 
+static const char *keyword1[] = {
+    "while",
+    "for",
+    "if",
+    "else",
+    "switch",
+    "case",
+    "default",
+    "return",
+    "break",
+    "continue"
+};
+
+static const char *keyword2[] = {
+    "int",
+    "short",
+    "char",
+    "long",
+    "unsigned",
+    "signed",
+    "static",
+    "void",
+    "float",
+    "double",
+    "inline",
+    "auto",
+    "const",
+
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+
+    "int8_t",
+    "int16_t",
+    "int32_t",
+    "int64_t",
+    "uint8_t",
+    "uint16_t",
+    "uint32_t",
+    "uint64_t",
+    "size_t"
+};
+
+static const char *preprocesorKeyword[] = {
+    "#define",
+    "#include",
+    "#undef",
+    "#if",
+    "#ifdef",
+    "#ifndef",
+    "#else",
+    "#elif",
+    "#region",
+    "#endregion",
+    "#pragma",
+    "#endif",
+    "#warning",
+    "#error"
+};
+
 string_a StringCreateA(u32 size){
     size = powerOfTwoRoundUp(size);
     string_a result = {0};
@@ -54,11 +119,13 @@ void OverrunBufferWithA(string_a *str, const char *c, u32 size){
     memset(str->tokenId, 0, size);
 }
 
+#if 0
 void ClearBufferA(string_a *str){
     str->len = 0;
     *str->data = 0;
     *str->tokenId = 0;
 }
+#endif
 
 string_a *StringCreateHeapA(u32 size){
     size = powerOfTwoRoundUp(size);
@@ -90,6 +157,7 @@ string_a *BufferCreateFromStringA(const char *c, u32 size){
     return result;
 }
 
+#if 0
 void StringFreeA(string_a *str){
     free(str->data);
     free(str->tokenId);
@@ -103,6 +171,7 @@ void StringFreeHeapA(string_a *str){
     free(str->tokenId);
     free(str);
 }
+#endif
 
 bool32 InsertCharAtPosA(string_a *str, char c, u32 index, u32 insertionMode){
     if(index == str->len){

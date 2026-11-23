@@ -108,5 +108,4 @@ u32 writeOutput(char *src, u32 size){
 
     return Feedback;
 }
-
 #endif

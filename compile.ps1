@@ -6,10 +6,14 @@ $OutPath = "build/main.exe"
 
 $Sources = @(
     "code/main.c"
+
     "code/system/io.c"
     "code/input_parser.c"
+
     "code/string/string_buffer_a.c"
     "code/string/string_buffer_u32.c"
+    "code/string/string_buffer_shared.c"
+    "code/string/string_list.c"
 )
 $IncludeFlags = @(
     "-Icode/include"
