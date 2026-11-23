@@ -1,5 +1,6 @@
 #include "string_list.h"
 #include "../system/io.h"
+#include <stdlib.h>
 
 static inline list_node *nodeCreate(){
     list_node *Result = malloc(sizeof(list_node));
@@ -39,7 +40,15 @@ void ListInsertAtPossition(string_list *list, string *str, u32 index){
     if(index >= oldSize){
         u32 loopCount = index - oldSize;
         for(u32 i = 0; i < loopCount; i++){
-            ListAppendEnd(list, StringCreateHeap(64));
+            switch(list->type){
+                case LIST_TYPE_ASCII: 
+                    ListAppendEnd(list, (string*)StringCreateHeapA(64));
+                    break;
+                case LIST_TYPE_UTF32: 
+                    ListAppendEnd(list, (string*)StringCreateHeapU32(64));
+                    break;
+                default: Die("Invalid list type");
+            }
         }
         ListAppendEnd(list, str);
     }
@@ -69,22 +78,22 @@ string *GetStringAtIndex(string_list *list, u32 index){
     list_node *q = list->head;
     for(u32 i = 0;(i < index) && (q != NULL); q = q->next, i++);
 
-    if(q == NULL) die("(getStringAtIndex) q was NULL");
+    if(q == NULL) Die("(getStringAtIndex) q was NULL");
     return q->str;
 }
 
-static list_node *GetNodeAtIndex(string_list *list, u32 index){
+static list_node *getNodeAtIndex(string_list *list, u32 index){
     if(index < 0 || index >= list->size) return NULL;
     list_node *q = list->head;
     for(u32 i = 0;(i < index) && (q != NULL); q = q->next, i++);
 
-    if(q == NULL) die("(getStringAtIndex) q was NULL");
+    if(q == NULL) Die("(getStringAtIndex) q was NULL");
     return q;
 }
 
 void SwapStringsForIndexes(string_list *list, u32 ind1, u32 ind2){
-    list_node *first = GetNodeAtIndex(list, ind1);
-    list_node *second = GetNodeAtIndex(list, ind2);
+    list_node *first = getNodeAtIndex(list, ind1);
+    list_node *second = getNodeAtIndex(list, ind2);
 
     string *temp = first->str;
     first->str = second->str;
@@ -154,14 +163,15 @@ void ListDeleteRow(string_list *list, u32 index){
 }
 
 string_list CreateListWithRows(u32 initRowCount, list_type type){
-    string_list Result = createList();
+    string_list Result = createList(type);
+    
     for(u32 i = 0; i < initRowCount; i++){
         switch(type){
             case LIST_TYPE_ASCII: 
-                ListAppendEnd(&Result, StringCreateHeapA(64));
+                ListAppendEnd(&Result, (string*)StringCreateHeapA(64));
                 break;
             case LIST_TYPE_UTF32: 
-                ListAppendEnd(&Result, StringCreateHeapU32(64));
+                ListAppendEnd(&Result, (string*)StringCreateHeapU32(64));
                 break;
             default: Die("Invalid list type");
         }
@@ -180,7 +190,7 @@ void ListForeachString(string_list *list, list_lambda *funct){
 
 void ListForeachStringEx(string_list *list, u32 startIndex, u32 maxLen, list_lambda *funct){
     i32 retVal = 0;
-    list_node *p = GetNodeAtIndex(list, startIndex);
+    list_node *p = getNodeAtIndex(list, startIndex);
     for(int i = 0; i < maxLen && p != NULL; p = p->next){
         retVal = funct(p->str, retVal);
     }

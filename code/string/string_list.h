@@ -23,8 +23,8 @@ typedef struct string_list{
 
 typedef i32 list_lambda(string *, i32);
 
-#define createList() (string_list){0}
-string_list CreateListWithRows(u32 initRowCount);
+#define createList(t) (string_list){.type = (t)}
+string_list CreateListWithRows(u32 initRowCount, list_type type);
 
 void ListAppendEnd(string_list *list, string *string);
 void ListInsertAtPossition(string_list *list, string *str, u32 index);

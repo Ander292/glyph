@@ -27,6 +27,10 @@ typedef uint64_t    uint64, u64,    qword;
 typedef float       real32;
 typedef double      real64;
 
+typedef struct int_pair{
+    i32 X, Y;
+} int_pair;
+
 typedef union wchar32{
     u8 bytes[4];
     u32 full;
@@ -53,4 +57,4 @@ static inline u32 powerOfTwoRoundUp(u32 num){
     return num;
 }
 
-#endif
+#endif /* TYPES_H */
