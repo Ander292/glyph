@@ -86,12 +86,14 @@ static inline char GetCharAtPosA(string_a *str, u32 index){
         return 0;
 }
 
+#if 0
 static inline i8 GetTokenAtPosA(string_a *str, u32 index){
     if(index < str->len)
         return str->tokenId[index];
     else
         return -1;
 }
+#endif
 
 bool32 InsertCharAtPosA(string_a *str, char c, u32 index, u32 insertionMode);
 bool32 DeleteCharFromPosA(string_a *str, u32 pos);
@@ -126,12 +128,25 @@ static inline wchar32 GetCharAtPosU32(string_u32 *str, u32 index){
         return (wchar32){0};
 }
 
+#if 0
 static inline i8 GetTokenAtPosU32(string_u32 *str, u32 index){
     if(index < str->len)
         return str->tokenId[index];
     else
         return -1;
 }
+#endif
+
+static inline i8 GetTokenAtPos(void *str_raw, u32 index){
+    string *str = (string *)str_raw;
+    if(index < str->len)
+        return str->tokenId[index];
+    else
+        return -1;
+}
+
+#define GetTokenAtPosA(str_a, ind) GetTokenAtPos(str_a, ind)
+#define GetTokenAtPosU32(str_a, ind) GetTokenAtPos(str_a, ind)
 
 bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMode);
 bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos);
@@ -150,5 +165,12 @@ i32 SyntaxForce(string *str, i32 offset, token_type tokenId, i32 len);
 
 #define SYNTAX_MULTILINE_COMMENT 0x1
 #define SYNTAX_WAS_EXTENDED 0x2
+
+/* Counting functions */
+
+i32 CountToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
+i32 CountBackToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
+i32 CountBackToChar(string_u32 *str, u32 startPos, wchar32 targetChar);
+i32 CountToChar(string_u32 *str, i32 startPos, wchar32 targetChar);
 
 #endif /* STRING_BUFFER_H */

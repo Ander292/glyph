@@ -300,3 +300,97 @@ void PrintBufferU32(string_u32 *str){
 
     StringFreeA(Temp);
 }
+
+/* Counting functions */
+
+i32 CountToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar){
+    i32 Result = 0;
+
+    u32 byteCount = charGetByteCount(*targetChar.bytes);
+
+    for(i32 i = startPos; i < str->len; i++){
+        wchar32 stringChar = GetCharAtPosU32(str, i);
+        u32 stringByteCount = charGetByteCount(*stringChar.bytes);
+
+        if(stringByteCount == byteCount){
+            for(u32 j = 0; j < byteCount; j++){
+                if(targetChar.bytes[j] != stringChar.bytes[j]) goto CHECK_SUCCESS;
+            }
+            goto CHECK_FAILED;
+        }
+        CHECK_FAILED:
+        Result++;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
+i32 CountBackToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar){
+    i32 Result = 0;
+
+    u32 byteCount = charGetByteCount(*targetChar.bytes);
+
+    for(i32 i = startPos - 1; i >= 0; i--){
+        wchar32 stringChar = GetCharAtPosU32(str, i);
+        u32 stringByteCount = charGetByteCount(*stringChar.bytes);
+        
+        if(byteCount == stringByteCount){
+            for(u32 j = 0; j < stringByteCount; j++){
+                if(targetChar.bytes[j] != stringChar.bytes[j]) goto CHECK_SUCCESS;            
+            }
+            goto CHECK_FAILED;
+        }
+        CHECK_FAILED:
+        Result++;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
+i32 CountBackToChar(string_u32 *str, u32 startPos, wchar32 targetChar){
+    i32 Result = 0;
+    
+    u32 byteCount = charGetByteCount(*targetChar.bytes);
+
+    for(i32 i = startPos - 1; i >= 0; i--){
+        wchar32 stringChar = GetCharAtPosU32(str, i);
+        u32 stringByteCount = charGetByteCount(*stringChar.bytes);
+        
+        if(byteCount == stringByteCount){
+            for(u32 j = 0; j < stringByteCount; j++){
+                if(targetChar.bytes[j] != stringChar.bytes[j]) goto CHECK_FAILED;
+            }
+            goto CHECK_SUCCESS;
+        }
+        CHECK_FAILED:
+        Result++;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}
+
+i32 CountToChar(string_u32 *str, i32 startPos, wchar32 targetChar){
+    i32 Result = 0;
+
+    u32 byteCount = charGetByteCount(*targetChar.bytes);
+
+    for(i32 i = startPos; i < str->len; i++){
+        wchar32 stringChar = GetCharAtPosU32(str, i);
+        u32 stringByteCount = charGetByteCount(*stringChar.bytes);
+        
+        if(byteCount == stringByteCount){
+            for(u32 j = 0; j < stringByteCount; j++){
+                if(targetChar.bytes[j] != stringChar.bytes[j]) goto CHECK_FAILED;
+            }
+            goto CHECK_SUCCESS;
+        }
+        CHECK_FAILED:
+        Result++;
+    }
+
+    CHECK_SUCCESS:
+    return Result;
+}

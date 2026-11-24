@@ -35,9 +35,10 @@ read_result io_ReadConsoleInput();
 void term_PrepareConsole();
 console_info term_GetConsoleSystemInfo();
 
+char *io_GetInputOutputErrorString();
 void Die(const char *format, ...);
 
-u32 writeOutput(char *src, u32 size);
+u32 writeOutput(const char *src, u32 size);
 #define PrintA(str) writeOutput(str, strlen(str))
 
 static inline i32 charGetByteCount(char c){
@@ -47,5 +48,9 @@ static inline i32 charGetByteCount(char c){
     if((c & 0xF0) == 0xE0) return 3;
     if((c & 0xF8) == 0xF0) return 4;
 }
+
+i64 io_GetFileSize(const char *filePath);
+i64 io_FileRead(const char *filePath, char *destBuffer, u32 maxBufferSize);
+i64 io_FileWrite(const char *destPath, char *string, u32 size);
 
 #endif /* SYS_IO_H */

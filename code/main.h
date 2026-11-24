@@ -27,16 +27,6 @@ typedef struct editor_message{
 
 #define EDITOR_STATE_COUNT 32
 
-typedef struct global_editor_state{
-    uint32 Flags;
-
-    editor_state states[EDITOR_STATE_COUNT];
-    editor_message Message;
-
-    int_pair maxCursor;
-    i32 TextOffsetTop, TextOffsetLeft;
-} global_editor_state;
-
 typedef struct editor_state{
     uint32 Flags;
 
@@ -47,6 +37,16 @@ typedef struct editor_state{
     char File[FILE_PATH_LENGTH];
     string_list List;
 } editor_state;
+
+typedef struct global_editor_state{
+    uint32 Flags;
+
+    editor_state states[EDITOR_STATE_COUNT];
+    editor_message Message;
+
+    int_pair maxCursor;
+    i32 TextOffsetTop, TextOffsetLeft;
+} global_editor_state;
 
 #define GLOBAL_STRUCT_NAME E
 

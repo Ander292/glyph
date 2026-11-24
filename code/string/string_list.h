@@ -39,5 +39,4 @@ void FreeList(string_list *list);
 void ListForeachString(string_list *list, list_lambda *funct);
 void ListForeachStringEx(string_list *list, u32 startIndex, u32 maxLen, list_lambda *funct);
 
-
 #endif /* STRING_LIST_H */

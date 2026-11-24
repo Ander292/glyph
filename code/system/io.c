@@ -78,6 +78,10 @@ static inline char *getInputOutputErrorString(){
 #endif
 }
 
+char *io_GetInputOutputErrorString(){
+    return getInputOutputErrorString();
+}
+
 void Die(const char *format, ...){
     char str[256];
 

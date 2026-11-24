@@ -99,7 +99,7 @@ static inline char readByte(){
     return result;
 }
 
-u32 writeOutput(char *src, u32 size){
+u32 writeOutput(const char *src, u32 size){
     DWORD Feedback;
 
     if((!WriteFile(hStdout, src, size, &Feedback, NULL)) || (Feedback != size)){
@@ -108,4 +108,49 @@ u32 writeOutput(char *src, u32 size){
 
     return Feedback;
 }
+
+// TODO: Better error handling for these functions!!!
+
+i64 io_FileWrite(const char *destPath, char *string, u32 size){
+    HANDLE hOutFile = CreateFileA(destPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 
+        FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hOutFile == INVALID_HANDLE_VALUE){
+        //WIN32_ErrorExit("CreateFile failed for path: %s", destPath);
+        return -1;
+    }
+    DWORD Feedback;
+    if(!WriteFile(hOutFile, string, size, &Feedback, NULL)){
+        return -1;
+    }
+
+    CloseHandle(hOutFile);
+
+    return (i64)Feedback;
+}
+
+i64 io_FileRead(const char *filePath, char *destBuffer, u32 maxBufferSize){
+    HANDLE hInFile = CreateFileA(filePath, GENERIC_READ, 0, NULL, OPEN_ALWAYS, 
+        FILE_ATTRIBUTE_NORMAL, NULL);
+    if(hInFile == INVALID_HANDLE_VALUE){
+        //WIN32_ErrorExit("CreateFile failed for path: %s", filePath);
+        return -1;
+    }
+    DWORD Feedback;
+    if(!ReadFile(hInFile, destBuffer, maxBufferSize, &Feedback, NULL)){
+        //WIN32_ErrorExit("Read file failed (requested %u, read %u bytes)", maxBufferSize, Feedback);
+        return -1;
+    }
+
+    CloseHandle(hInFile);
+    return Feedback;
+}
+
+i64 io_GetFileSize(const char *filePath){
+    WIN32_FILE_ATTRIBUTE_DATA fi;
+    if(!GetFileAttributesExA(filePath, GetFileExInfoStandard, &fi)){
+        return -1;
+    }
+    return (i64)((u64)fi.nFileSizeLow | ((u64)fi.nFileSizeHigh << 32));
+}
+
 #endif
