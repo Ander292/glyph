@@ -10,6 +10,8 @@
  */
 
 #include <time.h>
+#include "string/string_buffer.h"
+#include "string/string_list.h"
 
 typedef struct editor_message{
     char Data[256];
@@ -26,10 +28,12 @@ typedef struct editor_message{
 #define EDITOR_STATE_COUNT 32
 
 typedef struct global_editor_state{
-    uint32 GlobalFlags;
+    uint32 Flags;
 
     editor_state states[EDITOR_STATE_COUNT];
+    editor_message Message;
 
+    int_pair maxCursor;
     i32 TextOffsetTop, TextOffsetLeft;
 } global_editor_state;
 
@@ -39,12 +43,9 @@ typedef struct editor_state{
     int_pair Cursor; /* The possition of the cursor inside the internal buffer */
     int_pair oldCursor; /* The possitions in the main buffer, saved here during altbuffer switches */
     int_pair Offset;
-    int_pair maxCursor;
 
     char File[FILE_PATH_LENGTH];
     string_list List;
-
-    editor_message Message;
 } editor_state;
 
 #define GLOBAL_STRUCT_NAME E
@@ -67,6 +68,23 @@ typedef struct editor_state{
 
 #define IS_PRINTABLE_CHAR(c) ((c) >= 32 && c != 127)
 
+
+#define GLOBAL_FLAGS GLOBAL_STRUCT_NAME.Flags
+
+#define CURRENT_LOCAL_STRUCT GLOBAL_STRUCT_NAME.states[GET_EDITOR_ID()]
+#define CURRENT_LOCAL_FLAGS CURRENT_LOCAL_STRUCT.Flags
+
+#define TEST_FLAG_GLOBAL(flag) TEST_FLAG(GLOBAL_FLAGS, flag)
+#define SET_FLAG_GLOBAL(flag) SET_FLAG(GLOBAL_FLAGS, flag)
+#define CLEAR_FLAG_GLOBAL(flag) CLEAR_FLAG(GLOBAL_FLAGS, flag)
+#define TOGGLE_FLAG_GLOBAL(flag) TOGGLE_FLAG(GLOBAL_FLAGS, flag)
+
+#define TEST_FLAG_LOCAL(flag) TEST_FLAG(CURRENT_LOCAL_FLAGS, flag)
+#define SET_FLAG_LOCAL(flag) SET_FLAG(CURRENT_LOCAL_FLAGS, flag)
+#define CLEAR_FLAG_LOCAL(flag) CLEAR_FLAG(CURRENT_LOCAL_FLAGS, flag)
+#define TOGGLE_FLAG_LOCAL(flag) TOGGLE_FLAG(CURRENT_LOCAL_FLAGS, flag)
+
+
 /**
  * GLOBAL FLAGS structure (bit by bit):
  *   altbuff  global 
@@ -77,41 +95,37 @@ typedef struct editor_state{
  *     ┃     ┃    ┗━━> INSERT_MODE flag (if character inserts cause shifting of others after it)
  *     ┃     ┗━━━━━━━> RUNNING flag
  *     ┃
- *     ┗━━━━━━━━━━━━━> Current buffer id ()
+ *     ┗━━━━━━━━━━━━━> Current editor id (use to get GET_EDITOR_ID())
  */
 
-#define GLOBAL_FLAGS GLOBAL_STRUCT_NAME.Flags
-#define TEST_FLAG_GLOBAL(flag) TEST_FLAG(GLOBAL_FLAGS, flag)
-#define SET_FLAG_GLOBAL(flag) SET_FLAG(GLOBAL_FLAGS, flag)
-#define CLEAR_FLAG_GLOBAL(flag) CLEAR_FLAG(GLOBAL_FLAGS, flag)
-#define TOGGLE_FLAG_GLOBAL(flag) TOGGLE_FLAG(GLOBAL_FLAGS, flag)
-
-#define FLAG_SHOWNUMBERS    (1 << 0)
-#define FLAG_SHOWHEADER     (1 << 1)
-#define FLAG_INSERT         (1 << 2)
-#define FLAG_RUNNING        (1 << 7)
+#define GLOBAL_FLAG_SHOWNUMBERS    (1 << 0)
+#define GLOBAL_FLAG_SHOWHEADER     (1 << 1)
+#define GLOBAL_FLAG_INSERT         (1 << 2)
+#define GLOBAL_FLAG_RUNNING        (1 << 7)
 
 #define ALTVIEW_SHIFT       (8)
 #define ALTVIEW_MASK        (0xff)
 
-#define GET_ALT_BUFFERID()      (((GLOBAL_FLAGS) >> ALTVIEW_SHIFT) & ALTVIEW_MASK)
-#define SET_ALT_BUFFERID(f)     ((GLOBAL_FLAGS) = (((GLOBAL_FLAGS) & ~(ALTVIEW_MASK << ALTVIEW_SHIFT)) | (((f) & ALTVIEW_MASK) << ALTVIEW_SHIFT)))
+#define GET_EDITOR_ID()      (((GLOBAL_FLAGS) >> ALTVIEW_SHIFT) & ALTVIEW_MASK)
+#define SET_EDITOR_ID(f)     ((GLOBAL_FLAGS) = (((GLOBAL_FLAGS) & ~(ALTVIEW_MASK << ALTVIEW_SHIFT)) | (((f) & ALTVIEW_MASK) << ALTVIEW_SHIFT)))
+
+#define DEFAULT_GLOBAL_FLAGS (GLOBAL_FLAG_RUNNING | GLOBAL_FLAG_SHOWHEADER | GLOBAL_FLAG_SHOWNUMBERS | GLOBAL_FLAG_INSERT)
 
 /**
  * FLAGS structure (bit by bit):
  *   file    editor 
- *  xxxheern xxFfSTOD
- *     ┃┃┃┃┃   ┃┃┃┃┃┃  
- *     ┃┃┃┃┃   ┃┃┃┃┃┃  
- *     ┃┃┃┃┃   ┃┃┃┃┃┃ 
- *     ┃┃┃┃┃   ┃┃┃┃┃┃
- *     ┃┃┃┃┃   ┃┃┃┃┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
- *     ┃┃┃┃┃   ┃┃┃┃┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
- *     ┃┃┃┃┃   ┃┃┃┗━━━━━> TO_RENDER flag (will not rerender the scren if its zero)
- *     ┃┃┃┃┃   ┃┃┗━━━━━━> SYNTAX flag (will highlight if set)
- *     ┃┃┃┃┃   ┃┗━━━━━━━> TO_FORMAT flag (will format syntax before next render)
- *     ┃┃┃┃┃   ┗━━━━━━━━> FORCE flag (will not check file type on reload)
- *     ┃┃┃┃┃
+ *  xxxheern IxFfSTOD
+ *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┃  
+ *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┃  
+ *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┃ 
+ *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┃
+ *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┗━━━> DIRTY flag (set if the file has been edited since last save/load
+ *     ┃┃┃┃┃ ┃ ┃┃┃┃┗━━━━> READONLY flag (if true then insertion into the rows is prohibited)
+ *     ┃┃┃┃┃ ┃ ┃┃┃┗━━━━━> TO_RENDER flag (will not rerender the scren if its zero)
+ *     ┃┃┃┃┃ ┃ ┃┃┗━━━━━━> SYNTAX flag (will highlight if set)
+ *     ┃┃┃┃┃ ┃ ┃┗━━━━━━━> TO_FORMAT flag (will format syntax before next render)
+ *     ┃┃┃┃┃ ┃ ┗━━━━━━━━> FORCE flag (will not check file type on reload)
+ *     ┃┃┃┃┃ ┗━━━━━━━━━━> INITIALIZED flag (set if the buffer is used)
  *     ┃┃┃┃┗━━━━━━━━━━━━━━━━━━> NEWLINE_ENTER flag (\n is interpreted as enter. Used when reading LF files)
  *     ┃┃┃┗━━━━━━━━━━━━━━━━━━━> UNUSED
  *     ┃┗┻━━━━━━━━━━━━━━━━━━━━> FILE_FORMAT
@@ -126,8 +140,8 @@ typedef struct editor_state{
 #define FORMAT_BIN      (2)
 #define FORMAT_UNUSED   (3)
 
-#define GET_FORMAT_NUMBER()     (((GLOBAL_FLAGS) >> FORMAT_SHIFT) & FORMAT_MASK)
-#define SET_FORMAT_NUMBER(f)    ((GLOBAL_FLAGS) = (((GLOBAL_FLAGS) & ~(FORMAT_MASK << FORMAT_SHIFT)) | (((f) & FORMAT_MASK) << FORMAT_SHIFT)))
+#define GET_LOCAL_FORMAT_NUMBER()     (((CURRENT_LOCAL_FLAGS) >> FORMAT_SHIFT) & FORMAT_MASK)
+#define SET_LOCAL_FORMAT_NUMBER(f)    ((CURRENT_LOCAL_FLAGS) = (((CURRENT_LOCAL_FLAGS) & ~(FORMAT_MASK << FORMAT_SHIFT)) | (((f) & FORMAT_MASK) << FORMAT_SHIFT)))
 #define GET_FORMAT_STRING(f)    (Formats[f])
 
 #define FLAG_DIRTY          (1 << 0)
@@ -138,9 +152,14 @@ typedef struct editor_state{
 #define FLAG_FORMAT         (1 << 4)
 #define FLAG_FORCE          (1 << 5)
 
+#define FLAG_INITIALIZED    (1 << 7)
 #define FLAG_NEWLINE_ENTER  (1 << 8)
 
-
+#ifdef UNIX
+#define DEFAULT_LOCAL_FLAGS (FLAG_NEWLINE_ENTER | FLAG_INITIALIZED)
+#else
+#define DEFAULT_LOCAL_FLAGS (FLAG_INITIALIZED)
+#endif
 static char *Formats[FORMAT_MASK + 1] = {
     "UTF8",
     "UTF16",

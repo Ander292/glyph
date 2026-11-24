@@ -1,5 +1,5 @@
 #include "string_buffer.h"
-#include "../system/io.h"
+#include "system/io.h"
 #include "main.h"
 
 #include <stdlib.h>

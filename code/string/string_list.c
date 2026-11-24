@@ -1,5 +1,5 @@
 #include "string_list.h"
-#include "../system/io.h"
+#include "system/io.h"
 #include <stdlib.h>
 
 static inline list_node *nodeCreate(){
