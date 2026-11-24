@@ -494,8 +494,35 @@ static void processInput(character_input ci){
 
 #include "input_parser.h"
 
-void parser_ParseInput(read_result rr){
-    if(rr.type == TYPE_ANSI){
-        
+command_type parser_ParseCommand(read_result rr){
+
+}
+
+parser_result parser_ParseInput(read_result rr){
+    parser_result result = {0};
+
+    switch(rr.type){
+        case TYPE_ANSI:
+            // Possible single byte command
+            if(rr.bytes[0] < 32 || rr.bytes[0] > 126) {
+                result.type = RESULT_TYPE_COMMAND;
+                result.command = parser_ParseCommand(rr);
+                break;
+            }
+        case TYPE_UTF32:
+            // Definetly a character
+            result.type = RESULT_TYPE_CHAR;
+            result.character.bytes[0] = rr.bytes[0];
+            result.character.bytes[1] = rr.bytes[1];
+            result.character.bytes[2] = rr.bytes[2];
+            result.character.bytes[3] = rr.bytes[3];
+            break;
+        case TYPE_ESCAPE:
+            // Definetly a command
+            result.type = RESULT_TYPE_COMMAND;
+            result.command = parser_ParseCommand(rr);
+            break;
     }
+
+    return result;
 }

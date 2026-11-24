@@ -27,7 +27,7 @@ typedef struct console_info{
     time_t CurrentTime;
 } console_info;
 
-void io_SetCursorPossition(u32 x, u32 y);
+//void io_SetCursorPossition(u32 x, u32 y);
 read_result io_ReadConsoleInput();
 
 // void term_DisableRawMode();

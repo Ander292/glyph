@@ -60,11 +60,15 @@ typedef struct global_editor_state{
 #define CLEAR_FLAG(flags, flag) ((flags) &= (~(flag)))
 #define TOGGLE_FLAG(flags, flag) ((flags) = (flags) ^ (flag))
 
-#ifdef DO_DEBUG_CHECK
+
+/* Debug macros */
+#ifdef DEBUG
 #define debug_check(expr) if(expr)
+#define Breakpoint __asm__ volatile("int 3\n\t");
 #else
 #define debug_check(expr) if(false)
-#endif /* DO_DEBUG_CHECK */
+#define Breakpoint
+#endif /* DEBUG */
 
 #define IS_PRINTABLE_CHAR(c) ((c) >= 32 && c != 127)
 
@@ -87,7 +91,7 @@ typedef struct global_editor_state{
 
 /**
  * GLOBAL FLAGS structure (bit by bit):
- *   altbuff  global 
+ *   altbuf   global 
  *  aaaaaaaa RxxxxIHN
  *  ┃┃┃┃┃┃┃┃ ┃    ┃┃┃
  *  ┗┻┻╋┻┻┻┛ ┃    ┃┃┗> SHOWNUMBERS flag
@@ -113,7 +117,7 @@ typedef struct global_editor_state{
 
 /**
  * FLAGS structure (bit by bit):
- *   file    editor 
+ *    file    editor 
  *  xxxheern IxFfSTOD
  *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┃  
  *     ┃┃┃┃┃ ┃ ┃┃┃┃┃┃  

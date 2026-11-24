@@ -63,6 +63,8 @@ static inline void deleteCharFromPosList(string_list *List, int Row, int Col){
     DeleteCharFromPosU32(RowString, Col);
 }
 
+/* Cursor */
+
 static inline void messageCreate(editor_message *dest, time_t duration, const char *text, ...){
     va_list args;
     va_start(args, text);
@@ -71,6 +73,23 @@ static inline void messageCreate(editor_message *dest, time_t duration, const ch
     //strcpy(dest->Data, text);
     dest->PostTime = GlobalConsoleInfo.CurrentTime;
     dest->Duration = duration;
+}
+
+static inline void setCursorPossition(u32 x, u32 y){
+    char c[16];
+    x++; y++;
+
+    u32 maxRows = GlobalConsoleInfo.Rows;
+    u32 maxCols = GlobalConsoleInfo.Cols;
+
+    x += E.TextOffsetLeft;
+    y += E.TextOffsetTop;
+    
+    if(x > maxCols) x = maxCols;
+    if(y > maxRows) y = maxRows;
+
+    snprintf(c, sizeof(c), ESC_SEQ "%d;%dH", (y), (x));
+    PrintA(c);
 }
 
 static void fixCursorPossition(){
@@ -118,6 +137,7 @@ static void fixCursorPossition(){
     if(!(GLOBAL_STRUCT_NAME.maxCursor.X < 0) && (CURRENT_LOCAL_STRUCT.Cursor.X > GLOBAL_STRUCT_NAME.maxCursor.X)) CURRENT_LOCAL_STRUCT.Cursor.X = GLOBAL_STRUCT_NAME.maxCursor.X;
     if(!(GLOBAL_STRUCT_NAME.maxCursor.Y < 0) && (CURRENT_LOCAL_STRUCT.Cursor.Y > GLOBAL_STRUCT_NAME.maxCursor.Y)) CURRENT_LOCAL_STRUCT.Cursor.Y = GLOBAL_STRUCT_NAME.maxCursor.Y;
 }
+
 
 /* Saving */
 
@@ -258,6 +278,7 @@ static int editorLoadFile(const char *path){
 
 static void drawRows(string_a *buffer){
     debug_check(CURRENT_LOCAL_STRUCT.List.type == LIST_TYPE_UTF32){
+        Breakpoint
         Die("Invalid list type caught in drawRows()");
     }
 
@@ -403,7 +424,7 @@ static void editorRefreshScreen(){
     PrintBufferA(GlobalWriteBuffer);
     ClearBuffer(&GlobalWriteBuffer);
 
-    io_SetCursorPossition(CURRENT_LOCAL_STRUCT.Cursor.X - CURRENT_LOCAL_STRUCT.Offset.X,
+    setCursorPossition(CURRENT_LOCAL_STRUCT.Cursor.X - CURRENT_LOCAL_STRUCT.Offset.X,
         CURRENT_LOCAL_STRUCT.Cursor.Y - CURRENT_LOCAL_STRUCT.Offset.Y);
     PrintA(ESC_SHOW_CURSOR);
 }
@@ -506,10 +527,15 @@ static string_a *editorPromtHeader(char *promt){
     }
 }
 
+static void executeCommand(command_type ct){
+
+}
+
 int main(int argc, char *argv[], char *envp[]){  
     term_PrepareConsole();
     GlobalWriteBuffer = StringCreateA(4096);
     CLEAR_FLAG_GLOBAL(0xffffffff);
+    SET_FLAG_GLOBAL(DEFAULT_GLOBAL_FLAGS);
     E.maxCursor.X = DEFAULT_CURSOR_MAXIMUM_X;
     E.maxCursor.Y = DEFAULT_CURSOR_MAXIMUM_Y;
 
@@ -528,7 +554,7 @@ int main(int argc, char *argv[], char *envp[]){
     }
 
     /* Syntax highlight */
-
+    // TODO: Actually implement this
 
     while(TEST_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING)){
         GlobalConsoleInfo = term_GetConsoleSystemInfo();
@@ -541,7 +567,17 @@ int main(int argc, char *argv[], char *envp[]){
 
         read_result r = io_ReadConsoleInput();
         if(r.bytes != 0){
-            parser_ParseInput(r);
+            parser_result pr = parser_ParseInput(r);
+            if(pr.type == RESULT_TYPE_COMMAND){
+                executeCommand(pr.command);
+            }else{
+                if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+                //stringAppendEnd(&OutputBuffer, rr.bytes, ci.byteCount);
+            
+                SET_FLAG_LOCAL(FLAG_DIRTY);
+                insertCharAtPosList(&CURRENT_LOCAL_STRUCT.List, pr.character, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X);
+                CURRENT_LOCAL_STRUCT.Cursor.X++;
+            }
             SET_FLAG_LOCAL(FLAG_RENDER);
         }
     }

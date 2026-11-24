@@ -13,24 +13,6 @@ static inline void universalCheck(char character, int *byteCountAdr){
     if(character == ';') *byteCountAdr = 6;
 }
 
-void io_SetCursorPossition(u32 x, u32 y){
-    char c[16];
-    x++; y++;
-#if 0
-    u32 maxRows = ConInfo.Rows;
-    u32 maxCols = ConInfo.Cols;
-
-    x += E.TextOffsetLeft;
-    y += E.TextOffsetTop;
-    
-    if(x > maxCols) x = maxCols;
-    if(y > maxRows) y = maxRows;
-#endif
-
-    snprintf(c, sizeof(c), ESC_SEQ "%d;%dH", (y), (x));
-    PrintA(c);
-}
-
 #ifdef WINDOWS
 #include "win32.c"
 #elif defined UNIX
