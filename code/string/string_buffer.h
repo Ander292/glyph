@@ -2,7 +2,7 @@
 #define STRING_BUFFER_H
 
 #include "types.h"
-#include "escape.h"
+#include "res/escape.h"
 #include <limits.h>
 #include <uchar.h>
 

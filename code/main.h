@@ -164,16 +164,6 @@ typedef struct global_editor_state{
 #else
 #define DEFAULT_LOCAL_FLAGS (FLAG_INITIALIZED)
 #endif
-static char *Formats[FORMAT_MASK + 1] = {
-    "UTF8",
-    "UTF16",
-    "BIN",
-    "UNUSED"
-};
 
-static char *EndLine[] = {
-    "CRLF", // \r\n
-    "LF"    // \n only
-};
 
 #endif /* MAIN_H */

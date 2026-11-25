@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include <windows.h>
-#include "escape.h"
+#include "res/escape.h"
 #include "types.h"
 #include "io.h"
 

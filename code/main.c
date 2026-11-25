@@ -1,6 +1,8 @@
 #include "system/io.h"
 #include "input_parser.h"
 #include "main.h"
+#include "res/res.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -10,27 +12,9 @@ static global_editor_state E = {0};
 static string_a GlobalWriteBuffer = {0};
 static console_info GlobalConsoleInfo = {0};
 
-static const char helpFull[] =
-    "Ctrl key combinations: \r"
-
-        "\te -> enter/leave help\r"
-        "\tq -> quit\r"
-        "\to -> open new file\r"
-        "\ts -> save current file\r"
-        "\tg -> goto line\r"
-
-        "\th -> same as ctrl+backspace, delete whole word\r"
-        
-        "\tt -> show header\r"
-        "\tp -> toggle syntax highlighting\r"
-        "\tn -> toggle numbers\r"
-        "\tu -> switch between utf16 and utf8 mode"
-
-        //"\tr -> read-only mode\r"
-;
-static const u64 helpFullLength = sizeof(helpFull);
 
 static string_a *editorPromtHeader(char *promt);
+static void resetLocalEditorState(u8 ind);
 
 static inline void syntaxHighlightGlobal(string_list *list){
     ListForeachString(list, SyntaxHighlightString);
@@ -41,8 +25,6 @@ static inline void syntaxHighlight(string_list *list){
     ListForeachStringEx(list, MAX_VAL(CURRENT_LOCAL_STRUCT.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), GlobalConsoleInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, SyntaxHighlightString);
     ListForeachStringEx(list, CURRENT_LOCAL_STRUCT.Offset.Y, GlobalConsoleInfo.Rows, SyntaxHighlightStringKeyword);
 }
-
-static void resetLocalEditorState(u8 ind);
 
 static inline void switchEditorContext(u8 bufferID){
     SET_EDITOR_ID(bufferID);
@@ -277,7 +259,7 @@ static int editorLoadFile(const char *path){
 /* Rendering */
 
 static void drawRows(string_a *buffer){
-    debug_check(CURRENT_LOCAL_STRUCT.List.type == LIST_TYPE_UTF32){
+    debug_check(CURRENT_LOCAL_STRUCT.List.type != LIST_TYPE_UTF32){
         Breakpoint
         Die("Invalid list type caught in drawRows()");
     }
@@ -318,9 +300,9 @@ static void drawRows(string_a *buffer){
             }else{
                 byte prevTokenId = TOKEN_NEUTRAL;
 
-                for(i32 j = horizontalOffset; j < targetCols; j++){
-                    wchar32 c = GetCharAtPosU32((string_u32*)row, j);
-                    byte currentTokenId = GetTokenAtPosU32(row, j);
+                for(i32 j = 0; j < targetCols; j++){
+                    wchar32 c = GetCharAtPosU32((string_u32*)row, horizontalOffset + j);
+                    byte currentTokenId = GetTokenAtPosU32(row, horizontalOffset + j);
 
                     i32 byteCount = charGetByteCount(*c.bytes);
 
@@ -528,7 +510,7 @@ static string_a *editorPromtHeader(char *promt){
 }
 
 static void executeCommand(command_type ct){
-
+    
 }
 
 int main(int argc, char *argv[], char *envp[]){  
@@ -556,6 +538,8 @@ int main(int argc, char *argv[], char *envp[]){
     /* Syntax highlight */
     // TODO: Actually implement this
 
+    editorRefreshScreen();
+
     while(TEST_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING)){
         GlobalConsoleInfo = term_GetConsoleSystemInfo();
         updateStatus();
@@ -577,6 +561,7 @@ int main(int argc, char *argv[], char *envp[]){
                 SET_FLAG_LOCAL(FLAG_DIRTY);
                 insertCharAtPosList(&CURRENT_LOCAL_STRUCT.List, pr.character, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X);
                 CURRENT_LOCAL_STRUCT.Cursor.X++;
+                fixCursorPossition();
             }
             SET_FLAG_LOCAL(FLAG_RENDER);
         }

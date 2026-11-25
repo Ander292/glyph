@@ -493,9 +493,133 @@ static void processInput(character_input ci){
 #endif
 
 #include "input_parser.h"
+#include "main.h"
 
 command_type parser_ParseCommand(read_result rr){
+    switch(rr.bytes[0]){
+        case CTRL_KEY('c'): // Ctrl+c and ctrl+v is managed by the console host for now
+        case CTRL_KEY('v'):
+        //case CTRL_KEY('x'):
+            break;
+        
+        case CTRL_KEY('q'): return KEY_CTRL_Q;
+        case CTRL_KEY('e'): return KEY_CTRL_E;
+        case CTRL_KEY('s'): return KEY_CTRL_S;
+        case CTRL_KEY('o'): return KEY_CTRL_O;
+        case CTRL_KEY('n'): return KEY_CTRL_N;
+        case CTRL_KEY('t'): return KEY_CTRL_T;
+        case CTRL_KEY('p'): return KEY_CTRL_P;
 
+        case CTRL_KEY('g'): return KEY_CTRL_G;
+        case CTRL_KEY('f'): return KEY_CTRL_F;
+        case CTRL_KEY('u'): return KEY_CTRL_U;
+        case CTRL_KEY('r'): return KEY_CTRL_U;
+
+        case CTRL_KEY('w'): return KEY_CTRL_W;
+        case '\b': // Backspace (or ctrl + h)
+            return KEY_CTRL_H;
+        case 127:  // Delete key in ascii but its backspace for some reason
+            return KEY_BACKSPACE;
+
+        case '\n': return KEY_NEWLINE;
+        case '\r': return KEY_CARRIAGE;
+        case '\t': return KEY_TAB;
+
+        case '\x1b':{
+            switch(rr.bytes[2]){
+                case 'A':
+                case 'a':
+                    return KEY_UP_ARROW;
+
+                case 'B':
+                case 'b': 
+                    return KEY_DOWN_ARROW;
+
+                case 'C':
+                case 'c':
+                    return KEY_RIGHT_ARROW;
+
+                case 'D':
+                case 'd':
+                    return KEY_LEFT_ARROW;
+
+                case '5':
+                    switch(rr.bytes[3]){
+                        case '~': return KEY_PAGEUP;
+                    }
+                    break;
+                case '6':
+                    switch(rr.bytes[3]){
+                        case '~': return KEY_PAGEDOWN;
+                    }
+                    break;
+                case '2':
+                    switch(rr.bytes[3]){
+                        case '~': return KEY_INSERT;
+                    }
+                    break;
+                case 'O':
+                    switch(rr.bytes[3]){
+                        case 'H': return KEY_HOME;
+                        case 'F': return KEY_END;
+                    }
+                    break;
+                case '7':
+                case 'H':
+                    return KEY_HOME;
+
+                case '4':
+                case '8':
+                case 'F':
+                    return KEY_END;
+
+                case '3': 
+                    switch(rr.bytes[3]){
+                        case '~': return KEY_DELETE;
+                        case ';': switch(rr.bytes[4]){
+                            case '5': //ctrl
+                                if(rr.bytes[5] == '~') return KEY_CTRL_DELETE;
+                                break;
+                            case '3': // alt
+                                if(rr.bytes[5] == '~') return KEY_ALT_DELETE;
+                                break;
+                        }
+                    }
+                    break;
+                
+                /* Home key. Goes to X index 0 - the begining to the line */
+                case '1':
+                    if(rr.size == 6){
+                        if(rr.bytes[3] == ';'){
+                            switch(rr.bytes[4]){
+                                case '5':{ // Ctrl modifier
+                                    switch(rr.bytes[5]){
+                                        case 'A': return KEY_CTRL_UP_ARROW;
+                                        case 'B': return KEY_CTRL_DOWN_ARROW;
+                                        case 'C': return KEY_CTRL_RIGHT_ARROW;
+                                        case 'D': return KEY_CTRL_LEFT_ARROW;
+                                    }
+                                    break;
+                                }
+                                case '3':{ // Alt modifier
+                                    switch(rr.bytes[5]){
+                                        case 'A': return KEY_ALT_UP_ARROW;
+                                        case 'B': return KEY_ALT_DOWN_ARROW;
+                                        case 'C': return KEY_ALT_RIGHT_ARROW;
+                                        case 'D': return KEY_ALT_LEFT_ARROW;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    break;
+            }
+            break;
+        }
+    }
+
+    Breakpoint
 }
 
 parser_result parser_ParseInput(read_result rr){

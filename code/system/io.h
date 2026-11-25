@@ -4,7 +4,7 @@
 #define WINDOWS
 
 #include "types.h"
-#include "escape.h"
+#include "res/escape.h"
 #include "errno.h"
 #include <string.h>
 #include <time.h>

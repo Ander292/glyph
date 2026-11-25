@@ -2,27 +2,40 @@ param (
     [string]$mode = "full"
 )
 # full, run, build, buildP
-$OutPath = "build/main.exe"
+$RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$CodeDir = Join-Path $RootDir "code"
+
+$OutPath = Join-Path "$RootDir" "build/main.exe"
 
 $Sources = @(
-    "code/main.c"
+    "main.c"
 
-    "code/system/io.c"
-    "code/input_parser.c"
+    "input_parser.c"
+    "system/io.c"
 
-    "code/string/string_buffer_a.c"
-    "code/string/string_buffer_u32.c"
-    "code/string/string_buffer_shared.c"
-    "code/string/string_list.c"
+    "res/res.c"
+
+    "string/string_buffer_a.c"
+    "string/string_buffer_u32.c"
+    "string/string_buffer_shared.c"
+    "string/string_list.c"
 )
-$IncludeFlags = @(
-    "-Icode/include"
-    "-Icode"
+
+$IncludeDirs = @(
+    ""
+    "."
 )
 $Flags = @(
+    "-masm=intel"
     "-g"
-    "-DDO_DEBUG_CHECK"
+    "-DDEBUG"
 )
+
+$Sources = $Sources | ForEach-Object { Join-Path "$CodeDir" "$_" }
+$IncludeFlags = $IncludeFlags | ForEach-Object { "-I$CodeDir" + "$_" }
+
+# echo $Sources
+# echo $IncludeFlags
 
 if($mode -eq "build" -OR $mode -eq "full"){
     gcc $Sources $IncludeFlags $Flags -o $OutPath
