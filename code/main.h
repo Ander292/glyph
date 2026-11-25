@@ -28,7 +28,7 @@ typedef struct editor_message{
 #define EDITOR_STATE_COUNT 32
 
 typedef struct editor_state{
-    uint32 Flags;
+    u32 Flags;
 
     int_pair Cursor; /* The possition of the cursor inside the internal buffer */
     int_pair oldCursor; /* The possitions in the main buffer, saved here during altbuffer switches */
@@ -39,9 +39,10 @@ typedef struct editor_state{
 } editor_state;
 
 typedef struct global_editor_state{
-    uint32 Flags;
+    u32 Flags;
 
     editor_state states[EDITOR_STATE_COUNT];
+    u32 stateCount;
     editor_message Message;
 
     int_pair maxCursor;

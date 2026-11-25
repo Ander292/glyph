@@ -397,6 +397,7 @@ static void editorRefreshScreen(){
     PrintA(ESC_HIDE_CURSOR);
     PrintA(ESC_RESET_CURSOR_POSSITION);
 
+    ClearBuffer(&GlobalWriteBuffer);
     /* Formating output */
     if(TEST_FLAG_GLOBAL(GLOBAL_FLAG_SHOWHEADER)) formatHeader(&GlobalWriteBuffer);
     drawRows(&GlobalWriteBuffer);
@@ -417,7 +418,7 @@ static void resetLocalEditorState(u8 ind){
     
     editor_state *const focusedState = E.states + ind;
     
-    if(TEST_FLAG(focusedState->Flags, FLAG_INITIALIZED)) 
+    if(TEST_FLAG(focusedState->Flags, FLAG_INITIALIZED))
         FreeList(&focusedState->List);
     
     focusedState->File[0] = 0;
@@ -510,7 +511,122 @@ static string_a *editorPromtHeader(char *promt){
 }
 
 static void executeCommand(command_type ct){
-    
+    switch(ct){
+        case COMMAND_QUIT: {
+            for(u32 BufferIndex = 0; BufferIndex < EDITOR_STATE_COUNT; BufferIndex++){
+                editor_state *focusedState = &GLOBAL_STRUCT_NAME.states[BufferIndex];
+                if(TEST_FLAG(focusedState->Flags, FLAG_INITIALIZED)){
+                    if(TEST_FLAG_LOCAL(FLAG_DIRTY)){
+                        SET_EDITOR_ID(BufferIndex);
+
+                        postEditorMessage(4*messageDurationDefault, "Unsaved changes (%u). Quit? (Yes, No, Save)", BufferIndex);
+                        while(1){
+                            editorRefreshScreen();
+                            read_result rr = io_ReadConsoleInput();
+                            if(rr.type != TYPE_ANSI) continue;
+                            switch(rr.bytes[0] & 0xdf){
+                                case 'Y':
+                                    //CLEAR_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING);
+                                    goto END_WHILE;
+                                case 'N':
+                                    clearEditorMessage();
+                                    return;
+                                case 'S':
+                                    switch(editorSave(focusedState->File, &focusedState->List)){
+                                        case 1: break;
+                                        case 0:
+                                            goto END_WHILE;
+                                        case -1:
+                                            postEditorMessage(messageDurationDefault, "Saving canceled on buffer %d", BufferIndex);
+                                            return;
+                                    }
+                                    break;
+                            }
+                        }
+                        END_WHILE:
+                    }
+                    CLEAR_FLAG(focusedState->Flags, FLAG_INITIALIZED);
+                }
+            }
+            CLEAR_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING);
+            break;
+        }
+        case COMMAND_OPEN_HELP: break;
+        case COMMAND_SAVE: break;
+        case COMMAND_LOAD: { // File open
+            if(TEST_FLAG_LOCAL(FLAG_DIRTY) && CURRENT_LOCAL_STRUCT.File[0] != 0){
+                postEditorMessage(4*messageDurationDefault, "Unsaved changes (%u). Proceed? (Yes, No, Save)", GET_EDITOR_ID());
+                while(1){
+                    editorRefreshScreen();
+                    read_result rr = io_ReadConsoleInput();
+                    if(rr.type != TYPE_ANSI) continue;
+                    switch(rr.bytes[0] & 0xdf){
+                        case 'Y':
+                            goto END_WHILE2;
+                        case 'N':
+                            clearEditorMessage();
+                            return;
+                        case 'S':
+                            if(editorSave(CURRENT_LOCAL_STRUCT.File, &CURRENT_LOCAL_STRUCT.List)) break;
+                            goto END_WHILE2;
+                    }
+                }
+                END_WHILE2:
+            }
+            string *feedback = editorPromtHeader("Enter path:");
+            if(feedback != NULL) {
+                if(getFileSize(feedback->data) <= 0) {
+                    postEditorMessage(2*messageDurationDefault, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
+                    break;
+                }
+                freeList(E.Rows);
+                *(E.Rows) = createListWithRows(1);
+                E.Cursor = (int_pair){0, 0};
+                strcpy(E.File, feedback->data);
+                editorLoadFile(E.File);
+                stringFreeHeap(feedback);
+            }
+        }break;
+        case COMMAND_SHOWNUMBER_TOGGLE: TOGGLE_FLAG_GLOBAL(GLOBAL_FLAG_SHOWNUMBERS); break;
+        case COMMAND_SHOWHEADER_TOGGLE: TOGGLE_FLAG_GLOBAL(GLOBAL_FLAG_SHOWHEADER); break;
+        case COMMAND_SYNTAX: TOGGLE_FLAG_LOCAL(FLAG_SYNTAX); break;
+        case COMMAND_INSERT: TOGGLE_FLAG_GLOBAL(GLOBAL_FLAG_INSERT); break;
+        case COMMAND_GOTO_LINE: break;
+        case COMMAND_FIND: break;
+        case COMMAND_SWITCH_CHARSET: break;
+        case COMMAND_TOGGLE_READONLY: TOGGLE_FLAG_LOCAL(FLAG_READONLY); break;
+        case COMMAND_BACKSPACE: break;
+        case COMMAND_REMOVE_WORD_LEFT: break;
+        case COMMAND_DELETE: break;
+        case COMMAND_REMOVE_WORLD_RIGHT: break;
+        case COMMAND_NEWLINE: break;
+        case COMMAND_CARRIAGE: break;
+        case COMMAND_TAB: break;
+
+        case COMMAND_UP: break;
+        case COMMAND_LEFT: break;
+        case COMMAND_RIGHT: break;
+        case COMMAND_DOWN: break;
+        case COMMAND_PAGEUP: break;
+        case COMMAND_PAGEDOWN: break;
+        case COMMAND_HOME: break;
+        case COMMAND_END: break;
+
+        case COMMAND_OFFSET_UP: break;
+        case COMMAND_OFFSET_DOWN: break;
+        case COMMAND_SKIP_WORD_RIGHT: break;
+        case COMMAND_SKIP_WORD_LEFT: break;
+
+        case COMMAND_NEXT_BUFFER: break;
+        case COMMAND_PREV_BUFFER: break;
+
+        case COMMAND_NEUTRAL:
+            postEditorMessage(messageDurationDefault, "COMMAND_NEUTRAL recieved");
+            break;
+        default:
+            postEditorMessage(messageDurationDefault, "Invalid command type : %x", ct);
+            break;
+    }    
 }
 
 int main(int argc, char *argv[], char *envp[]){  
@@ -527,6 +643,7 @@ int main(int argc, char *argv[], char *envp[]){
 
     resetLocalEditorState(0);
     SET_EDITOR_ID(0);
+    resetKeybinds();
 
     if(argc > 1){
         strcpy(CURRENT_LOCAL_STRUCT.File, argv[1]);
@@ -553,7 +670,7 @@ int main(int argc, char *argv[], char *envp[]){
         if(r.bytes != 0){
             parser_result pr = parser_ParseInput(r);
             if(pr.type == RESULT_TYPE_COMMAND){
-                executeCommand(pr.command);
+                executeCommand(translateCommandKey(pr.command));
             }else{
                 if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
                 //stringAppendEnd(&OutputBuffer, rr.bytes, ci.byteCount);

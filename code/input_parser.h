@@ -2,7 +2,7 @@
 #define INPUT_PARSER_H
 
 #include "types.h"
-#include "command_types.h"
+#include "res/command_types.h"
 #include "system/io.h"
 
 #define CTRL_KEY(k) ((k) & 0x1f)
@@ -16,7 +16,7 @@ typedef enum parser_result_type{
 typedef struct parser_result{
     parser_result_type type;
     union{
-        command_type command;
+        command_key command;
         wchar32 character;
     };
 } parser_result;

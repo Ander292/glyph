@@ -18,7 +18,7 @@ char *token_escape[] = {
 
 void ClearBuffer(void *str){
     string *n = str;
-    n->len;
+    n->len = 0;
     *(byte*)n->unknown = 0;
     *n->tokenId = 0;
 }
