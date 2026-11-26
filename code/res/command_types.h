@@ -99,8 +99,8 @@ typedef enum command_type{
     COMMAND_SKIP_WORD_LEFT,
 
     
-    //COMMAND_ALT_UP,
-    //COMMAND_ALT_DOWN,
+    COMMAND_MOVE_ROW_UP,
+    COMMAND_MOVE_ROW_DOWN,
     COMMAND_NEXT_BUFFER,
     COMMAND_PREV_BUFFER
 } command_type;

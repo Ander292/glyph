@@ -252,7 +252,7 @@ bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos){
         char *destPosToken = str->tokenId + pos;
 
         u32 moveLen = str->len - pos - 1;
-        memmove(destPos, destPos + 1, moveLen);
+        memmove(destPos, destPos + sizeof(wchar32), moveLen * sizeof(wchar32));
         memmove(destPosToken, destPosToken + 1, moveLen);
         str->len--;
 
@@ -409,12 +409,16 @@ void ConcatStringsU32(string_u32 *dest, const string_u32 *src){
 
 void ConcatStringsExU32(string_u32 *dest, const string_u32 *src, u32 startOffset, u32 endOffset){
     wchar32 *start = dest->data + dest->len;
+    char *startToken = dest->tokenId + dest->len;
     
     wchar32 *from = src->data + startOffset;
+    char *fromToken = src->tokenId + startOffset;
+
     u32 len = src->len - startOffset - endOffset;
 
-    while(dest->len + src->len <= dest->maxSize) doubleSizeU32(dest);
+    while(dest->len + src->len >= dest->maxSize) doubleSizeU32(dest);
     
     memcpy(start, from, len * sizeof(u32));
+    memcpy(startToken, fromToken, len * sizeof(char));
     dest->len += len;
 }

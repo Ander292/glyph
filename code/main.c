@@ -295,7 +295,7 @@ static void drawRows(string_a *buffer){
             i32 rowRemainingCharCount = (row->len - horizontalOffset);
             i32 targetCols = MIN_VAL(maxCols, rowRemainingCharCount);
 
-            if(rowRemainingCharCount <= 0){
+            if(rowRemainingCharCount <= 0 && row->len != 0){
                 WriteToBufferA(buffer, "<--");
             }else{
                 byte prevTokenId = TOKEN_NEUTRAL;
@@ -729,7 +729,6 @@ static void executeCommand(command_type ct){
                 CURRENT_LOCAL_STRUCT.Cursor.X--;
                 SET_FLAG_LOCAL(FLAG_DIRTY);
             }
-            break;
         }break;
         case COMMAND_REMOVE_WORD_LEFT: {
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
@@ -752,7 +751,24 @@ static void executeCommand(command_type ct){
                 }
             }
         } break;
-        case COMMAND_DELETE: break;
+        case COMMAND_DELETE: {
+            if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+
+            string_u32 *currentRow = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            if(CURRENT_LOCAL_STRUCT.Cursor.X == currentRow->len){
+                if(CURRENT_LOCAL_STRUCT.Cursor.Y + 1 < CURRENT_LOCAL_STRUCT.List.size){
+                    string_u32 *nextRow = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y + 1);
+
+                    ConcatStringsU32(currentRow, nextRow);
+                    ListDeleteRow(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+                    SET_FLAG_LOCAL(FLAG_DIRTY);
+                }
+
+            }else{
+                deleteCharFromPosList(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X - 1);
+                SET_FLAG_LOCAL(FLAG_DIRTY);
+            }
+        }break;
         case COMMAND_REMOVE_WORLD_RIGHT: break;
         case COMMAND_NEWLINE: {
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
@@ -767,11 +783,11 @@ static void executeCommand(command_type ct){
                 i32 charsToCopy = row->len - startCharOffset;
 
                 ConcatStringsExU32(str, row, startCharOffset, 0);
+                TerminateStringOnPosU32(row, startCharOffset);
             }
 
             CURRENT_LOCAL_STRUCT.Cursor.Y++;
             CURRENT_LOCAL_STRUCT.Cursor.X = 0;
-            break;
         }break;
         case COMMAND_TAB: break;
 
@@ -779,16 +795,57 @@ static void executeCommand(command_type ct){
         case COMMAND_LEFT: CURRENT_LOCAL_STRUCT.Cursor.X--; break;
         case COMMAND_RIGHT: CURRENT_LOCAL_STRUCT.Cursor.X++; break;
         case COMMAND_DOWN: CURRENT_LOCAL_STRUCT.Cursor.Y++; break;
-        case COMMAND_PAGEUP: break;
-        case COMMAND_PAGEDOWN: break;
-        case COMMAND_HOME: break;
-        case COMMAND_END: break;
+        case COMMAND_PAGEUP: 
+            CURRENT_LOCAL_STRUCT.Cursor.Y -= (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            CURRENT_LOCAL_STRUCT.Offset.Y -= (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            break;
+        case COMMAND_PAGEDOWN: 
+            CURRENT_LOCAL_STRUCT.Cursor.Y += (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            CURRENT_LOCAL_STRUCT.Offset.Y += (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            break;
+        case COMMAND_HOME: CURRENT_LOCAL_STRUCT.Cursor.X = 0; break;
+        case COMMAND_END: {
+            string *str = GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            if(str != NULL){
+                CURRENT_LOCAL_STRUCT.Cursor.X = str->len;
+            }
+        }break;
 
-        case COMMAND_OFFSET_UP: break;
-        case COMMAND_OFFSET_DOWN: break;
-        case COMMAND_SKIP_WORD_RIGHT: break;
-        case COMMAND_SKIP_WORD_LEFT: break;
+        case COMMAND_OFFSET_UP: CURRENT_LOCAL_STRUCT.Offset.Y--; break;
+        case COMMAND_OFFSET_DOWN: CURRENT_LOCAL_STRUCT.Offset.Y++; break;
+        case COMMAND_SKIP_WORD_RIGHT: {
+            string_u32 *current = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
 
+            i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+            wchar32 *start = current->data + startCharOffset;
+            i32 skipCount;
+
+            if(start[0].full == U' '){
+                skipCount = CountToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+            }else{
+                skipCount = CountToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+            }
+
+            CURRENT_LOCAL_STRUCT.Cursor.X += skipCount;
+        } break;
+        case COMMAND_SKIP_WORD_LEFT: {
+            string_u32 *current = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+
+            i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+            wchar32 *start = current->data + startCharOffset;
+            i32 skipCount;
+
+            if(start[0].full == U' '){
+                skipCount = CountBackToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+            }else{
+                skipCount = CountBackToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+            }
+
+            CURRENT_LOCAL_STRUCT.Cursor.X -= skipCount;
+        } break;
+
+        case COMMAND_MOVE_ROW_UP: break;
+        case COMMAND_MOVE_ROW_DOWN: break;
         case COMMAND_NEXT_BUFFER: break;
         case COMMAND_PREV_BUFFER: break;
 
@@ -850,9 +907,9 @@ int main(int argc, char *argv[], char *envp[]){
                 SET_FLAG_LOCAL(FLAG_DIRTY);
                 insertCharAtPosList(&CURRENT_LOCAL_STRUCT.List, pr.character, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X);
                 CURRENT_LOCAL_STRUCT.Cursor.X++;
-                fixCursorPossition();
             }
             SET_FLAG_LOCAL(FLAG_RENDER);
+            fixCursorPossition();
         }
     }
 
