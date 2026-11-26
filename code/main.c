@@ -551,8 +551,11 @@ static void executeCommand(command_type ct){
             CLEAR_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING);
             break;
         }
-        case COMMAND_OPEN_HELP: break;
-        case COMMAND_SAVE: break;
+        case COMMAND_OPEN_HELP: break; // TODO: Implement help
+        case COMMAND_SAVE: {
+            editorSave(CURRENT_LOCAL_STRUCT.File, &CURRENT_LOCAL_STRUCT.List);
+            break;
+        }break;
         case COMMAND_LOAD: { // File open
             if(TEST_FLAG_LOCAL(FLAG_DIRTY) && CURRENT_LOCAL_STRUCT.File[0] != 0){
                 postEditorMessage(4*messageDurationDefault, "Unsaved changes (%u). Proceed? (Yes, No, Save)", GET_EDITOR_ID());
@@ -573,40 +576,209 @@ static void executeCommand(command_type ct){
                 }
                 END_WHILE2:
             }
-            string *feedback = editorPromtHeader("Enter path:");
+            string_a *feedback = editorPromtHeader("Enter path:");
             if(feedback != NULL) {
-                if(getFileSize(feedback->data) <= 0) {
-                    postEditorMessage(2*messageDurationDefault, "Invalid file: %s : %s", feedback->data, getInputOutputErrorString());
+                if(io_GetFileSize(feedback->data) <= 0) {
+                    postEditorMessage(2*messageDurationDefault, "Invalid file: %s : %s", feedback->data, io_GetInputOutputErrorString());
                     break;
                 }
-                freeList(E.Rows);
-                *(E.Rows) = createListWithRows(1);
+#if 0
+                FreeList(&CURRENT_LOCAL_STRUCT.List);
+                
+                CURRENT_LOCAL_STRUCT.List = CreateListWithRows(1, LIST_TYPE_UTF32);
+
                 E.Cursor = (int_pair){0, 0};
-                strcpy(E.File, feedback->data);
-                editorLoadFile(E.File);
-                stringFreeHeap(feedback);
+#else
+                resetLocalEditorState(GET_EDITOR_ID());
+#endif
+                //strncpy(CURRENT_LOCAL_STRUCT.File, feedback->data, sizeof(CURRENT_LOCAL_STRUCT.File));
+                u32 copySize = MIN_VAL(feedback->len, sizeof(CURRENT_LOCAL_STRUCT.File) - 1);
+                memcpy(CURRENT_LOCAL_STRUCT.File, feedback->data, copySize);
+                CURRENT_LOCAL_STRUCT.File[copySize] = 0;
+
+                editorLoadFile(CURRENT_LOCAL_STRUCT.File);
+                StringFreeHeap(feedback);
             }
         }break;
         case COMMAND_SHOWNUMBER_TOGGLE: TOGGLE_FLAG_GLOBAL(GLOBAL_FLAG_SHOWNUMBERS); break;
         case COMMAND_SHOWHEADER_TOGGLE: TOGGLE_FLAG_GLOBAL(GLOBAL_FLAG_SHOWHEADER); break;
         case COMMAND_SYNTAX: TOGGLE_FLAG_LOCAL(FLAG_SYNTAX); break;
         case COMMAND_INSERT: TOGGLE_FLAG_GLOBAL(GLOBAL_FLAG_INSERT); break;
-        case COMMAND_GOTO_LINE: break;
-        case COMMAND_FIND: break;
+        case COMMAND_GOTO_LINE:{
+            string_a *result = editorPromtHeader("Goto line:");
+            if(result){
+                char *endPtr;
+                i32 val = strtoul(result->data, &endPtr, 0);
+                StringFreeHeap(result);
+                
+                if(*endPtr != 0){
+                    postEditorMessage(messageDurationDefault, "Invalid input: Not a number");
+                }else if(errno == ERANGE){
+                    postEditorMessage(messageDurationDefault, "Invalid input: Overflow (number too large)");
+                }else{
+                    if(val > 0){
+#if 0
+                        if(val < E.Rows->size){
+                            E.Cursor.Y = val-1;
+                            clearEditorMessage();
+                        }else{
+                            postEditorMessage(messageDurationDefault, "Out of bounds: %d < %d", E.Rows->size, val);
+                        }
+#else
+                        CURRENT_LOCAL_STRUCT.Cursor.Y = (val - 1 < CURRENT_LOCAL_STRUCT.List.size ? val - 1 : CURRENT_LOCAL_STRUCT.List.size - 1);
+                        clearEditorMessage();
+#endif
+                    }else{
+                        postEditorMessage(messageDurationDefault, "Out of bounds: %d is negative", val);
+                    }
+                }
+            }else{
+                postEditorMessage(messageDurationDefault, "Canceled");
+            }
+        }break;
+        case COMMAND_FIND: {
+#if 0
+            SEARCH_REPEAT:
+            // Search (Ctrl+f)
+            string_a *Result = editorPromtHeader("Find:");
+            if(Result){
+                i32 matchCount = 0;
+                int_pair oldCursor = CURRENT_LOCAL_STRUCT.Cursor;
+                do{
+                    list_node *p = CURRENT_LOCAL_STRUCT.List.head;
+                    for(i32 i = 0; i < CURRENT_LOCAL_STRUCT.List.size; i++, p = p->next){
+                        string_u32 *focusedStr = (string_u32 *)p->str;
+                        char *resultPtr = strstr(focusedStr->data, Result->data);
+                        while(resultPtr != NULL){
+                            matchCount++;
+                            i32 xOffset = resultPtr - focusedStr->data;
+                            CURRENT_LOCAL_STRUCT.Cursor.X = xOffset;
+                            CURRENT_LOCAL_STRUCT.Cursor.Y = i;
+
+                            FixCursorPossition();
+                            if(HAS_FLAG(FLAG_SYNTAX))
+                                syntaxHighlight(&CURRENT_LOCAL_STRUCT.List);
+                            else
+                                resetSyntaxHighlight(&CURRENT_LOCAL_STRUCT.List);
+
+                            /* Highlighting the string */
+                            int xOffsetInChars;
+                            int charLen = stringByteToCharCount(p->str, xOffset, 0, Result->byteLen, &xOffsetInChars);
+                            syntaxForce(p->str, xOffsetInChars, TOKEN_SEARCH_HIGHTLIGHT, charLen);
+
+                            editorRefreshScreen();
+
+                            character_input ci;
+                            do{
+                                ci = pollInput();
+                            }while(ci.byteCount == 0);
+
+                            switch(*rr.bytes){
+                                case '\r':
+                                    // Search further
+                                    resultPtr = strstr(resultPtr + Result->byteLen, Result->data);
+                                    break;
+                                case 'r':
+                                    // Return to old possition
+                                    CURRENT_LOCAL_STRUCT.Cursor = oldCursor;
+                                    ATR_FALLTROUGHT;
+                                case CTRL_KEY('f'):
+                                    stringFreeHeap(Result);
+                                    goto SEARCH_REPEAT;
+                                    break;
+                                default:
+                                    // Break search
+                                    resultPtr = NULL;
+                                    goto WHILE_END;
+                                    break;
+                            }
+                        }
+                    }
+
+                }while(matchCount);
+                WHILE_END:
+                if(matchCount)
+                    clearEditorMessage();
+                else
+                    postEditorMessage(messageDurationDefault, "No matches");
+                    stringFreeHeap(Result);
+            }else{
+                postEditorMessage(messageDurationDefault, "Canceled");
+            }
+#endif
+        }break;
         case COMMAND_SWITCH_CHARSET: break;
         case COMMAND_TOGGLE_READONLY: TOGGLE_FLAG_LOCAL(FLAG_READONLY); break;
-        case COMMAND_BACKSPACE: break;
-        case COMMAND_REMOVE_WORD_LEFT: break;
+        case COMMAND_BACKSPACE: {
+            if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+
+            if(CURRENT_LOCAL_STRUCT.Cursor.X == 0){
+                string_u32 *rowNext = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+
+                if(CURRENT_LOCAL_STRUCT.Cursor.Y != 0){
+                    string_u32 *rowPrev = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y-1);
+                    CURRENT_LOCAL_STRUCT.Cursor.X = rowPrev->len;
+                    ConcatStringsU32(rowPrev, rowNext);
+                    ListDeleteRow(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+
+                    CURRENT_LOCAL_STRUCT.Cursor.Y--;
+                    SET_FLAG_LOCAL(FLAG_DIRTY);
+                }
+            }else{
+                deleteCharFromPosList(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X - 1);
+                CURRENT_LOCAL_STRUCT.Cursor.X--;
+                SET_FLAG_LOCAL(FLAG_DIRTY);
+            }
+            break;
+        }break;
+        case COMMAND_REMOVE_WORD_LEFT: {
+            if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+            string_u32 *current = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+
+            i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+            wchar32 *start = current->data + startCharOffset;
+            i32 removeCountLeft;
+
+            if(((start - 1 < current->data) || start[-1].full == U' ')){
+                removeCountLeft = CountBackToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+            }else{
+                removeCountLeft = CountBackToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+            }
+            if(removeCountLeft != 0){
+                SET_FLAG_LOCAL(FLAG_DIRTY);
+                for(i32 i = 0; i < removeCountLeft; i++){
+                    DeleteCharFromPosU32(current, CURRENT_LOCAL_STRUCT.Cursor.X-1);
+                    CURRENT_LOCAL_STRUCT.Cursor.X--;
+                }
+            }
+        } break;
         case COMMAND_DELETE: break;
         case COMMAND_REMOVE_WORLD_RIGHT: break;
-        case COMMAND_NEWLINE: break;
-        case COMMAND_CARRIAGE: break;
+        case COMMAND_NEWLINE: {
+            if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+
+            SET_FLAG_LOCAL(FLAG_DIRTY);
+            string_u32 *row = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            string_u32 *str = StringCreateHeapU32(64);
+            ListInsertAtPossition(&CURRENT_LOCAL_STRUCT.List, (string*)str, CURRENT_LOCAL_STRUCT.Cursor.Y + 1);
+            
+            if(CURRENT_LOCAL_STRUCT.Cursor.X != row->len){
+                i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+                i32 charsToCopy = row->len - startCharOffset;
+
+                ConcatStringsExU32(str, row, startCharOffset, 0);
+            }
+
+            CURRENT_LOCAL_STRUCT.Cursor.Y++;
+            CURRENT_LOCAL_STRUCT.Cursor.X = 0;
+            break;
+        }break;
         case COMMAND_TAB: break;
 
-        case COMMAND_UP: break;
-        case COMMAND_LEFT: break;
-        case COMMAND_RIGHT: break;
-        case COMMAND_DOWN: break;
+        case COMMAND_UP: CURRENT_LOCAL_STRUCT.Cursor.Y--; break;
+        case COMMAND_LEFT: CURRENT_LOCAL_STRUCT.Cursor.X--; break;
+        case COMMAND_RIGHT: CURRENT_LOCAL_STRUCT.Cursor.X++; break;
+        case COMMAND_DOWN: CURRENT_LOCAL_STRUCT.Cursor.Y++; break;
         case COMMAND_PAGEUP: break;
         case COMMAND_PAGEDOWN: break;
         case COMMAND_HOME: break;

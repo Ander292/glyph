@@ -158,6 +158,9 @@ void TranslateToUtf8(string_a *dest, string_u32 *src);
 void PrintBufferU32(string_u32 *str);
 #define WriteToBufferU32(buffer, str) StringAppendEndU32((buffer), (str), strlen(str))
 
+void ConcatStringsU32(string_u32 *dest, const string_u32 *src);
+void ConcatStringsExU32(string_u32 *dest, const string_u32 *src, u32 startOffset, u32 endOffset);
+
 i32 ResetHighlight(string *str, i32 unused);
 i32 SyntaxHighlightString(string *str, i32 flags);
 i32 SyntaxHighlightStringKeyword(string *str, i32 flags);
@@ -170,7 +173,7 @@ i32 SyntaxForce(string *str, i32 offset, token_type tokenId, i32 len);
 
 i32 CountToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
 i32 CountBackToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
-i32 CountBackToChar(string_u32 *str, u32 startPos, wchar32 targetChar);
-i32 CountToChar(string_u32 *str, i32 startPos, wchar32 targetChar);
+i32 CountBackToChar32(string_u32 *str, u32 startPos, wchar32 targetChar);
+i32 CountToChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
 
 #endif /* STRING_BUFFER_H */

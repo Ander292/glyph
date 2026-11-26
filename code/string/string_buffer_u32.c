@@ -349,7 +349,7 @@ i32 CountBackToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar){
     return Result;
 }
 
-i32 CountBackToChar(string_u32 *str, u32 startPos, wchar32 targetChar){
+i32 CountBackToChar32(string_u32 *str, u32 startPos, wchar32 targetChar){
     i32 Result = 0;
     
     u32 byteCount = charGetByteCount(*targetChar.bytes);
@@ -372,7 +372,7 @@ i32 CountBackToChar(string_u32 *str, u32 startPos, wchar32 targetChar){
     return Result;
 }
 
-i32 CountToChar(string_u32 *str, i32 startPos, wchar32 targetChar){
+i32 CountToChar32(string_u32 *str, i32 startPos, wchar32 targetChar){
     i32 Result = 0;
 
     u32 byteCount = charGetByteCount(*targetChar.bytes);
@@ -393,4 +393,28 @@ i32 CountToChar(string_u32 *str, i32 startPos, wchar32 targetChar){
 
     CHECK_SUCCESS:
     return Result;
+}
+
+void ConcatStringsU32(string_u32 *dest, const string_u32 *src){
+    wchar32 *start = dest->data + dest->len;
+    
+    wchar32 *from = src->data;
+    u32 len = src->len;
+
+    while(dest->len + src->len >= dest->maxSize) doubleSizeU32(dest);
+    
+    memcpy(start, from, len * sizeof(u32));
+    dest->len += len;
+}
+
+void ConcatStringsExU32(string_u32 *dest, const string_u32 *src, u32 startOffset, u32 endOffset){
+    wchar32 *start = dest->data + dest->len;
+    
+    wchar32 *from = src->data + startOffset;
+    u32 len = src->len - startOffset - endOffset;
+
+    while(dest->len + src->len <= dest->maxSize) doubleSizeU32(dest);
+    
+    memcpy(start, from, len * sizeof(u32));
+    dest->len += len;
 }

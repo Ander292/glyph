@@ -72,11 +72,13 @@ void Die(const char *format, ...){
     vsprintf(str, format, args);
     va_end(args);
 
+#if 1
     uint32 errCode = getInputOutputErrorCode();
     char *errStr = getInputOutputErrorString();
-
     printf(ESC_CLEAR_SCREEN "%s : (%u) %s\n", str, errCode, errStr);
-
+#else
+    printf(ESC_CLEAR_SCREEN "%s : (%u) %s\n", str, errno, strerror(errno));
+#endif
     readByte();
     exit(1);
 }
