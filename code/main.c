@@ -14,7 +14,10 @@ static console_info GlobalConsoleInfo = {0};
 
 
 static string_a *editorPromtHeader(char *promt);
-static void resetLocalEditorState(u8 ind);
+static inline bool32 deleteLocalEditorState(u8 ind);
+static bool32 createLocalEditorState(u8 ind);
+static inline bool32 resetLocalEditorState(u8 ind);
+static inline bool32 switchEditorState(u8 ind);
 
 static inline void syntaxHighlightGlobal(string_list *list){
     ListForeachString(list, SyntaxHighlightString);
@@ -22,8 +25,8 @@ static inline void syntaxHighlightGlobal(string_list *list){
 }
 
 static inline void syntaxHighlight(string_list *list){
-    ListForeachStringEx(list, MAX_VAL(CURRENT_LOCAL_STRUCT.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), GlobalConsoleInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, SyntaxHighlightString);
-    ListForeachStringEx(list, CURRENT_LOCAL_STRUCT.Offset.Y, GlobalConsoleInfo.Rows, SyntaxHighlightStringKeyword);
+    ListForeachStringEx(list, MAX_VAL(EC.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), GlobalConsoleInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, SyntaxHighlightString);
+    ListForeachStringEx(list, EC.Offset.Y, GlobalConsoleInfo.Rows, SyntaxHighlightStringKeyword);
 }
 
 static inline void switchEditorContext(u8 bufferID){
@@ -76,48 +79,48 @@ static inline void setCursorPossition(u32 x, u32 y){
 
 static void fixCursorPossition(){
     /* Fixing the internal cursor possition and the offsets */
-    string *str = GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+    string *str = GetStringAtIndex(&EC.List, EC.Cursor.Y);
     int currentWidth = 0;
     if(str != NULL) currentWidth = str->len;
     int destWidth = MIN_VAL(GlobalConsoleInfo.Cols, currentWidth);
 
-    if(CURRENT_LOCAL_STRUCT.Cursor.X < 0){
-        CURRENT_LOCAL_STRUCT.Cursor.X = 0;
-    }else if(CURRENT_LOCAL_STRUCT.Cursor.X > currentWidth){
-        CURRENT_LOCAL_STRUCT.Cursor.X = currentWidth;
+    if(EC.Cursor.X < 0){
+        EC.Cursor.X = 0;
+    }else if(EC.Cursor.X > currentWidth){
+        EC.Cursor.X = currentWidth;
     }
 
     // Vertical offset
-    if((CURRENT_LOCAL_STRUCT.Cursor.Y - CURRENT_LOCAL_STRUCT.Offset.Y > GlobalConsoleInfo.Rows - 1 - GLOBAL_STRUCT_NAME.TextOffsetTop) && CURRENT_LOCAL_STRUCT.Cursor.Y < CURRENT_LOCAL_STRUCT.List.size){
-        CURRENT_LOCAL_STRUCT.Offset.Y = MAX_VAL(0, (CURRENT_LOCAL_STRUCT.Cursor.Y) - (GlobalConsoleInfo.Rows - GLOBAL_STRUCT_NAME.TextOffsetTop) + 1);
-    }else if((CURRENT_LOCAL_STRUCT.Cursor.Y - CURRENT_LOCAL_STRUCT.Offset.Y < 0)){
-        CURRENT_LOCAL_STRUCT.Offset.Y = MAX_VAL(0, CURRENT_LOCAL_STRUCT.Offset.Y - (CURRENT_LOCAL_STRUCT.Offset.Y - CURRENT_LOCAL_STRUCT.Cursor.Y));
+    if((EC.Cursor.Y - EC.Offset.Y > GlobalConsoleInfo.Rows - 1 - GLOBAL_STRUCT_NAME.TextOffsetTop) && EC.Cursor.Y < EC.List.size){
+        EC.Offset.Y = MAX_VAL(0, (EC.Cursor.Y) - (GlobalConsoleInfo.Rows - GLOBAL_STRUCT_NAME.TextOffsetTop) + 1);
+    }else if((EC.Cursor.Y - EC.Offset.Y < 0)){
+        EC.Offset.Y = MAX_VAL(0, EC.Offset.Y - (EC.Offset.Y - EC.Cursor.Y));
     }
 
     // Horizontal offset
-    if(CURRENT_LOCAL_STRUCT.Cursor.X - CURRENT_LOCAL_STRUCT.Offset.X > GlobalConsoleInfo.Cols - 1 - GLOBAL_STRUCT_NAME.TextOffsetLeft){
-        CURRENT_LOCAL_STRUCT.Offset.X = MAX_VAL(0, CURRENT_LOCAL_STRUCT.Cursor.X - (GlobalConsoleInfo.Cols - GLOBAL_STRUCT_NAME.TextOffsetLeft) + 1);
-    }else if((CURRENT_LOCAL_STRUCT.Cursor.X - CURRENT_LOCAL_STRUCT.Offset.X < 0)){
-        CURRENT_LOCAL_STRUCT.Offset.X = MAX_VAL(0, CURRENT_LOCAL_STRUCT.Offset.X - (CURRENT_LOCAL_STRUCT.Offset.X - CURRENT_LOCAL_STRUCT.Cursor.X));
+    if(EC.Cursor.X - EC.Offset.X > GlobalConsoleInfo.Cols - 1 - GLOBAL_STRUCT_NAME.TextOffsetLeft){
+        EC.Offset.X = MAX_VAL(0, EC.Cursor.X - (GlobalConsoleInfo.Cols - GLOBAL_STRUCT_NAME.TextOffsetLeft) + 1);
+    }else if((EC.Cursor.X - EC.Offset.X < 0)){
+        EC.Offset.X = MAX_VAL(0, EC.Offset.X - (EC.Offset.X - EC.Cursor.X));
     }
 
     // Verticall offset clamping
-    if(CURRENT_LOCAL_STRUCT.Offset.Y < 0) CURRENT_LOCAL_STRUCT.Offset.Y = 0;
+    if(EC.Offset.Y < 0) EC.Offset.Y = 0;
 #if 0
-    if(CURRENT_LOCAL_STRUCT.Offset.Y > CURRENT_LOCAL_STRUCT.List->size - (GlobalConsoleInfo.Rows - CURRENT_LOCAL_STRUCT.TextOffsetTop)) 
-        CURRENT_LOCAL_STRUCT.Offset.Y = CURRENT_LOCAL_STRUCT.List->size - (GlobalConsoleInfo.Rows - CURRENT_LOCAL_STRUCT.TextOffsetTop);
+    if(EC.Offset.Y > EC.List->size - (GlobalConsoleInfo.Rows - EC.TextOffsetTop)) 
+        EC.Offset.Y = EC.List->size - (GlobalConsoleInfo.Rows - EC.TextOffsetTop);
 #else
-    if(CURRENT_LOCAL_STRUCT.Offset.Y > CURRENT_LOCAL_STRUCT.List.size - 1) CURRENT_LOCAL_STRUCT.Offset.Y = CURRENT_LOCAL_STRUCT.List.size - 1;
+    if(EC.Offset.Y > EC.List.size - 1) EC.Offset.Y = EC.List.size - 1;
 #endif
 
-    if(CURRENT_LOCAL_STRUCT.Cursor.Y < 0){
-        CURRENT_LOCAL_STRUCT.Cursor.Y = 0;
-    }else if(CURRENT_LOCAL_STRUCT.Cursor.Y > CURRENT_LOCAL_STRUCT.List.size - 1){
-        CURRENT_LOCAL_STRUCT.Cursor.Y = CURRENT_LOCAL_STRUCT.List.size - 1;
+    if(EC.Cursor.Y < 0){
+        EC.Cursor.Y = 0;
+    }else if(EC.Cursor.Y > EC.List.size - 1){
+        EC.Cursor.Y = EC.List.size - 1;
     }
 
-    if(!(GLOBAL_STRUCT_NAME.maxCursor.X < 0) && (CURRENT_LOCAL_STRUCT.Cursor.X > GLOBAL_STRUCT_NAME.maxCursor.X)) CURRENT_LOCAL_STRUCT.Cursor.X = GLOBAL_STRUCT_NAME.maxCursor.X;
-    if(!(GLOBAL_STRUCT_NAME.maxCursor.Y < 0) && (CURRENT_LOCAL_STRUCT.Cursor.Y > GLOBAL_STRUCT_NAME.maxCursor.Y)) CURRENT_LOCAL_STRUCT.Cursor.Y = GLOBAL_STRUCT_NAME.maxCursor.Y;
+    if(!(GLOBAL_STRUCT_NAME.maxCursor.X < 0) && (EC.Cursor.X > GLOBAL_STRUCT_NAME.maxCursor.X)) EC.Cursor.X = GLOBAL_STRUCT_NAME.maxCursor.X;
+    if(!(GLOBAL_STRUCT_NAME.maxCursor.Y < 0) && (EC.Cursor.Y > GLOBAL_STRUCT_NAME.maxCursor.Y)) EC.Cursor.Y = GLOBAL_STRUCT_NAME.maxCursor.Y;
 }
 
 
@@ -126,10 +129,10 @@ static void fixCursorPossition(){
 static int editorSave(char *path, string_list *src){
 #define ROWS_TO_SAVE (src)
 
-    if(*CURRENT_LOCAL_STRUCT.File == 0){
+    if(*EC.File == 0){
         string_a *str = editorPromtHeader("Save location");
         if(str != NULL){
-            strncpy(CURRENT_LOCAL_STRUCT.File, str->data, sizeof(CURRENT_LOCAL_STRUCT.File));
+            strncpy(EC.File, str->data, sizeof(EC.File));
             StringFreeHeap(str);
         }else{
             return -1;
@@ -250,8 +253,8 @@ static int editorLoadFile(const char *path){
     }
 
     free(tempBuffer);
-    CURRENT_LOCAL_STRUCT.Cursor.X = 0;
-    CURRENT_LOCAL_STRUCT.Cursor.Y = 0;
+    EC.Cursor.X = 0;
+    EC.Cursor.Y = 0;
     fixCursorPossition();
     CLEAR_FLAG_LOCAL(FLAG_DIRTY);
 }
@@ -259,7 +262,7 @@ static int editorLoadFile(const char *path){
 /* Rendering */
 
 static void drawRows(string_a *buffer){
-    debug_check(CURRENT_LOCAL_STRUCT.List.type != LIST_TYPE_UTF32){
+    debug_check(EC.List.type != LIST_TYPE_UTF32){
         Breakpoint
         Die("Invalid list type caught in drawRows()");
     }
@@ -272,10 +275,10 @@ static void drawRows(string_a *buffer){
     if(TEST_FLAG_GLOBAL(GLOBAL_FLAG_SHOWNUMBERS)) maxCols -= 3;
 
     /* Calculating verticall offset */
-    i32 horizontalOffset = CURRENT_LOCAL_STRUCT.Offset.X;
-    i32 verticallOffset = CURRENT_LOCAL_STRUCT.Offset.Y;
+    i32 horizontalOffset = EC.Offset.X;
+    i32 verticallOffset = EC.Offset.Y;
 
-    i32 targetRows = MIN_VAL(CURRENT_LOCAL_STRUCT.List.size - verticallOffset, maxRows);
+    i32 targetRows = MIN_VAL(EC.List.size - verticallOffset, maxRows);
     for(i32 i = 0; i < maxRows; i++){
         WriteToBufferA(buffer, ESC_CLEAR_LINE);
         if(i < targetRows){
@@ -286,7 +289,7 @@ static void drawRows(string_a *buffer){
                 WriteToBufferA(buffer, "~");
             }
 
-            string *row = GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, i + verticallOffset);
+            string *row = GetStringAtIndex(&EC.List, i + verticallOffset);
             if(row == NULL) Die("Row was null, im out");
 #if 1
             //i32 startOffset = horizontalOffset;
@@ -369,13 +372,13 @@ static void formatHeader(string_a *buffer){
     char dest[2*width];
     char fileNameStr[512];
 
-    i32 fNameLen = snprintf(fileNameStr, 512, "%s %3s", (*CURRENT_LOCAL_STRUCT.File == 0) ? ("New") : CURRENT_LOCAL_STRUCT.File, (TEST_FLAG_LOCAL(FLAG_READONLY) ? ("(r)") : (TEST_FLAG_LOCAL(FLAG_DIRTY) ? "(m)" : "")));
+    i32 fNameLen = snprintf(fileNameStr, 512, "%s %3s", (*EC.File == 0) ? ("New") : EC.File, (TEST_FLAG_LOCAL(FLAG_READONLY) ? ("(r)") : (TEST_FLAG_LOCAL(FLAG_DIRTY) ? "(m)" : "")));
     
     WriteToBufferA(buffer, ESC_CLEAR_LINE);
     for(i32 i = 0; i < offsetLeft; i++) WriteToBufferA(buffer, " ");
     
     i32 feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s %s ||    |: %s :|",
-        fileNameStr, CURRENT_LOCAL_STRUCT.List.size, CURRENT_LOCAL_STRUCT.Cursor.Y + 1, CURRENT_LOCAL_STRUCT.Cursor.X, GET_FORMAT_STRING(GET_LOCAL_FORMAT_NUMBER()), EndLine[TEST_FLAG_LOCAL(FLAG_NEWLINE_ENTER) != 0], (*E.Message.Data == 0 ? "---" : E.Message.Data));
+        fileNameStr, EC.List.size, EC.Cursor.Y + 1, EC.Cursor.X, GET_FORMAT_STRING(GET_LOCAL_FORMAT_NUMBER()), EndLine[TEST_FLAG_LOCAL(FLAG_NEWLINE_ENTER) != 0], (*E.Message.Data == 0 ? "---" : E.Message.Data));
     
     if(feedback > width && *E.Message.Data != 0){
         feedback = snprintf(dest, 2*width, "|: %s :|", (*E.Message.Data == 0 ? "---" : E.Message.Data));
@@ -407,26 +410,58 @@ static void editorRefreshScreen(){
     PrintBufferA(GlobalWriteBuffer);
     ClearBuffer(&GlobalWriteBuffer);
 
-    setCursorPossition(CURRENT_LOCAL_STRUCT.Cursor.X - CURRENT_LOCAL_STRUCT.Offset.X,
-        CURRENT_LOCAL_STRUCT.Cursor.Y - CURRENT_LOCAL_STRUCT.Offset.Y);
+    setCursorPossition(EC.Cursor.X - EC.Offset.X,
+        EC.Cursor.Y - EC.Offset.Y);
     PrintA(ESC_SHOW_CURSOR);
 }
 
-static void resetLocalEditorState(u8 ind){
-    if(ind >= EDITOR_STATE_COUNT) postEditorMessage(messageDurationDefault, 
-        "LocalStateIndex out of range %u. Limit: %u", ind, EDITOR_STATE_COUNT);
-    
+
+static inline bool32 deleteLocalEditorState(u8 ind){
+    if(ind >= EDITOR_STATE_COUNT) return false;
     editor_state *const focusedState = E.states + ind;
     
-    if(TEST_FLAG(focusedState->Flags, FLAG_INITIALIZED))
-        FreeList(&focusedState->List);
+    if(!TEST_FLAG(focusedState->Flags, FLAG_INITIALIZED)) return false;
+
+    FreeList(&focusedState->List);
+
+    E.stateCount--;
+
+    return true;
+}
+
+static bool32 createLocalEditorState(u8 ind){
+    if(ind >= EDITOR_STATE_COUNT) return false;
+    editor_state *const focusedState = E.states + ind;
     
+    if(TEST_FLAG(focusedState->Flags, FLAG_INITIALIZED)) return false;
+    
+    E.stateCount++;
+
     focusedState->File[0] = 0;
     focusedState->Flags = DEFAULT_LOCAL_FLAGS;
     focusedState->Cursor = (int_pair){0, 0};
     focusedState->Offset = (int_pair){0, 0};
     focusedState->oldCursor = (int_pair){-1, -1};
     focusedState->List = CreateListWithRows(1, LIST_TYPE_UTF32);
+}
+
+static inline bool32 resetLocalEditorState(u8 ind){
+    deleteLocalEditorState(ind);
+    
+    return createLocalEditorState(ind);
+}
+
+static inline bool32 switchEditorState(u8 ind){
+    if(ind > EDITOR_STATE_COUNT) return false;
+    editor_state *focused = E.states + ind;
+
+    if(!TEST_FLAG(focused->Flags, FLAG_INITIALIZED)){
+        createLocalEditorState(ind);
+    }
+
+    SET_EDITOR_ID(ind);
+
+    return true;
 }
 
 static inline void updateStatus(){
@@ -553,11 +588,11 @@ static void executeCommand(command_type ct){
         }
         case COMMAND_OPEN_HELP: break; // TODO: Implement help
         case COMMAND_SAVE: {
-            editorSave(CURRENT_LOCAL_STRUCT.File, &CURRENT_LOCAL_STRUCT.List);
+            editorSave(EC.File, &EC.List);
             break;
         }break;
         case COMMAND_LOAD: { // File open
-            if(TEST_FLAG_LOCAL(FLAG_DIRTY) && CURRENT_LOCAL_STRUCT.File[0] != 0){
+            if(TEST_FLAG_LOCAL(FLAG_DIRTY) && EC.File[0] != 0){
                 postEditorMessage(4*messageDurationDefault, "Unsaved changes (%u). Proceed? (Yes, No, Save)", GET_EDITOR_ID());
                 while(1){
                     editorRefreshScreen();
@@ -570,7 +605,7 @@ static void executeCommand(command_type ct){
                             clearEditorMessage();
                             return;
                         case 'S':
-                            if(editorSave(CURRENT_LOCAL_STRUCT.File, &CURRENT_LOCAL_STRUCT.List)) break;
+                            if(editorSave(EC.File, &EC.List)) break;
                             goto END_WHILE2;
                     }
                 }
@@ -583,20 +618,20 @@ static void executeCommand(command_type ct){
                     break;
                 }
 #if 0
-                FreeList(&CURRENT_LOCAL_STRUCT.List);
+                FreeList(&EC.List);
                 
-                CURRENT_LOCAL_STRUCT.List = CreateListWithRows(1, LIST_TYPE_UTF32);
+                EC.List = CreateListWithRows(1, LIST_TYPE_UTF32);
 
                 E.Cursor = (int_pair){0, 0};
 #else
                 resetLocalEditorState(GET_EDITOR_ID());
 #endif
-                //strncpy(CURRENT_LOCAL_STRUCT.File, feedback->data, sizeof(CURRENT_LOCAL_STRUCT.File));
-                u32 copySize = MIN_VAL(feedback->len, sizeof(CURRENT_LOCAL_STRUCT.File) - 1);
-                memcpy(CURRENT_LOCAL_STRUCT.File, feedback->data, copySize);
-                CURRENT_LOCAL_STRUCT.File[copySize] = 0;
+                //strncpy(EC.File, feedback->data, sizeof(EC.File));
+                u32 copySize = MIN_VAL(feedback->len, sizeof(EC.File) - 1);
+                memcpy(EC.File, feedback->data, copySize);
+                EC.File[copySize] = 0;
 
-                editorLoadFile(CURRENT_LOCAL_STRUCT.File);
+                editorLoadFile(EC.File);
                 StringFreeHeap(feedback);
             }
         }break;
@@ -625,7 +660,7 @@ static void executeCommand(command_type ct){
                             postEditorMessage(messageDurationDefault, "Out of bounds: %d < %d", E.Rows->size, val);
                         }
 #else
-                        CURRENT_LOCAL_STRUCT.Cursor.Y = (val - 1 < CURRENT_LOCAL_STRUCT.List.size ? val - 1 : CURRENT_LOCAL_STRUCT.List.size - 1);
+                        EC.Cursor.Y = (val - 1 < EC.List.size ? val - 1 : EC.List.size - 1);
                         clearEditorMessage();
 #endif
                     }else{
@@ -643,23 +678,23 @@ static void executeCommand(command_type ct){
             string_a *Result = editorPromtHeader("Find:");
             if(Result){
                 i32 matchCount = 0;
-                int_pair oldCursor = CURRENT_LOCAL_STRUCT.Cursor;
+                int_pair oldCursor = EC.Cursor;
                 do{
-                    list_node *p = CURRENT_LOCAL_STRUCT.List.head;
-                    for(i32 i = 0; i < CURRENT_LOCAL_STRUCT.List.size; i++, p = p->next){
+                    list_node *p = EC.List.head;
+                    for(i32 i = 0; i < EC.List.size; i++, p = p->next){
                         string_u32 *focusedStr = (string_u32 *)p->str;
                         char *resultPtr = strstr(focusedStr->data, Result->data);
                         while(resultPtr != NULL){
                             matchCount++;
                             i32 xOffset = resultPtr - focusedStr->data;
-                            CURRENT_LOCAL_STRUCT.Cursor.X = xOffset;
-                            CURRENT_LOCAL_STRUCT.Cursor.Y = i;
+                            EC.Cursor.X = xOffset;
+                            EC.Cursor.Y = i;
 
                             FixCursorPossition();
                             if(HAS_FLAG(FLAG_SYNTAX))
-                                syntaxHighlight(&CURRENT_LOCAL_STRUCT.List);
+                                syntaxHighlight(&EC.List);
                             else
-                                resetSyntaxHighlight(&CURRENT_LOCAL_STRUCT.List);
+                                resetSyntaxHighlight(&EC.List);
 
                             /* Highlighting the string */
                             int xOffsetInChars;
@@ -680,7 +715,7 @@ static void executeCommand(command_type ct){
                                     break;
                                 case 'r':
                                     // Return to old possition
-                                    CURRENT_LOCAL_STRUCT.Cursor = oldCursor;
+                                    EC.Cursor = oldCursor;
                                     ATR_FALLTROUGHT;
                                 case CTRL_KEY('f'):
                                     stringFreeHeap(Result);
@@ -712,60 +747,60 @@ static void executeCommand(command_type ct){
         case COMMAND_BACKSPACE: {
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
 
-            if(CURRENT_LOCAL_STRUCT.Cursor.X == 0){
-                string_u32 *rowNext = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            if(EC.Cursor.X == 0){
+                string_u32 *rowNext = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
 
-                if(CURRENT_LOCAL_STRUCT.Cursor.Y != 0){
-                    string_u32 *rowPrev = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y-1);
-                    CURRENT_LOCAL_STRUCT.Cursor.X = rowPrev->len;
+                if(EC.Cursor.Y != 0){
+                    string_u32 *rowPrev = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y-1);
+                    EC.Cursor.X = rowPrev->len;
                     ConcatStringsU32(rowPrev, rowNext);
-                    ListDeleteRow(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+                    ListDeleteRow(&EC.List, EC.Cursor.Y);
 
-                    CURRENT_LOCAL_STRUCT.Cursor.Y--;
+                    EC.Cursor.Y--;
                     SET_FLAG_LOCAL(FLAG_DIRTY);
                 }
             }else{
-                deleteCharFromPosList(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X - 1);
-                CURRENT_LOCAL_STRUCT.Cursor.X--;
+                deleteCharFromPosList(&EC.List, EC.Cursor.Y, EC.Cursor.X - 1);
+                EC.Cursor.X--;
                 SET_FLAG_LOCAL(FLAG_DIRTY);
             }
         }break;
         case COMMAND_REMOVE_WORD_LEFT: {
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
-            string_u32 *current = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            string_u32 *current = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
 
-            i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+            i32 startCharOffset = EC.Cursor.X;
             wchar32 *start = current->data + startCharOffset;
             i32 removeCountLeft;
 
             if(((start - 1 < current->data) || start[-1].full == U' ')){
-                removeCountLeft = CountBackToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+                removeCountLeft = CountBackToNotChar32(current, EC.Cursor.X, WCHAR32(' '));
             }else{
-                removeCountLeft = CountBackToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+                removeCountLeft = CountBackToChar32(current, EC.Cursor.X, WCHAR32(' '));
             }
             if(removeCountLeft != 0){
                 SET_FLAG_LOCAL(FLAG_DIRTY);
                 for(i32 i = 0; i < removeCountLeft; i++){
-                    DeleteCharFromPosU32(current, CURRENT_LOCAL_STRUCT.Cursor.X-1);
-                    CURRENT_LOCAL_STRUCT.Cursor.X--;
+                    DeleteCharFromPosU32(current, EC.Cursor.X-1);
+                    EC.Cursor.X--;
                 }
             }
         } break;
         case COMMAND_DELETE: {
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
 
-            string_u32 *currentRow = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
-            if(CURRENT_LOCAL_STRUCT.Cursor.X == currentRow->len){
-                if(CURRENT_LOCAL_STRUCT.Cursor.Y + 1 < CURRENT_LOCAL_STRUCT.List.size){
-                    string_u32 *nextRow = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y + 1);
+            string_u32 *currentRow = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
+            if(EC.Cursor.X == currentRow->len){
+                if(EC.Cursor.Y + 1 < EC.List.size){
+                    string_u32 *nextRow = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y + 1);
 
                     ConcatStringsU32(currentRow, nextRow);
-                    ListDeleteRow(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+                    ListDeleteRow(&EC.List, EC.Cursor.Y);
                     SET_FLAG_LOCAL(FLAG_DIRTY);
                 }
 
             }else{
-                deleteCharFromPosList(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X);
+                deleteCharFromPosList(&EC.List, EC.Cursor.Y, EC.Cursor.X);
                 SET_FLAG_LOCAL(FLAG_DIRTY);
             }
         }break;
@@ -774,80 +809,111 @@ static void executeCommand(command_type ct){
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
 
             SET_FLAG_LOCAL(FLAG_DIRTY);
-            string_u32 *row = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            string_u32 *row = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
             string_u32 *str = StringCreateHeapU32(64);
-            ListInsertAtPossition(&CURRENT_LOCAL_STRUCT.List, (string*)str, CURRENT_LOCAL_STRUCT.Cursor.Y + 1);
+            ListInsertAtPossition(&EC.List, (string*)str, EC.Cursor.Y + 1);
             
-            if(CURRENT_LOCAL_STRUCT.Cursor.X != row->len){
-                i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+            if(EC.Cursor.X != row->len){
+                i32 startCharOffset = EC.Cursor.X;
                 i32 charsToCopy = row->len - startCharOffset;
 
                 ConcatStringsExU32(str, row, startCharOffset, 0);
                 TerminateStringOnPosU32(row, startCharOffset);
             }
 
-            CURRENT_LOCAL_STRUCT.Cursor.Y++;
-            CURRENT_LOCAL_STRUCT.Cursor.X = 0;
+            EC.Cursor.Y++;
+            EC.Cursor.X = 0;
         }break;
-        case COMMAND_TAB: break;
+        case COMMAND_TAB: {
+            if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+            SET_FLAG_LOCAL(FLAG_DIRTY);
 
-        case COMMAND_UP: CURRENT_LOCAL_STRUCT.Cursor.Y--; break;
-        case COMMAND_LEFT: CURRENT_LOCAL_STRUCT.Cursor.X--; break;
-        case COMMAND_RIGHT: CURRENT_LOCAL_STRUCT.Cursor.X++; break;
-        case COMMAND_DOWN: CURRENT_LOCAL_STRUCT.Cursor.Y++; break;
-        case COMMAND_PAGEUP: 
-            CURRENT_LOCAL_STRUCT.Cursor.Y -= (GlobalConsoleInfo.Rows - E.TextOffsetTop);
-            CURRENT_LOCAL_STRUCT.Offset.Y -= (GlobalConsoleInfo.Rows - E.TextOffsetTop);
-            break;
-        case COMMAND_PAGEDOWN: 
-            CURRENT_LOCAL_STRUCT.Cursor.Y += (GlobalConsoleInfo.Rows - E.TextOffsetTop);
-            CURRENT_LOCAL_STRUCT.Offset.Y += (GlobalConsoleInfo.Rows - E.TextOffsetTop);
-            break;
-        case COMMAND_HOME: CURRENT_LOCAL_STRUCT.Cursor.X = 0; break;
-        case COMMAND_END: {
-            string *str = GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
-            if(str != NULL){
-                CURRENT_LOCAL_STRUCT.Cursor.X = str->len;
+            wchar32 whitespace = WCHAR32(U' ');
+            insertCharAtPosList(&EC.List, whitespace, EC.Cursor.Y, EC.Cursor.X);
+            EC.Cursor.X++;
+            for(; EC.Cursor.X % TAB_SPACE_SIZE; ++EC.Cursor.X){
+                insertCharAtPosList(&EC.List, whitespace, EC.Cursor.Y, EC.Cursor.X);
+                EC.Cursor.X++;
             }
         }break;
 
-        case COMMAND_OFFSET_UP: CURRENT_LOCAL_STRUCT.Offset.Y--; break;
-        case COMMAND_OFFSET_DOWN: CURRENT_LOCAL_STRUCT.Offset.Y++; break;
-        case COMMAND_SKIP_WORD_RIGHT: {
-            string_u32 *current = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+        case COMMAND_UP: EC.Cursor.Y--; break;
+        case COMMAND_LEFT: EC.Cursor.X--; break;
+        case COMMAND_RIGHT: EC.Cursor.X++; break;
+        case COMMAND_DOWN: EC.Cursor.Y++; break;
+        case COMMAND_PAGEUP: 
+            EC.Cursor.Y -= (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            EC.Offset.Y -= (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            break;
+        case COMMAND_PAGEDOWN: 
+            EC.Cursor.Y += (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            EC.Offset.Y += (GlobalConsoleInfo.Rows - E.TextOffsetTop);
+            break;
+        case COMMAND_HOME: EC.Cursor.X = 0; break;
+        case COMMAND_END: {
+            string *str = GetStringAtIndex(&EC.List, EC.Cursor.Y);
+            if(str != NULL){
+                EC.Cursor.X = str->len;
+            }
+        }break;
 
-            i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+        case COMMAND_OFFSET_UP: EC.Offset.Y--; break;
+        case COMMAND_OFFSET_DOWN: EC.Offset.Y++; break;
+        case COMMAND_SKIP_WORD_RIGHT: {
+            string_u32 *current = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
+
+            i32 startCharOffset = EC.Cursor.X;
             wchar32 *start = current->data + startCharOffset;
             i32 skipCount;
 
             if(start[0].full == U' '){
-                skipCount = CountToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+                skipCount = CountToNotChar32(current, EC.Cursor.X, WCHAR32(' '));
             }else{
-                skipCount = CountToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+                skipCount = CountToChar32(current, EC.Cursor.X, WCHAR32(' '));
             }
 
-            CURRENT_LOCAL_STRUCT.Cursor.X += skipCount;
+            EC.Cursor.X += skipCount;
         } break;
         case COMMAND_SKIP_WORD_LEFT: {
-            string_u32 *current = (string_u32*)GetStringAtIndex(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y);
+            string_u32 *current = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
 
-            i32 startCharOffset = CURRENT_LOCAL_STRUCT.Cursor.X;
+            i32 startCharOffset = EC.Cursor.X;
             wchar32 *start = current->data + startCharOffset;
             i32 skipCount;
 
             if((start - 1 < current->data) || (start[-1].full == U' ')){
-                skipCount = CountBackToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+                skipCount = CountBackToNotChar32(current, EC.Cursor.X, WCHAR32(' '));
             }else{
-                skipCount = CountBackToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
+                skipCount = CountBackToChar32(current, EC.Cursor.X, WCHAR32(' '));
             }
 
-            CURRENT_LOCAL_STRUCT.Cursor.X -= skipCount;
+            EC.Cursor.X -= skipCount;
         } break;
 
-        case COMMAND_MOVE_ROW_UP: break;
-        case COMMAND_MOVE_ROW_DOWN: break;
-        case COMMAND_NEXT_BUFFER: break;
-        case COMMAND_PREV_BUFFER: break;
+        case COMMAND_MOVE_ROW_UP: {
+            if(EC.Cursor.Y > 0 && EC.List.size > 1){
+                SwapStringsForIndexes(&EC.List, EC.Cursor.Y, EC.Cursor.Y - 1);
+                EC.Cursor.Y--;
+            }
+        }break;
+        case COMMAND_MOVE_ROW_DOWN: {
+            if(EC.Cursor.Y + 1 < EC.List.size && EC.List.size > 1){
+                SwapStringsForIndexes(&EC.List, EC.Cursor.Y, EC.Cursor.Y + 1);
+                EC.Cursor.Y++;
+            }
+        }break;
+        case COMMAND_NEXT_BUFFER: {
+            u8 contextIndex = GET_EDITOR_ID();
+
+            switchEditorState((contextIndex + 1U) % EDITOR_STATE_COUNT);
+        }break;
+        case COMMAND_PREV_BUFFER: {
+            u8 currentIndex = GET_EDITOR_ID();
+            currentIndex -= 1U;
+            
+            if(currentIndex > EDITOR_STATE_COUNT) currentIndex = EDITOR_STATE_COUNT - 1;
+            switchEditorState(currentIndex);
+        }break;
 
         case COMMAND_NEUTRAL:
             postEditorMessage(messageDurationDefault, "COMMAND_NEUTRAL recieved");
@@ -870,21 +936,21 @@ int main(int argc, char *argv[], char *envp[]){
     
     postEditorMessage(messageDurationDefault, "Ctrl+e to open help");
 
-    resetLocalEditorState(0);
-    SET_EDITOR_ID(0);
+    switchEditorContext(0);
     resetKeybinds();
 
     if(argc > 1){
-        strcpy(CURRENT_LOCAL_STRUCT.File, argv[1]);
-        editorLoadFile(CURRENT_LOCAL_STRUCT.File);
+        strcpy(EC.File, argv[1]);
+        editorLoadFile(EC.File);
     }else{
-        CURRENT_LOCAL_STRUCT.File[0] = 0;
+        EC.File[0] = 0;
     }
 
     /* Syntax highlight */
     // TODO: Actually implement this
 
-    editorRefreshScreen();
+    setCursorPossition(0, 0);
+    TEST_FLAG_LOCAL(FLAG_RENDER);
 
     while(TEST_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING)){
         GlobalConsoleInfo = term_GetConsoleSystemInfo();
@@ -905,8 +971,8 @@ int main(int argc, char *argv[], char *envp[]){
                 //stringAppendEnd(&OutputBuffer, rr.bytes, ci.byteCount);
             
                 SET_FLAG_LOCAL(FLAG_DIRTY);
-                insertCharAtPosList(&CURRENT_LOCAL_STRUCT.List, pr.character, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X);
-                CURRENT_LOCAL_STRUCT.Cursor.X++;
+                insertCharAtPosList(&EC.List, pr.character, EC.Cursor.Y, EC.Cursor.X);
+                EC.Cursor.X++;
             }
             SET_FLAG_LOCAL(FLAG_RENDER);
             fixCursorPossition();

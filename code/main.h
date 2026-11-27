@@ -21,6 +21,7 @@ typedef struct editor_message{
 
 #define FILE_PATH_LENGTH 512
 #define ROW_OVERHIGHLIGHT_COUNT 40
+#define TAB_SPACE_SIZE 4
 
 #define DEFAULT_CURSOR_MAXIMUM_X INT_MAX
 #define DEFAULT_CURSOR_MAXIMUM_Y INT_MAX
@@ -78,6 +79,8 @@ typedef struct global_editor_state{
 
 #define CURRENT_LOCAL_STRUCT GLOBAL_STRUCT_NAME.states[GET_EDITOR_ID()]
 #define CURRENT_LOCAL_FLAGS CURRENT_LOCAL_STRUCT.Flags
+
+#define EC CURRENT_LOCAL_STRUCT
 
 #define TEST_FLAG_GLOBAL(flag) TEST_FLAG(GLOBAL_FLAGS, flag)
 #define SET_FLAG_GLOBAL(flag) SET_FLAG(GLOBAL_FLAGS, flag)
