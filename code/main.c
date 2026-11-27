@@ -765,7 +765,7 @@ static void executeCommand(command_type ct){
                 }
 
             }else{
-                deleteCharFromPosList(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X - 1);
+                deleteCharFromPosList(&CURRENT_LOCAL_STRUCT.List, CURRENT_LOCAL_STRUCT.Cursor.Y, CURRENT_LOCAL_STRUCT.Cursor.X);
                 SET_FLAG_LOCAL(FLAG_DIRTY);
             }
         }break;
@@ -835,7 +835,7 @@ static void executeCommand(command_type ct){
             wchar32 *start = current->data + startCharOffset;
             i32 skipCount;
 
-            if(start[0].full == U' '){
+            if((start - 1 < current->data) || (start[-1].full == U' ')){
                 skipCount = CountBackToNotChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
             }else{
                 skipCount = CountBackToChar32(current, CURRENT_LOCAL_STRUCT.Cursor.X, WCHAR32(' '));
