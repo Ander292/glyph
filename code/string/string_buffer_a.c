@@ -232,12 +232,13 @@ bool32 DeleteCharFromPosA(string_a *str, u32 pos){
 }
 
 bool32 TerminateStringOnPosA(string_a *str, u32 pos){
+    if(str->len == str->maxSize) doubleSizeA(str);
     if(pos > str->len) return false;
-    else if(pos < str->len){
-        str->len = pos;
-    }else{ // pos == str->len
-        return true;
-    }
+
+    str->len = pos;
+    str->data[pos] = 0;
+
+    return true;
 }
 
 string_a *CreateCopyA(string_a *str, u32 startOffset, u32 endOffset){

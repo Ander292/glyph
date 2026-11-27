@@ -204,7 +204,7 @@ static void stringIntoInput(const char *str, int64 len){
 
 static int editorLoadFile(const char *path){
     clearEditorMessage();
-    char buffer[256];
+
     int64 fileSize = io_GetFileSize(path);
     if(fileSize <= 0) {
         postEditorMessage(2*messageDurationDefault, "FileSize error: %s : %s", path, io_GetInputOutputErrorString());
@@ -377,8 +377,8 @@ static void formatHeader(string_a *buffer){
     WriteToBufferA(buffer, ESC_CLEAR_LINE);
     for(i32 i = 0; i < offsetLeft; i++) WriteToBufferA(buffer, " ");
     
-    i32 feedback = snprintf(dest, width*2, "|| F: %s | LC: %4d | L: %4d | C: %4d | Mode: %s %s ||    |: %s :|",
-        fileNameStr, EC.List.size, EC.Cursor.Y + 1, EC.Cursor.X, GET_FORMAT_STRING(GET_LOCAL_FORMAT_NUMBER()), EndLine[TEST_FLAG_LOCAL(FLAG_NEWLINE_ENTER) != 0], (*E.Message.Data == 0 ? "---" : E.Message.Data));
+    i32 feedback = snprintf(dest, width*2, "|| F(%u): %s | LC: %4d | L: %4d | C: %4d | Mode: %s %s ||    |: %s :|",
+        GET_EDITOR_ID(), fileNameStr, EC.List.size, EC.Cursor.Y + 1, EC.Cursor.X, GET_FORMAT_STRING(GET_LOCAL_FORMAT_NUMBER()), EndLine[TEST_FLAG_LOCAL(FLAG_NEWLINE_ENTER) != 0], (*E.Message.Data == 0 ? "---" : E.Message.Data));
     
     if(feedback > width && *E.Message.Data != 0){
         feedback = snprintf(dest, 2*width, "|: %s :|", (*E.Message.Data == 0 ? "---" : E.Message.Data));
@@ -534,6 +534,7 @@ static string_a *editorPromtHeader(char *promt){
                     DeleteCharFromPosA(strBuffer, strBuffer->len - 1);
                 break;
             case '\r':
+                TerminateStringOnPosA(strBuffer, strBuffer->len);
                 return strBuffer;
             case CTRL_KEY('q'):
                 StringFreeHeap(strBuffer);
@@ -950,7 +951,7 @@ int main(int argc, char *argv[], char *envp[]){
     // TODO: Actually implement this
 
     setCursorPossition(0, 0);
-    TEST_FLAG_LOCAL(FLAG_RENDER);
+    SET_FLAG_LOCAL(FLAG_RENDER);
 
     while(TEST_FLAG_GLOBAL(GLOBAL_FLAG_RUNNING)){
         GlobalConsoleInfo = term_GetConsoleSystemInfo();

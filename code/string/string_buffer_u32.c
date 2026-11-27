@@ -261,12 +261,13 @@ bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos){
 }
 
 bool32 TerminateStringOnPosU32(string_u32 *str, u32 pos){
+    if(str->len == str->maxSize) doubleSizeU32(str);
     if(pos > str->len) return false;
-    else if(pos < str->len){
-        str->len = pos;
-    }else{ // pos == str->len
-        return true;
-    }
+
+    str->len = pos;
+    str->data[pos] = WCHAR32(0);
+
+    return true;
 }
 
 string_u32 *CreateCopyU32(string_u32 *str, u32 startOffset, u32 endOffset){
