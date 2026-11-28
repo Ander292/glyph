@@ -105,7 +105,7 @@ typedef enum command_type{
     COMMAND_PREV_BUFFER
 } command_type;
 
-extern const command_type default_keybind[COUNT_OF_KEYBINDS];
+extern const command_type const default_keybind[COUNT_OF_KEYBINDS];
 extern command_type keybind[COUNT_OF_KEYBINDS];
 
 static inline void resetKeybinds(){

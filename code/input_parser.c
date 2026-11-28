@@ -636,10 +636,7 @@ parser_result parser_ParseInput(read_result rr){
         case TYPE_UTF32:
             // Definetly a character
             result.type = RESULT_TYPE_CHAR;
-            result.character.bytes[0] = rr.bytes[0];
-            result.character.bytes[1] = rr.bytes[1];
-            result.character.bytes[2] = rr.bytes[2];
-            result.character.bytes[3] = rr.bytes[3];
+            result.character = *(u32*)rr.bytes;
             break;
         case TYPE_ESCAPE:
             // Definetly a command

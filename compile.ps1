@@ -22,13 +22,13 @@ $Sources = @(
 )
 
 $IncludeDirs = @(
-    ""
     "."
 )
 $Flags = @(
     "-masm=intel"
     "-g"
     "-DDEBUG"
+    "-std=c23"
 )
 
 $Sources = $Sources | ForEach-Object { Join-Path "$CodeDir" "$_" }

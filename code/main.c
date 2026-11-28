@@ -20,13 +20,13 @@ static inline bool32 resetLocalEditorState(u8 ind);
 static inline bool32 switchEditorState(u8 ind);
 
 static inline void syntaxHighlightGlobal(string_list *list){
-    ListForeachString(list, SyntaxHighlightString);
-    ListForeachString(list, SyntaxHighlightStringKeyword);
+    ListForeachString(list, SyntaxHighlightStringU32);
+    ListForeachString(list, SyntaxHighlightStringKeywordU32);
 }
 
 static inline void syntaxHighlight(string_list *list){
-    ListForeachStringEx(list, MAX_VAL(EC.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), GlobalConsoleInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, SyntaxHighlightString);
-    ListForeachStringEx(list, EC.Offset.Y, GlobalConsoleInfo.Rows, SyntaxHighlightStringKeyword);
+    ListForeachStringEx(list, MAX_VAL(EC.Cursor.Y - ROW_OVERHIGHLIGHT_COUNT, 0), GlobalConsoleInfo.Rows + ROW_OVERHIGHLIGHT_COUNT, SyntaxHighlightStringU32);
+    ListForeachStringEx(list, EC.Offset.Y, GlobalConsoleInfo.Rows, SyntaxHighlightStringKeywordU32);
 }
 
 static inline void switchEditorContext(u8 bufferID){
@@ -150,9 +150,9 @@ static int editorSave(char *path, string_list *src){
 
         for(u32 j = 0; j < row->len; j++){
             wchar32 c = GetCharAtPosU32(row, j);
-            u32 byteLen = charGetByteCount(*c.bytes);
+            u32 byteLen = charGetByteCount(c);
 
-            StringAppendEndA(&GlobalWriteBuffer, c.bytes, byteLen);
+            StringAppendEndA(&GlobalWriteBuffer, (char *)&c, byteLen);
             SizeCount += byteLen;
         }
 
@@ -190,11 +190,11 @@ static void stringIntoInput(const char *str, int64 len){
 
     for(i32 i = 0; i < inputString->len; i++){
         wchar32 c = GetCharAtPosU32(inputString, i);
-        u32 byteCount = charGetByteCount(*c.bytes);
+        u32 byteCount = charGetByteCount(c);
 
         read_result rr = {0};
         rr.size = byteCount;
-        *(u32*)rr.bytes = *(u32*)c.bytes;
+        *(u32*)rr.bytes = c;
 
         parser_ParseInput(rr);
     }
@@ -307,7 +307,7 @@ static void drawRows(string_a *buffer){
                     wchar32 c = GetCharAtPosU32((string_u32*)row, horizontalOffset + j);
                     byte currentTokenId = GetTokenAtPosU32(row, horizontalOffset + j);
 
-                    i32 byteCount = charGetByteCount(*c.bytes);
+                    i32 byteCount = charGetByteCount(c);
 
                     if(prevTokenId != currentTokenId){
                         prevTokenId = currentTokenId;
@@ -315,7 +315,7 @@ static void drawRows(string_a *buffer){
                         const i32 escSeqLen = strlen(escSeqInsert);
                         StringAppendEndA(buffer, escSeqInsert, escSeqLen);
                     }
-                    StringAppendEndA(buffer, c.bytes, byteCount);
+                    StringAppendEndA(buffer, (char*)&c, byteCount);
                 }
                 WriteToBufferA(buffer, ESC_RESET_TEXT_ATTRIBUTES);
             }
@@ -517,8 +517,10 @@ static inline void updateStatus(){
 static string_a *editorPromtHeader(char *promt){
     char *format = "%s : %s";
     string_a *strBuffer = StringCreateHeapA(64);
+    NullTerminateStringA(strBuffer);
 
     while(1){
+        NullTerminateStringA(strBuffer);
         postEditorMessage(messageDurationInfinite, format, promt, strBuffer->data);
         editorRefreshScreen();
 
@@ -534,7 +536,7 @@ static string_a *editorPromtHeader(char *promt){
                     DeleteCharFromPosA(strBuffer, strBuffer->len - 1);
                 break;
             case '\r':
-                TerminateStringOnPosA(strBuffer, strBuffer->len);
+                NullTerminateStringA(strBuffer);
                 return strBuffer;
             case CTRL_KEY('q'):
                 StringFreeHeap(strBuffer);
@@ -774,10 +776,10 @@ static void executeCommand(command_type ct){
             wchar32 *start = current->data + startCharOffset;
             i32 removeCountLeft;
 
-            if(((start - 1 < current->data) || start[-1].full == U' ')){
-                removeCountLeft = CountBackToNotChar32(current, EC.Cursor.X, WCHAR32(' '));
+            if(((start - 1 < current->data) || start[-1] == U' ')){
+                removeCountLeft = CountBackToNotChar32(current, EC.Cursor.X, U' ');
             }else{
-                removeCountLeft = CountBackToChar32(current, EC.Cursor.X, WCHAR32(' '));
+                removeCountLeft = CountBackToChar32(current, EC.Cursor.X, U' ');
             }
             if(removeCountLeft != 0){
                 SET_FLAG_LOCAL(FLAG_DIRTY);
@@ -805,7 +807,28 @@ static void executeCommand(command_type ct){
                 SET_FLAG_LOCAL(FLAG_DIRTY);
             }
         }break;
-        case COMMAND_REMOVE_WORLD_RIGHT: break;
+        case COMMAND_REMOVE_WORLD_RIGHT: {
+            if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
+            string_u32 *current = (string_u32*)GetStringAtIndex(&EC.List, EC.Cursor.Y);
+
+            i32 startCharOffset = EC.Cursor.X;
+            wchar32 *start = current->data + startCharOffset;
+            i32 removeCountLeft;
+
+
+            if(start[0] == U' '){
+                removeCountLeft = CountToNotChar32(current, EC.Cursor.X, U' ');
+            }else{
+                removeCountLeft = CountToChar32(current, EC.Cursor.X, U' ');
+            }
+
+            if(removeCountLeft != 0){
+                SET_FLAG_LOCAL(FLAG_DIRTY);
+                for(i32 i = 0; i < removeCountLeft; i++){
+                    DeleteCharFromPosU32(current, EC.Cursor.X);
+                }
+            }
+        } break;
         case COMMAND_NEWLINE: {
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
 
@@ -829,12 +852,11 @@ static void executeCommand(command_type ct){
             if(TEST_FLAG_LOCAL(FLAG_READONLY)) break;
             SET_FLAG_LOCAL(FLAG_DIRTY);
 
-            wchar32 whitespace = WCHAR32(U' ');
+            wchar32 whitespace = U' ';
             insertCharAtPosList(&EC.List, whitespace, EC.Cursor.Y, EC.Cursor.X);
             EC.Cursor.X++;
             for(; EC.Cursor.X % TAB_SPACE_SIZE; ++EC.Cursor.X){
                 insertCharAtPosList(&EC.List, whitespace, EC.Cursor.Y, EC.Cursor.X);
-                EC.Cursor.X++;
             }
         }break;
 
@@ -867,10 +889,10 @@ static void executeCommand(command_type ct){
             wchar32 *start = current->data + startCharOffset;
             i32 skipCount;
 
-            if(start[0].full == U' '){
-                skipCount = CountToNotChar32(current, EC.Cursor.X, WCHAR32(' '));
+            if(start[0] == U' '){
+                skipCount = CountToNotChar32(current, EC.Cursor.X, U' ');
             }else{
-                skipCount = CountToChar32(current, EC.Cursor.X, WCHAR32(' '));
+                skipCount = CountToChar32(current, EC.Cursor.X, U' ');
             }
 
             EC.Cursor.X += skipCount;
@@ -882,10 +904,10 @@ static void executeCommand(command_type ct){
             wchar32 *start = current->data + startCharOffset;
             i32 skipCount;
 
-            if((start - 1 < current->data) || (start[-1].full == U' ')){
-                skipCount = CountBackToNotChar32(current, EC.Cursor.X, WCHAR32(' '));
+            if((start - 1 < current->data) || (start[-1] == U' ')){
+                skipCount = CountBackToNotChar32(current, EC.Cursor.X, ' ');
             }else{
-                skipCount = CountBackToChar32(current, EC.Cursor.X, WCHAR32(' '));
+                skipCount = CountBackToChar32(current, EC.Cursor.X, ' ');
             }
 
             EC.Cursor.X -= skipCount;
@@ -925,7 +947,7 @@ static void executeCommand(command_type ct){
     }    
 }
 
-int main(int argc, char *argv[], char *envp[]){  
+int main(int argc, char *argv[], char *envp[]){
     term_PrepareConsole();
     GlobalWriteBuffer = StringCreateA(4096);
     CLEAR_FLAG_GLOBAL(0xffffffff);
@@ -958,6 +980,7 @@ int main(int argc, char *argv[], char *envp[]){
         updateStatus();
 
         if(TEST_FLAG_LOCAL(FLAG_RENDER)){
+            syntaxHighlight(&EC.List);
             editorRefreshScreen();
             CLEAR_FLAG_LOCAL(FLAG_RENDER);
         }

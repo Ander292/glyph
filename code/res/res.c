@@ -1,14 +1,188 @@
 #include "res.h"
 #include "command_types.h"
+#include "escape.h"
 
-const char * const Formats[] = {
+const char *const token_escape[] = {
+    ESC_RESET_TEXT_ATTRIBUTES,
+    ESC_TEXT_COLOR_BLUE,
+    ESC_TEXT_COLOR_MAGENTA,
+    ESC_TEXT_COLOR_YELLOW_BRIGHT,
+    ESC_TEXT_COLOR_GREEN_BRIGHT,
+    ESC_TEXT_COLOR_GREEN,
+    ESC_TEXT_COLOR_CYAN,
+    ESC_TEXT_COLOR_MAGENTA_BRIGHT,
+    ESC_BACKGROUND_COLOR_GREEN_BRIGHT,
+    ESC_TEXT_COLOR_RED_BRIGHT,
+    ESC_BACKGROUND_COLOR_WHITE_BRIGHT,
+};
+const u32 token_escape_len = sizeof(token_escape) / sizeof(char*);
+
+const char *const keyword1_a[] = {
+    "while",
+    "for",
+    "if",
+    "else",
+    "switch",
+    "case",
+    "default",
+    "return",
+    "break",
+    "continue"
+};
+const u32 keyword1_a_count = sizeof(keyword1_a) / sizeof(char*);
+
+const char *const keyword2_a[] = {
+    "int",
+    "short",
+    "char",
+    "long",
+    "unsigned",
+    "signed",
+    "static",
+    "void",
+    "float",
+    "double",
+    "inline",
+    "auto",
+    "const",
+
+    "int8",
+    "int16",
+    "int32",
+    "int64",
+    "uint8",
+    "uint16",
+    "uint32",
+    "uint64",
+
+    "int8_t",
+    "int16_t",
+    "int32_t",
+    "int64_t",
+    "uint8_t",
+    "uint16_t",
+    "uint32_t",
+    "uint64_t",
+    "size_t",
+
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "u8",
+    "u16",
+    "u32",
+    "u64"
+};
+
+const u32 keyword2_a_count = sizeof(keyword2_a) / sizeof(char*);
+
+const char *const preprocesorKeyword_a[] = {
+    "#define",
+    "#include",
+    "#undef",
+    "#if",
+    "#ifdef",
+    "#ifndef",
+    "#else",
+    "#elif",
+    "#region",
+    "#endregion",
+    "#pragma",
+    "#endif",
+    "#warning",
+    "#error"
+};
+
+const u32 preprocesorKeyword_a_count = sizeof(preprocesorKeyword_a) / sizeof(char*);
+
+const char32_t *const keyword1_u32[] = {
+    U"while",
+    U"for",
+    U"if",
+    U"else",
+    U"switch",
+    U"case",
+    U"default",
+    U"return",
+    U"break",
+    U"continue"
+};
+
+const u32 keyword1_u32_count = sizeof(keyword1_u32) / sizeof(char32_t*);
+
+const char32_t *const keyword2_u32[] = {
+    U"int",
+    U"short",
+    U"char",
+    U"long",
+    U"unsigned",
+    U"signed",
+    U"static",
+    U"void",
+    U"float",
+    U"double",
+    U"inline",
+    U"auto",
+    U"const",
+
+    U"int8",
+    U"int16",
+    U"int32",
+    U"int64",
+    U"uint8",
+    U"uint16",
+    U"uint32",
+    U"uint64",
+
+    U"int8_t",
+    U"int16_t",
+    U"int32_t",
+    U"int64_t",
+    U"uint8_t",
+    U"uint16_t",
+    U"uint32_t",
+    U"uint64_t",
+    U"size_t",
+
+    U"i8",
+    U"i16",
+    U"i32",
+    U"i64",
+    U"u8",
+    U"u16",
+    U"u32",
+    U"u64"
+};
+const u32 keyword2_u32_count = sizeof(keyword2_u32) / sizeof(char32_t*);
+
+const char32_t *const preprocesorKeyword_u32[] = {
+    U"#define",
+    U"#include",
+    U"#undef",
+    U"#if",
+    U"#ifdef",
+    U"#ifndef",
+    U"#else",
+    U"#elif",
+    U"#region",
+    U"#endregion",
+    U"#pragma",
+    U"#endif",
+    U"#warning",
+    U"#error"
+};
+const u32 preprocesorKeyword_u32_count = sizeof(preprocesorKeyword_u32) / sizeof(char32_t*);
+
+
+const char *const Formats[] = {
     "UTF8",
     "UTF16",
     "BIN",
     "UNUSED"
 };
 
-const char * const EndLine[] = {
+const char *const EndLine[] = {
     "CRLF", // \r\n
     "LF"    // \n only
 };
@@ -34,7 +208,7 @@ const char const helpFull[] =
 
 const u64 helpFullLength = sizeof(helpFull);
 
-const command_type default_keybind[COUNT_OF_KEYBINDS] = {
+const command_type const default_keybind[COUNT_OF_KEYBINDS] = {
     [KEY_CTRL_Q] = COMMAND_QUIT,
     [KEY_CTRL_E] = COMMAND_OPEN_HELP,
     [KEY_CTRL_S] = COMMAND_SAVE,

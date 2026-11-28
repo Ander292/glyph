@@ -50,14 +50,13 @@ typedef enum insertion_flags{
     INS_MODE_INCREASE_SIZE = 2  // will allow characters to be inserted beyond the [0, len] range
 } insertion_flags;
 
-extern char *token_escape[];
 
-#define isSeparator(c) ((c) == ' ' || (c) == 0 || (c) == ':' || (c) == '.' || (c) == ';')
-#define isParanthesis(c) ((c) == '(' || (c) == ')' || (c) == '{' || (c) == '}' || (c) == '[' || (c) == ']')
+#define isSeparator(c) ((c) == U' ' || (c) == 0 || (c) == U':' || (c) == U'.' || (c) == U';')
+#define isParanthesis(c) ((c) == U'(' || (c) == U')' || (c) == U'{' || (c) == U'}' || (c) == U'[' || (c) == U']')
 #define sepOrPar(c) (isSeparator(c) || isParanthesis(c))
-#define isUppercase(c) ((c) >= 'A' && (c) <= 'Z')
-#define isSpecial(c) ((c) == '_' || (c) == '$')
-#define isDigit(c) ((c) >= '0' && (c) <= '9')
+#define isUppercase(c) ((c) >= U'A' && (c) <= U'Z')
+#define isSpecial(c) ((c) == U'_' || (c) == U'$')
+#define isDigit(c) ((c) >= U'0' && (c) <= U'9')
 #define upOrSpecial(c) (isUppercase(c) || isSpecial(c))
 
 /* universal functions */
@@ -98,6 +97,8 @@ static inline i8 GetTokenAtPosA(string_a *str, u32 index){
 bool32 InsertCharAtPosA(string_a *str, char c, u32 index, u32 insertionMode);
 bool32 DeleteCharFromPosA(string_a *str, u32 pos);
 bool32 TerminateStringOnPosA(string_a *str, u32 pos);
+
+#define NullTerminateStringA(strBuffer) TerminateStringOnPosA(strBuffer, strBuffer->len)
 
 string_a *CreateCopyA(string_a *str, u32 startOffest, u32 endOffset);
 
@@ -151,6 +152,7 @@ static inline i8 GetTokenAtPos(void *str_raw, u32 index){
 bool32 InsertCharAtPosU32(string_u32 *str, wchar32 c, u32 index, u32 insertionMode);
 bool32 DeleteCharFromPosU32(string_u32 *str, u32 pos);
 bool32 TerminateStringOnPosU32(string_u32 *str, u32 pos);
+#define NullTerminateStringU32(strBuffer) TerminateStringOnPosU32(strBuffer, strBuffer->len)
 
 string_u32 *CreateCopyU32(string_u32 *str, u32 startOffest, u32 endOffset);
 
@@ -161,10 +163,10 @@ void PrintBufferU32(string_u32 *str);
 void ConcatStringsU32(string_u32 *dest, const string_u32 *src);
 void ConcatStringsExU32(string_u32 *dest, const string_u32 *src, u32 startOffset, u32 endOffset);
 
-i32 ResetHighlight(string *str, i32 unused);
-i32 SyntaxHighlightString(string *str, i32 flags);
-i32 SyntaxHighlightStringKeyword(string *str, i32 flags);
-i32 SyntaxForce(string *str, i32 offset, token_type tokenId, i32 len);
+i32 ResetHighlightU32(string *strr, i32 unused);
+i32 SyntaxHighlightStringU32(string *strr, i32 flags);
+i32 SyntaxHighlightStringKeywordU32(string *strr, i32 flags);
+i32 SyntaxForceU32(string *strr, i32 offset, token_type tokenId, i32 len);
 
 #define SYNTAX_MULTILINE_COMMENT 0x1
 #define SYNTAX_WAS_EXTENDED 0x2
@@ -176,4 +178,6 @@ i32 CountBackToNotChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
 i32 CountBackToChar32(string_u32 *str, u32 startPos, wchar32 targetChar);
 i32 CountToChar32(string_u32 *str, i32 startPos, wchar32 targetChar);
 
+char32_t *StrstrU32(const char32_t *haystack, const char32_t *needle);
+size_t StrlenU32(const char32_t *s);
 #endif /* STRING_BUFFER_H */

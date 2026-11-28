@@ -2,6 +2,7 @@
 #define TYPES_H
 
 #include <stdint.h>
+#include <uchar.h>
 
 #define ATR_FALLTROUGHT __attribute__((fallthrough));
 #define MIN_VAL(a, b) (a < b ? a : b)
@@ -31,17 +32,21 @@ typedef struct int_pair{
     i32 X, Y;
 } int_pair;
 
+#if 0
 typedef union wchar32{
-    u8 bytes[4];
-    u32 full;
+    //u8 bytes[4];
+    char32_t full;
 } wchar32;
 
 typedef union wchar16{
     u8 bytes[2];
-    u16 full;
+    char16_t full;
 } wchar16;
-
 #define WCHAR32(s) (wchar32){.full = (u32)(s)}
+#else
+typedef char32_t wchar32;
+typedef char16_t wchar16;
+#endif
 
 static inline u32 powerOfTwoRoundUp(u32 num){
     if(num == 1) return 2;
