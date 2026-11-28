@@ -132,58 +132,61 @@ static void executeCommand(command_type ct){
                 postEditorMessage(messageDurationDefault, "Canceled");
             }
         }break;
-        case COMMAND_FIND: {
-#if 0
+        case COMMAND_FIND: { // Search
             SEARCH_REPEAT:
-            // Search (Ctrl+f)
-            string_a *Result = editorPromtHeader("Find:");
-            if(Result){
+            string_a *result = editorPromtHeader("Find:");
+            
+            if(result){
+                string_u32 *result32 = BufferCreateFromStringU32(result->data, result->len);
+                NullTerminateStringU32(result32);
+
                 i32 matchCount = 0;
                 int_pair oldCursor = EC.Cursor;
                 do{
                     list_node *p = EC.List.head;
                     for(i32 i = 0; i < EC.List.size; i++, p = p->next){
                         string_u32 *focusedStr = (string_u32 *)p->str;
-                        char *resultPtr = strstr(focusedStr->data, Result->data);
+                        wchar32 *resultPtr = StrstrU32(focusedStr->data, result32->data);
+                        
                         while(resultPtr != NULL){
                             matchCount++;
                             i32 xOffset = resultPtr - focusedStr->data;
                             EC.Cursor.X = xOffset;
                             EC.Cursor.Y = i;
 
-                            FixCursorPossition();
-                            if(HAS_FLAG(FLAG_SYNTAX))
+                            fixCursorPossition();
+                            if(TEST_FLAG_LOCAL(FLAG_SYNTAX))
                                 syntaxHighlight(&EC.List);
                             else
                                 resetSyntaxHighlight(&EC.List);
 
                             /* Highlighting the string */
-                            int xOffsetInChars;
-                            int charLen = stringByteToCharCount(p->str, xOffset, 0, Result->byteLen, &xOffsetInChars);
-                            syntaxForce(p->str, xOffsetInChars, TOKEN_SEARCH_HIGHTLIGHT, charLen);
+                            
+                            SyntaxForceU32(p->str, xOffset, TOKEN_SEARCH_HIGHTLIGHT, result32->len);
 
                             editorRefreshScreen();
 
-                            character_input ci;
+                            read_result rr;
                             do{
-                                ci = pollInput();
-                            }while(ci.byteCount == 0);
+                                rr = io_ReadConsoleInput();
+                            }while(rr.size == 0);
 
                             switch(*rr.bytes){
                                 case '\r':
                                     // Search further
-                                    resultPtr = strstr(resultPtr + Result->byteLen, Result->data);
+                                    resultPtr = StrstrU32(resultPtr + result32->len, result32->data);
                                     break;
                                 case 'r':
                                     // Return to old possition
                                     EC.Cursor = oldCursor;
                                     ATR_FALLTROUGHT;
                                 case CTRL_KEY('f'):
-                                    stringFreeHeap(Result);
+                                    StringFreeHeap(result);
                                     goto SEARCH_REPEAT;
                                     break;
                                 default:
                                     // Break search
+                                    SyntaxForceU32(p->str, xOffset, TOKEN_NEUTRAL, result32->len);
                                     resultPtr = NULL;
                                     goto WHILE_END;
                                     break;
@@ -193,15 +196,17 @@ static void executeCommand(command_type ct){
 
                 }while(matchCount);
                 WHILE_END:
-                if(matchCount)
+                if(matchCount){
                     clearEditorMessage();
-                else
+                }else{
                     postEditorMessage(messageDurationDefault, "No matches");
-                    stringFreeHeap(Result);
+
+                    StringFreeHeap((string*)result32);
+                }
             }else{
                 postEditorMessage(messageDurationDefault, "Canceled");
             }
-#endif
+            StringFreeHeap((string*)result);
         }break;
         case COMMAND_SWITCH_CHARSET: break;
         case COMMAND_TOGGLE_READONLY: TOGGLE_FLAG_LOCAL(FLAG_READONLY); break;

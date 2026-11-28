@@ -31,6 +31,10 @@ static inline void syntaxHighlight(string_list *list){
     ListForeachStringEx(list, EC.Offset.Y, GlobalConsoleInfo.Rows, SyntaxHighlightStringKeywordU32);
 }
 
+static inline void resetSyntaxHighlight(string_list *list){
+    ListForeachString(list, ResetHighlightU32);
+}
+
 static inline void switchEditorContext(u8 bufferID){
     SET_EDITOR_ID(bufferID);
     if(!TEST_FLAG_LOCAL(FLAG_INITIALIZED)){
