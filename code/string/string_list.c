@@ -87,7 +87,7 @@ static list_node *getNodeAtIndex(string_list *list, u32 index){
     list_node *q = list->head;
     for(u32 i = 0;(i < index) && (q != NULL); q = q->next, i++);
 
-    if(q == NULL) Die("(getStringAtIndex) q was NULL");
+    if(q == NULL) Die("(getNodeAtIndex) q was NULL");
     return q;
 }
 

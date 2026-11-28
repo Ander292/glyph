@@ -132,12 +132,12 @@ i64 io_FileRead(const char *filePath, char *destBuffer, u32 maxBufferSize){
     HANDLE hInFile = CreateFileA(filePath, GENERIC_READ, 0, NULL, OPEN_ALWAYS, 
         FILE_ATTRIBUTE_NORMAL, NULL);
     if(hInFile == INVALID_HANDLE_VALUE){
-        //WIN32_ErrorExit("CreateFile failed for path: %s", filePath);
+        //Die("CreateFile failed for path: %s", filePath);
         return -1;
     }
     DWORD Feedback;
     if(!ReadFile(hInFile, destBuffer, maxBufferSize, &Feedback, NULL)){
-        //WIN32_ErrorExit("Read file failed (requested %u, read %u bytes)", maxBufferSize, Feedback);
+        //Die("Read file failed (requested %u, read %u bytes)", maxBufferSize, Feedback);
         return -1;
     }
 
